@@ -1,0 +1,14 @@
+{
+  "businessName": "Espaço Corpo & Mente",
+  "businessType": "studio de pilates",
+  "city": "Porto Alegre",
+  "neighbourhood": "Moinhos de Vento",
+  "services": [
+    {"name": "Aula avulsa", "priceBRL": 80},
+    {"name": "Pacote mensal 2x/semana", "priceBRL": 480},
+    {"name": "Avaliação postural", "priceBRL": 120}
+  ],
+  "targetAudience": "mulheres 30-55 que buscam qualidade de vida",
+  "brandVibe": "premium",
+  "quirks": ["turmas de no máximo 4 alunas", "aula experimental grátis"]
+}

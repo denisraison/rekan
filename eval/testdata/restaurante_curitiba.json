@@ -1,0 +1,14 @@
+{
+  "businessName": "Cantina da Nonna Rosa",
+  "businessType": "restaurante italiano",
+  "city": "Curitiba",
+  "neighbourhood": "Santa Felicidade",
+  "services": [
+    {"name": "Almoço executivo", "priceBRL": 45},
+    {"name": "Rodízio de massas", "priceBRL": 79},
+    {"name": "Jantar à la carte", "priceBRL": 0}
+  ],
+  "targetAudience": "famílias e casais",
+  "brandVibe": "family",
+  "quirks": ["receitas da avó italiana", "forno a lenha original de 1982"]
+}

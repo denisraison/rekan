@@ -1,0 +1,14 @@
+{
+  "businessName": "Doces da Flavinha",
+  "businessType": "confeitaria",
+  "city": "Belo Horizonte",
+  "neighbourhood": "Savassi",
+  "services": [
+    {"name": "Bolo personalizado", "priceBRL": 180},
+    {"name": "Kit festa 50 doces", "priceBRL": 250},
+    {"name": "Brownie artesanal (un.)", "priceBRL": 8}
+  ],
+  "targetAudience": "mulheres 25-50 que organizam festas",
+  "brandVibe": "casual",
+  "quirks": ["tudo sem conservante", "entrega própria em BH"]
+}

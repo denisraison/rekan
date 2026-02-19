@@ -1,0 +1,14 @@
+{
+  "businessName": "Smash do Rafa",
+  "businessType": "hamburgueria",
+  "city": "Goiânia",
+  "neighbourhood": "Setor Bueno",
+  "services": [
+    {"name": "Smash burger simples", "priceBRL": 28},
+    {"name": "Smash burger duplo", "priceBRL": 38},
+    {"name": "Combo (burger + fritas + milk)", "priceBRL": 52}
+  ],
+  "targetAudience": "jovens 18-30",
+  "brandVibe": "casual",
+  "quirks": ["blend secreto de carnes", "molho da casa feito diariamente"]
+}

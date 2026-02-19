@@ -1,0 +1,14 @@
+{
+  "businessName": "Ateliê de Unhas da Camila",
+  "businessType": "nail designer",
+  "city": "Recife",
+  "neighbourhood": "Boa Viagem",
+  "services": [
+    {"name": "Unha em fibra de vidro", "priceBRL": 150},
+    {"name": "Banho de gel", "priceBRL": 90},
+    {"name": "Spa das mãos", "priceBRL": 70}
+  ],
+  "targetAudience": "mulheres 18-40",
+  "brandVibe": "premium",
+  "quirks": ["ambiente climatizado com cafezinho", "só atende com agendamento pelo WhatsApp"]
+}

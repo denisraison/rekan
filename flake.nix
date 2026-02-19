@@ -18,6 +18,7 @@
             gopls
             nodejs
             pnpm
+            netcat-gnu
           ];
 
           shellHook = ''

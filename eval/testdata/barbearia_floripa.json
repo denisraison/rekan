@@ -1,0 +1,14 @@
+{
+  "businessName": "Barbearia Dom Corte",
+  "businessType": "barbearia",
+  "city": "Florianópolis",
+  "neighbourhood": "Centro",
+  "services": [
+    {"name": "Corte masculino", "priceBRL": 50},
+    {"name": "Barba", "priceBRL": 35},
+    {"name": "Combo corte + barba", "priceBRL": 75}
+  ],
+  "targetAudience": "homens 18-45",
+  "brandVibe": "premium",
+  "quirks": ["cerveja artesanal de cortesia", "ambiente com sinuca"]
+}

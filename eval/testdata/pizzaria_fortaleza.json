@@ -1,0 +1,14 @@
+{
+  "businessName": "Pizza do Seu Chico",
+  "businessType": "pizzaria",
+  "city": "Fortaleza",
+  "neighbourhood": "Meireles",
+  "services": [
+    {"name": "Pizza grande", "priceBRL": 55},
+    {"name": "Pizza broto", "priceBRL": 35},
+    {"name": "Combo família (2 grandes + refri)", "priceBRL": 120}
+  ],
+  "targetAudience": "famílias e jovens",
+  "brandVibe": "family",
+  "quirks": ["massa feita na hora", "delivery próprio no bairro"]
+}
