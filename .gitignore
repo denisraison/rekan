@@ -11,6 +11,7 @@ web/.svelte-kit/
 web/build/
 
 # Eval
+eval/eval
 eval/runs/
 
 # Secrets
