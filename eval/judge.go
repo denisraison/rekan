@@ -70,13 +70,27 @@ func RunJudge(ctx context.Context, name string, profile BusinessProfile, content
 }
 
 func RunAllJudges(ctx context.Context, profile BusinessProfile, content string) ([]JudgeResult, error) {
-	results := make([]JudgeResult, 0, len(judgeNames))
-	for _, name := range judgeNames {
-		r, err := RunJudge(ctx, name, profile, content)
-		if err != nil {
-			return nil, err
+	type judgeOut struct {
+		idx    int
+		result JudgeResult
+		err    error
+	}
+
+	ch := make(chan judgeOut, len(judgeNames))
+	for i, name := range judgeNames {
+		go func(i int, name string) {
+			r, err := RunJudge(ctx, name, profile, content)
+			ch <- judgeOut{idx: i, result: r, err: err}
+		}(i, name)
+	}
+
+	results := make([]JudgeResult, len(judgeNames))
+	for range judgeNames {
+		out := <-ch
+		if out.err != nil {
+			return nil, out.err
 		}
-		results = append(results, r)
+		results[out.idx] = out.result
 	}
 	return results, nil
 }

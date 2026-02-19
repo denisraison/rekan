@@ -1,4 +1,4 @@
-.PHONY: dev dev-api dev-web
+.PHONY: dev dev-api dev-web eval eval-judges
 
 dev:
 	$(MAKE) dev-api &
@@ -12,3 +12,9 @@ dev-api:
 
 dev-web:
 	cd web && pnpm dev
+
+eval:
+	set -a && . ./.env && set +a && cd eval && go run ./cmd/eval
+
+eval-judges:
+	set -a && . ./.env && set +a && cd eval && go run ./cmd/eval --judges

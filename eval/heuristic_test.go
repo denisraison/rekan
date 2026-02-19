@@ -182,6 +182,20 @@ func TestCheckCaptionLength(t *testing.T) {
 			t.Error("2201 chars should fail")
 		}
 	})
+	t.Run("multi post under limit", func(t *testing.T) {
+		content := strings.Repeat("a", 1000) + "\n---\n" + strings.Repeat("b", 1000) + "\n---\n" + strings.Repeat("c", 1000)
+		r := checkCaptionLength(content)
+		if !r.Pass {
+			t.Error("3 posts each under 2200 should pass")
+		}
+	})
+	t.Run("multi post one over", func(t *testing.T) {
+		content := strings.Repeat("a", 500) + "\n---\n" + strings.Repeat("b", 2201)
+		r := checkCaptionLength(content)
+		if r.Pass {
+			t.Error("should fail when one post exceeds 2200")
+		}
+	})
 }
 
 func TestCheckProductionNote(t *testing.T) {

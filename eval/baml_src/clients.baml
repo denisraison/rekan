@@ -7,3 +7,13 @@ client<llm> JudgeClient {
     max_tokens 1024
   }
 }
+
+client<llm> GeneratorClient {
+  provider openrouter
+  options {
+    model "google/gemini-3-flash-preview"
+    api_key env.OPENROUTER_API_KEY
+    temperature 0.7
+    max_tokens 4096
+  }
+}

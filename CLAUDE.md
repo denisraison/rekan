@@ -19,6 +19,8 @@ cd api && go run .             # PocketBase only (:8090)
 cd web && pnpm dev             # SvelteKit only
 cd web && pnpm check           # typecheck
 cd web && pnpm build           # production build
+make eval                      # heuristics only (~5s, needs OPENROUTER_API_KEY)
+make eval-judges               # heuristics + LLM judges (~25s)
 ```
 
 ## Project structure
@@ -26,8 +28,19 @@ cd web && pnpm build           # production build
 ```
 api/           Go backend (PocketBase)
 web/           SvelteKit frontend
+eval/          Eval pipeline (heuristics, LLM judges, content generation)
 flake.nix      Dev shell (Go, Node, pnpm)
 ```
+
+## Prompt optimization loop
+
+See `eval/CLAUDE.md` for full eval pipeline docs. The short version:
+
+1. `make eval-judges`, identify the weakest criterion
+2. Pick a failing business, run verbose to read judge reasoning
+3. Edit `eval/baml_src/content.baml`
+4. `make eval-judges`, diff the two runs
+5. Keep or revert. Max 5 cycles per session.
 
 ## Conventions
 

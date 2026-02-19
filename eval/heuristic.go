@@ -196,14 +196,32 @@ func containsWord(text, word string) bool {
 
 const maxCaptionLength = 2200
 
+// splitPosts splits multi-post output on "---" separators.
+var postSepRe = regexp.MustCompile(`(?m)^-{3,}\s*$`)
+
+func splitPosts(content string) []string {
+	parts := postSepRe.Split(content, -1)
+	posts := make([]string, 0, len(parts))
+	for _, p := range parts {
+		p = strings.TrimSpace(p)
+		if p != "" {
+			posts = append(posts, p)
+		}
+	}
+	return posts
+}
+
 func checkCaptionLength(content string) CheckResult {
-	if len([]rune(content)) <= maxCaptionLength {
-		return CheckResult{Name: "caption_length", Pass: true}
+	posts := splitPosts(content)
+	for _, p := range posts {
+		if len([]rune(p)) > maxCaptionLength {
+			return CheckResult{
+				Name:   "caption_length",
+				Reason: "a post exceeds 2200 characters",
+			}
+		}
 	}
-	return CheckResult{
-		Name:   "caption_length",
-		Reason: "caption exceeds 2200 characters",
-	}
+	return CheckResult{Name: "caption_length", Pass: true}
 }
 
 func checkProductionNote(content string) CheckResult {

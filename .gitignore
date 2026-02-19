@@ -10,5 +10,8 @@ node_modules/
 web/.svelte-kit/
 web/build/
 
+# Eval
+eval/runs/
+
 # Secrets
 .env

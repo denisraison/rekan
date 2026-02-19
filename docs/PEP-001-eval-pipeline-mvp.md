@@ -1,6 +1,6 @@
 # PEP-001: Eval Pipeline MVP
 
-**Status:** Wave 2 Complete
+**Status:** Wave 3 Complete
 **Date:** 2026-02-19
 
 ## Context
@@ -124,10 +124,14 @@ Document in CLAUDE.md or a skill file. The loop is:
 
 `make eval-judges` against the test profiles produces a readable summary table. The system prompt exists and generates content that passes at least 50% of heuristic checks on the first try.
 
+### Status: Done (2026-02-19)
+
+Generation prompt in `eval/baml_src/content.baml` with `GeneratorClient` (temp 0.7, 4096 tokens). Thin wrapper in `eval/generate.go`. CLI entrypoint in `eval/cmd/eval/main.go` with `--judges`, `--verbose`, `--profile`, `--from-run`, `--diff` flags. Parallel generation and judging across all profiles (~25s with judges). Per-post caption length checking. Run persistence to `runs/` with full content, check results, and judge reasoning. Run diff for before/after comparison. Optimization loop documented in `eval/CLAUDE.md`.
+
 ## Consequences
 
 - Prompt iteration becomes measurable. Every change has a before/after comparison.
-- The eval runs in under 2 minutes with judges, under 1 second without. Cheap enough to never skip.
+- The eval runs in ~25 seconds with judges (parallel), ~5 seconds without. Cheap enough to never skip.
 - We're locked into BAML for prompt definitions early. This is intentional since it gives us typed outputs and makes judges portable across model providers later.
 - No multi-LLM jury means we have single-model bias in evaluation. Acceptable for MVP since we're iterating fast, not shipping to production yet.
 - Test profiles are generated once and committed. They'll be replaced with real client data after launch.
