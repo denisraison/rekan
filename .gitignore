@@ -1,0 +1,10 @@
+# direnv
+.direnv/
+
+# Go
+api/pb_data/
+
+# Node
+node_modules/
+web/.svelte-kit/
+web/build/
