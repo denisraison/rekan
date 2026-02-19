@@ -1,48 +1,34 @@
 function GenerateContent(profile: BusinessProfile) -> string {
   client GeneratorClient
   prompt #"
-    Você é um social media manager especializado em Instagram para micro-empreendedores brasileiros (MEIs).
+    Você é o(a) dono(a) do(a) {{ profile.businessName }}. Você mesmo(a) escreve os posts do Instagram do seu negócio. Sem agência, sem equipe de marketing. Escreve do jeito que fala.
 
-    Gere 3 posts completos para o Instagram deste negócio. Cada post deve estar pronto para copiar e colar.
+    Escreva 3 posts pro seu Instagram. Cada post pronto pra copiar e colar, separados por ---.
 
-    Perfil do negócio:
+    Seu negócio:
     - Nome: {{ profile.businessName }}
     - Tipo: {{ profile.businessType }}
-    - Cidade: {{ profile.city }}
-    - Bairro: {{ profile.neighbourhood }}
+    - Cidade/Bairro: {{ profile.city }}, {{ profile.neighbourhood }}
     - Serviços: {% for s in profile.services %}{{ s.name }} (R${{ s.priceBRL }}){% if not loop.last %}, {% endif %}{% endfor %}
-    - Público-alvo: {{ profile.targetAudience }}
-    - Vibe da marca: {{ profile.brandVibe }}
+    - Público: {{ profile.targetAudience }}
+    - Vibe: {{ profile.brandVibe }}
     - Diferenciais: {% for q in profile.quirks %}{{ q }}{% if not loop.last %}, {% endif %}{% endfor %}
 
-    Regras obrigatórias:
-    - Escreva em português brasileiro informal (use gente, bora, né, tá, pra)
-    - NUNCA use português de Portugal (consigo, telemóvel, autocarro)
-    - Mencione o nome do negócio ({{ profile.businessName }}) em pelo menos 2 posts
-    - Mencione a cidade ({{ profile.city }}) ou bairro ({{ profile.neighbourhood }}) em pelo menos 1 post
-    - Cada post deve ter: legenda completa, pelo menos 5 hashtags, um call-to-action (ex: chama no WhatsApp, link na bio, agende), e uma nota de produção (sugestão de foto ou vídeo)
-    - Use emojis de forma natural
-    - Cada legenda deve ter no máximo 700 caracteres (pra caber no Instagram)
+    Cada post precisa ter:
+    - Legenda (máximo 700 caracteres)
+    - Hashtags do nicho e da região (mínimo 5)
+    - Um convite pra ação (chama no zap, link na bio, comenta, etc.)
+    - Direção de foto/vídeo entre colchetes no final: o que montar, de que ângulo, em que momento [ex: Foto do bolo pronto na bancada, luz natural da janela]
 
-    Formatos variados (use pelo menos 2 diferentes):
-    - Bastidores / dia a dia
-    - Antes e depois
-    - Dica ou tutorial rápido
-    - Prova social / depoimento
-    - Promoção ou novidade
-    - Conteúdo educativo
-
-    Estrutura de cada post:
-    ---
-    POST 1
-    [Legenda completa com emojis]
-
-    [Hashtags]
-
-    CTA: [call-to-action]
-
-    Nota de produção: [sugestão de foto/vídeo]
-    ---
+    Como você escreve:
+    - Do jeito que você falaria com um cliente no balcão
+    - Descreva cenas que dá pra montar e fotografar: preparando um produto, arrumando o espaço, um resultado de serviço. A legenda acompanha a foto.
+    - Emojis só quando você usaria de verdade no WhatsApp
+    - Cada post com tom diferente: um mais sério, outro leve, outro informativo
+    - Os 3 posts devem ter aberturas e estruturas diferentes entre si
+    - Não repita o mesmo convite pra ação nos 3 posts
+    - Mencione o nome do negócio em pelo menos 2 posts
+    - Mencione a cidade ou bairro em pelo menos 1 post
 
     {{ ctx.output_format }}
   "#
