@@ -123,9 +123,11 @@ func checkCTA(content string) CheckResult {
 	patterns := []string{
 		"chama no dm",
 		"link na bio",
+		"link da bio",
 		"agende",
 		"entre em contato",
 		"manda mensagem",
+		"manda um",
 		"fale conosco",
 		"chama no whatsapp",
 		"chama no zap",
@@ -134,9 +136,14 @@ func checkCTA(content string) CheckResult {
 		"aproveite",
 		"reserve",
 		"venha conhecer",
+		"vem conhecer",
 		"peça já",
 		"faça seu pedido",
 		"clique no link",
+		"clica no link",
+		"comenta aqui",
+		"no direct",
+		"salve no zap",
 	}
 	for _, p := range patterns {
 		if strings.Contains(lower, p) {
