@@ -2,9 +2,13 @@
 .direnv/
 
 # Go
+api/api
 api/pb_data/
 
 # Node
 node_modules/
 web/.svelte-kit/
 web/build/
+
+# Secrets
+.env

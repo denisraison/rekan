@@ -1,6 +1,6 @@
 # PEP-001: Eval Pipeline MVP
 
-**Status:** Wave 1 Complete
+**Status:** Wave 2 Complete
 **Date:** 2026-02-19
 
 ## Context
@@ -85,6 +85,10 @@ Create `eval/judge.go`. Takes a business profile, generated content, and judge n
 ### Gate
 
 `go test ./eval/...` passes. A test calls each judge with a known-good and known-bad sample, verifies the judges return sensible verdicts. Does not need to be deterministic (LLM output varies), but the known-bad sample should fail at least 3 of 5 judges consistently.
+
+### Status: Done (2026-02-19)
+
+Implemented with BAML v0.219.0. Five judges defined in `eval/baml_src/judges.baml` using OpenRouter with Gemini 2.5 Flash. Generated Go client in `eval/baml_client/`. Judge runner in `eval/judge.go` with `RunJudge` and `RunAllJudges`. Six test cases in `eval/judge_test.go` (skip gracefully without `OPENROUTER_API_KEY`). All heuristic tests still pass (no regression). Added `$GOPATH/bin` to PATH in `flake.nix` devshell for `baml-cli` and `goimports`.
 
 ## Wave 3: Eval CLI and Optimization Loop
 

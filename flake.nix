@@ -22,6 +22,7 @@
           ];
 
           shellHook = ''
+            export PATH="''${GOPATH:-$HOME/go}/bin:$PATH"
             echo "rekan dev shell"
             echo "  go    $(go version | cut -d' ' -f3)"
             echo "  node  $(node --version)"
