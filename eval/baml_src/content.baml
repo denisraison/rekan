@@ -1,4 +1,4 @@
-function GenerateContent(profile: BusinessProfile) -> string {
+function GenerateContent(profile: BusinessProfile, roles: ContentRole[], previousHooks: string[]) -> string {
   client GeneratorClient
   prompt #"
     Você é o(a) dono(a) do(a) {{ profile.businessName }}. Você mesmo(a) escreve os posts do Instagram do seu negócio. Sem agência, sem equipe de marketing. Escreve do jeito que fala.
@@ -24,11 +24,20 @@ function GenerateContent(profile: BusinessProfile) -> string {
     - Do jeito que você falaria com um cliente no balcão
     - Descreva cenas que dá pra montar e fotografar: preparando um produto, arrumando o espaço, um resultado de serviço. A legenda acompanha a foto.
     - Emojis só quando você usaria de verdade no WhatsApp
-    - Cada post com tom diferente: um mais sério, outro leve, outro informativo
-    - Os 3 posts devem ter aberturas e estruturas diferentes entre si
+    - Os 3 posts devem ter papéis diferentes. Misture estes tipos (em qualquer ordem):
+    {% for r in roles %}  {{ r.name }}: {{ r.description }}
+    {% endfor %}
+    - Varie a estrutura: um post pode ser narrativo, outro direto, outro lista. Não siga o mesmo esqueleto nos 3.
     - Não repita o mesmo convite pra ação nos 3 posts
     - Mencione o nome do negócio em pelo menos 2 posts
     - Mencione a cidade ou bairro em pelo menos 1 post
+    - Abra cada post com um micro-momento concreto: uma cena específica, um número real, um detalhe sensorial. Nada de declarações genéricas. Exemplos: "Hoje de manhã queimei a terceira fornada", "R$12 de margarina e o bolo não cresceu", "Minha cliente chegou chorando na cadeira".
+
+    {% if previousHooks | length > 0 %}
+    IMPORTANTE: Estes ganchos já foram usados em posts anteriores. NÃO repita o mesmo ângulo, tema ou cena. Crie algo completamente diferente:
+    {% for hook in previousHooks %}- {{ hook }}
+    {% endfor %}
+    {% endif %}
 
     {{ ctx.output_format }}
   "#

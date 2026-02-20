@@ -21,7 +21,7 @@ import (
 	"github.com/denisraison/rekan/eval/baml_client/baml_client/types"
 )
 
-func GenerateContent(ctx context.Context, profile types.BusinessProfile, opts ...CallOptionFunc) (string, error) {
+func GenerateContent(ctx context.Context, profile types.BusinessProfile, roles []types.ContentRole, previousHooks []string, opts ...CallOptionFunc) (string, error) {
 
 	var callOpts callOption
 	for _, opt := range opts {
@@ -37,7 +37,7 @@ func GenerateContent(ctx context.Context, profile types.BusinessProfile, opts ..
 	}
 
 	args := baml.BamlFunctionArguments{
-		Kwargs: map[string]any{"profile": profile},
+		Kwargs: map[string]any{"profile": profile, "roles": roles, "previousHooks": previousHooks},
 		Env:    getEnvVars(callOpts.env),
 	}
 

@@ -75,6 +75,42 @@ func (t *BusinessProfileClassView) Type() (baml.Type, error) {
 	return t.inner.Type()
 }
 
+type ContentRoleClassView struct {
+	inner baml.ClassBuilder
+}
+
+func (t *ContentRoleClassView) ListProperties() ([]ClassPropertyView, error) {
+	result, err := t.inner.ListProperties()
+	if err != nil {
+		return nil, err
+	}
+	builders := make([]ClassPropertyView, len(result))
+	for i, p := range result {
+		builders[i] = p
+	}
+	return builders, nil
+}
+
+func (t *ContentRoleClassView) PropertyName() (ClassPropertyView, error) {
+	return t.inner.Property("name")
+}
+
+func (t *ContentRoleClassView) PropertyDescription() (ClassPropertyView, error) {
+	return t.inner.Property("description")
+}
+
+func (t *TypeBuilder) ContentRole() (*ContentRoleClassView, error) {
+	bld, err := t.inner.Class("ContentRole")
+	if err != nil {
+		return nil, err
+	}
+	return &ContentRoleClassView{inner: bld}, nil
+}
+
+func (t *ContentRoleClassView) Type() (baml.Type, error) {
+	return t.inner.Type()
+}
+
 type JudgeResultClassView struct {
 	inner baml.ClassBuilder
 }

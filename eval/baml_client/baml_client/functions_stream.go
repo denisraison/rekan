@@ -43,7 +43,7 @@ func (s *StreamValue[TStream, TFinal]) Stream() *TStream {
 }
 
 // / Streaming version of GenerateContent
-func (*stream) GenerateContent(ctx context.Context, profile types.BusinessProfile, opts ...CallOptionFunc) (<-chan StreamValue[string, string], error) {
+func (*stream) GenerateContent(ctx context.Context, profile types.BusinessProfile, roles []types.ContentRole, previousHooks []string, opts ...CallOptionFunc) (<-chan StreamValue[string, string], error) {
 
 	var callOpts callOption
 	for _, opt := range opts {
@@ -51,7 +51,7 @@ func (*stream) GenerateContent(ctx context.Context, profile types.BusinessProfil
 	}
 
 	args := baml.BamlFunctionArguments{
-		Kwargs: map[string]any{"profile": profile},
+		Kwargs: map[string]any{"profile": profile, "roles": roles, "previousHooks": previousHooks},
 		Env:    getEnvVars(callOpts.env),
 	}
 

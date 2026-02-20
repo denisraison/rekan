@@ -26,7 +26,7 @@ type build_request_stream struct{}
 var StreamRequest = &build_request_stream{}
 
 // Build streaming HTTP request for GenerateContent (returns baml.HTTPRequest)
-func (*build_request_stream) GenerateContent(profile types.BusinessProfile, opts ...CallOptionFunc) (baml.HTTPRequest, error) {
+func (*build_request_stream) GenerateContent(profile types.BusinessProfile, roles []types.ContentRole, previousHooks []string, opts ...CallOptionFunc) (baml.HTTPRequest, error) {
 
 	var callOpts callOption
 	for _, opt := range opts {
@@ -42,7 +42,7 @@ func (*build_request_stream) GenerateContent(profile types.BusinessProfile, opts
 	}
 
 	args := baml.BamlFunctionArguments{
-		Kwargs: map[string]any{"profile": profile, "stream": true},
+		Kwargs: map[string]any{"profile": profile, "roles": roles, "previousHooks": previousHooks, "stream": true},
 		Env:    getEnvVars(callOpts.env),
 	}
 

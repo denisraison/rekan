@@ -23,6 +23,8 @@ import (
 var typeMap = map[string]reflect.Type{
 	"TYPES.BusinessProfile":        reflect.TypeOf(types.BusinessProfile{}),
 	"STREAM_TYPES.BusinessProfile": reflect.TypeOf(stream_types.BusinessProfile{}),
+	"TYPES.ContentRole":            reflect.TypeOf(types.ContentRole{}),
+	"STREAM_TYPES.ContentRole":     reflect.TypeOf(stream_types.ContentRole{}),
 	"TYPES.JudgeResult":            reflect.TypeOf(types.JudgeResult{}),
 	"STREAM_TYPES.JudgeResult":     reflect.TypeOf(stream_types.JudgeResult{}),
 	"TYPES.Service":                reflect.TypeOf(types.Service{}),

@@ -104,6 +104,54 @@ func (c BusinessProfile) BamlTypeName() string {
 	return "BusinessProfile"
 }
 
+type ContentRole struct {
+	Name        string `json:"name"`
+	Description string `json:"description"`
+}
+
+func (c *ContentRole) Decode(holder *cffi.CFFIValueClass, typeMap baml.TypeMap) {
+	typeName := holder.Name
+	if typeName.Namespace != cffi.CFFITypeNamespace_TYPES {
+		panic(fmt.Sprintf("expected cffi.CFFITypeNamespace_TYPES, got %s", string(typeName.Namespace.String())))
+	}
+	if typeName.Name != "ContentRole" {
+		panic(fmt.Sprintf("expected ContentRole, got %s", typeName.Name))
+	}
+
+	for _, field := range holder.Fields {
+		key := field.Key
+		valueHolder := field.Value
+		switch key {
+
+		case "name":
+			c.Name = baml.Decode(valueHolder).Interface().(string)
+
+		case "description":
+			c.Description = baml.Decode(valueHolder).Interface().(string)
+
+		default:
+
+			panic(fmt.Sprintf("unexpected field: %s in class ContentRole", key))
+
+		}
+	}
+
+}
+
+func (c ContentRole) Encode() (*cffi.HostValue, error) {
+	fields := map[string]any{}
+
+	fields["name"] = c.Name
+
+	fields["description"] = c.Description
+
+	return baml.EncodeClass("ContentRole", fields, nil)
+}
+
+func (c ContentRole) BamlTypeName() string {
+	return "ContentRole"
+}
+
 type JudgeResult struct {
 	Reasoning string `json:"reasoning"`
 	Verdict   bool   `json:"verdict"`
