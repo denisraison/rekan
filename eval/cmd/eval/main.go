@@ -21,6 +21,7 @@ func main() {
 	diff := flag.Bool("diff", false, "compare two run files: --diff <before.json> <after.json>")
 	fast := flag.Bool("fast", false, "optimization mode: single judge (Gemini Flash) + 4 profiles")
 	roles := flag.String("roles", "", "comma-separated role names (e.g. \"bastidor,opinião,marco\")")
+	chain := flag.Int("chain", 0, "generate N consecutive batches for one profile, passing hooks forward")
 	flag.Parse()
 
 	if *fast {
@@ -44,7 +45,13 @@ func main() {
 	var results []result
 	var err error
 
-	if *fromRun != "" {
+	if *chain > 0 {
+		if *profile == "" {
+			fmt.Fprintf(os.Stderr, "error: --chain requires --profile\n")
+			os.Exit(1)
+		}
+		results, err = chainGenerate(context.Background(), *chain, *profile, *judges, *verbose, *roles)
+	} else if *fromRun != "" {
 		results, err = loadRun(*fromRun)
 		if err != nil {
 			fmt.Fprintf(os.Stderr, "error loading run: %v\n", err)
@@ -191,6 +198,67 @@ func generateAndEvaluate(withJudges, verbose bool, profileFilter string, sample 
 	for _, g := range generated {
 		results[g.idx] = result{name: g.profile.BusinessName, content: g.content, profile: g.profile}
 	}
+
+	return evaluateResults(ctx, results, withJudges, verbose)
+}
+
+func chainGenerate(ctx context.Context, n int, profileName string, withJudges, verbose bool, rolesFlag string) ([]result, error) {
+	profiles, err := loadProfiles("testdata")
+	if err != nil {
+		return nil, err
+	}
+	var prof eval.BusinessProfile
+	found := false
+	for _, p := range profiles {
+		if strings.EqualFold(p.BusinessName, profileName) {
+			prof = p
+			found = true
+			break
+		}
+	}
+	if !found {
+		return nil, fmt.Errorf("profile %q not found", profileName)
+	}
+
+	var fixedRoles []eval.Role
+	if rolesFlag != "" {
+		fixedRoles, err = parseRoles(rolesFlag)
+		if err != nil {
+			return nil, err
+		}
+	}
+
+	var allHooks []string
+	var results []result
+
+	for i := 1; i <= n; i++ {
+		roles := fixedRoles
+		if roles == nil {
+			roles = eval.PickRoles(3, nil)
+		}
+
+		roleNames := make([]string, len(roles))
+		for j, r := range roles {
+			roleNames[j] = r.Name
+		}
+		fmt.Fprintf(os.Stderr, "Batch %d/%d [%s] (%d hooks excluded)...\n", i, n, strings.Join(roleNames, ", "), len(allHooks))
+
+		content, err := eval.Generate(ctx, prof, roles, allHooks)
+		if err != nil {
+			return nil, fmt.Errorf("batch %d: %w", i, err)
+		}
+
+		hooks := eval.ExtractHooks(content)
+		allHooks = append(allHooks, hooks...)
+
+		results = append(results, result{name: fmt.Sprintf("%s [batch %d]", prof.BusinessName, i), content: content, profile: prof})
+	}
+
+	fmt.Fprintf(os.Stderr, "\n--- Hook summary (%d total) ---\n", len(allHooks))
+	for i, h := range allHooks {
+		fmt.Fprintf(os.Stderr, "  %d. %s\n", i+1, h)
+	}
+	fmt.Fprintf(os.Stderr, "---\n\n")
 
 	return evaluateResults(ctx, results, withJudges, verbose)
 }
