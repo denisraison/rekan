@@ -19,7 +19,14 @@ func main() {
 	profile := flag.String("profile", "", "run a single profile instead of all")
 	fromRun := flag.String("from-run", "", "re-judge content from a previous run file (skips generation)")
 	diff := flag.Bool("diff", false, "compare two run files: --diff <before.json> <after.json>")
+	fast := flag.Bool("fast", false, "optimization mode: single judge (Gemini Flash) + 4 profiles")
+	roles := flag.String("roles", "", "comma-separated role names (e.g. \"bastidor,opinião,marco\")")
 	flag.Parse()
+
+	if *fast {
+		eval.JudgeClients = eval.JudgeClients[:1]
+		*judges = true
+	}
 
 	if *diff {
 		args := flag.Args()
@@ -58,7 +65,11 @@ func main() {
 		}
 		results, err = evaluateContent(results, *judges, *verbose)
 	} else {
-		results, err = generateAndEvaluate(*judges, *verbose, *profile)
+		sample := 0
+		if *fast && *profile == "" {
+			sample = 4
+		}
+		results, err = generateAndEvaluate(*judges, *verbose, *profile, sample, *roles)
 	}
 	if err != nil {
 		fmt.Fprintf(os.Stderr, "error: %v\n", err)
@@ -89,7 +100,27 @@ func main() {
 	}
 }
 
-func generateAndEvaluate(withJudges, verbose bool, profileFilter string) ([]result, error) {
+func parseRoles(names string) ([]eval.Role, error) {
+	pool := make(map[string]eval.Role, len(eval.RolePool))
+	for _, r := range eval.RolePool {
+		pool[strings.ToLower(r.Name)] = r
+	}
+	var roles []eval.Role
+	for _, name := range strings.Split(names, ",") {
+		name = strings.TrimSpace(name)
+		if name == "" {
+			continue
+		}
+		r, ok := pool[strings.ToLower(name)]
+		if !ok {
+			return nil, fmt.Errorf("unknown role %q", name)
+		}
+		roles = append(roles, r)
+	}
+	return roles, nil
+}
+
+func generateAndEvaluate(withJudges, verbose bool, profileFilter string, sample int, rolesFlag string) ([]result, error) {
 	profiles, err := loadProfiles("testdata")
 	if err != nil {
 		return nil, err
@@ -106,6 +137,21 @@ func generateAndEvaluate(withJudges, verbose bool, profileFilter string) ([]resu
 			return nil, fmt.Errorf("profile %q not found", profileFilter)
 		}
 		profiles = filtered
+	} else if sample > 0 && sample < len(profiles) {
+		step := len(profiles) / sample
+		sampled := make([]eval.BusinessProfile, 0, sample)
+		for i := 0; i < len(profiles) && len(sampled) < sample; i += step {
+			sampled = append(sampled, profiles[i])
+		}
+		profiles = sampled
+	}
+
+	var fixedRoles []eval.Role
+	if rolesFlag != "" {
+		fixedRoles, err = parseRoles(rolesFlag)
+		if err != nil {
+			return nil, err
+		}
 	}
 
 	ctx := context.Background()
@@ -120,11 +166,15 @@ func generateAndEvaluate(withJudges, verbose bool, profileFilter string) ([]resu
 
 	genCh := make(chan genOut, len(profiles))
 	for i, p := range profiles {
-		go func(i int, p eval.BusinessProfile) {
+		r := fixedRoles
+		if r == nil {
+			r = eval.PickRoles(3, nil)
+		}
+		go func(i int, p eval.BusinessProfile, roles []eval.Role) {
 			fmt.Fprintf(os.Stderr, "Generating: %s...\n", p.BusinessName)
-			content, err := eval.Generate(ctx, p)
+			content, err := eval.Generate(ctx, p, roles, nil)
 			genCh <- genOut{idx: i, profile: p, content: content, err: err}
-		}(i, p)
+		}(i, p, r)
 	}
 
 	generated := make([]genOut, len(profiles))
@@ -207,7 +257,26 @@ func evaluateResults(ctx context.Context, results []result, withJudges, verbose 
 		results[out.idx].judges = out.judges
 		if verbose {
 			for _, j := range out.judges {
-				fmt.Printf("  [%s] %v: %s\n", j.Name, j.Verdict, j.Reasoning)
+				fmt.Printf("  [%s] %v", j.Name, j.Verdict)
+				if len(j.Votes) > 0 {
+					fmt.Print(" (")
+					for i, v := range j.Votes {
+						if i > 0 {
+							fmt.Print(", ")
+						}
+						if v.Error != "" {
+							fmt.Printf("%s:ERR", v.Client)
+						} else {
+							mark := "+"
+							if !v.Verdict {
+								mark = "-"
+							}
+							fmt.Printf("%s:%s", v.Client, mark)
+						}
+					}
+					fmt.Print(")")
+				}
+				fmt.Printf(": %s\n", j.Reasoning)
 			}
 		}
 	}
@@ -237,9 +306,17 @@ type checkRecord struct {
 }
 
 type judgeRecord struct {
-	Name      string `json:"name"`
+	Name      string       `json:"name"`
+	Verdict   bool         `json:"verdict"`
+	Reasoning string       `json:"reasoning"`
+	Votes     []voteRecord `json:"votes,omitempty"`
+}
+
+type voteRecord struct {
+	Client    string `json:"client"`
 	Verdict   bool   `json:"verdict"`
 	Reasoning string `json:"reasoning"`
+	Error     string `json:"error,omitempty"`
 }
 
 type summaryRecord struct {
@@ -270,7 +347,11 @@ func saveRun(results []result, withJudges bool) error {
 
 		var judges []judgeRecord
 		for _, j := range r.judges {
-			judges = append(judges, judgeRecord{Name: j.Name, Verdict: j.Verdict, Reasoning: j.Reasoning})
+			var votes []voteRecord
+			for _, v := range j.Votes {
+				votes = append(votes, voteRecord{Client: v.Client, Verdict: v.Verdict, Reasoning: v.Reasoning, Error: v.Error})
+			}
+			judges = append(judges, judgeRecord{Name: j.Name, Verdict: j.Verdict, Reasoning: j.Reasoning, Votes: votes})
 			if j.Verdict {
 				judgeTotals[j.Name]++
 			}
