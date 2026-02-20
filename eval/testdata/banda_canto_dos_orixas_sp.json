@@ -1,0 +1,14 @@
+{
+  "businessName": "Canto dos Orixás",
+  "businessType": "banda de música afro-brasileira",
+  "city": "São Paulo",
+  "neighbourhood": "Centro",
+  "services": [
+    {"name": "Show completo para eventos", "priceBRL": 0},
+    {"name": "Roda de música e dança", "priceBRL": 0},
+    {"name": "Participação em festivais e saraus", "priceBRL": 0}
+  ],
+  "targetAudience": "público 20-45 ligado em cultura afro-brasileira, terreiros, movimento negro e cena musical independente de SP",
+  "brandVibe": "ancestral",
+  "quirks": ["composições autorais de raiz africana", "show com energia de terreiro", "Laroyê no sangue"]
+}
