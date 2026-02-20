@@ -27,6 +27,8 @@ var typeMap = map[string]reflect.Type{
 	"STREAM_TYPES.ContentRole":     reflect.TypeOf(stream_types.ContentRole{}),
 	"TYPES.JudgeResult":            reflect.TypeOf(types.JudgeResult{}),
 	"STREAM_TYPES.JudgeResult":     reflect.TypeOf(stream_types.JudgeResult{}),
+	"TYPES.Post":                   reflect.TypeOf(types.Post{}),
+	"STREAM_TYPES.Post":            reflect.TypeOf(stream_types.Post{}),
 	"TYPES.Service":                reflect.TypeOf(types.Service{}),
 	"STREAM_TYPES.Service":         reflect.TypeOf(stream_types.Service{}),
 }

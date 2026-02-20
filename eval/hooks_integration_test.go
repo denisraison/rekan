@@ -27,11 +27,11 @@ func TestChainGenerationProducesDifferentHooks(t *testing.T) {
 	roles := PickRoles(3, nil)
 
 	// Batch 1: no previous hooks.
-	content1, err := Generate(ctx, profile, roles, nil)
+	posts1, err := Generate(ctx, profile, roles, nil)
 	if err != nil {
 		t.Fatalf("batch 1 generate: %v", err)
 	}
-	hooks1 := ExtractHooks(content1)
+	hooks1 := ExtractHooks(posts1)
 	if len(hooks1) == 0 {
 		t.Fatal("batch 1 produced no hooks")
 	}
@@ -42,11 +42,11 @@ func TestChainGenerationProducesDifferentHooks(t *testing.T) {
 
 	// Batch 2: pass batch 1 hooks as exclusion context.
 	roles2 := PickRoles(3, nil)
-	content2, err := Generate(ctx, profile, roles2, hooks1)
+	posts2, err := Generate(ctx, profile, roles2, hooks1)
 	if err != nil {
 		t.Fatalf("batch 2 generate: %v", err)
 	}
-	hooks2 := ExtractHooks(content2)
+	hooks2 := ExtractHooks(posts2)
 	if len(hooks2) == 0 {
 		t.Fatal("batch 2 produced no hooks")
 	}
@@ -67,8 +67,8 @@ func TestChainGenerationProducesDifferentHooks(t *testing.T) {
 	}
 
 	// Both batches should pass heuristics.
-	for i, content := range []string{content1, content2} {
-		checks := RunChecks(content, profile)
+	for i, posts := range [][]Post{posts1, posts2} {
+		checks := RunChecks(posts, profile)
 		passed := 0
 		for _, c := range checks {
 			if c.Pass {

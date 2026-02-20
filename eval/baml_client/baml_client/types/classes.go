@@ -200,6 +200,60 @@ func (c JudgeResult) BamlTypeName() string {
 	return "JudgeResult"
 }
 
+type Post struct {
+	Caption        string   `json:"caption"`
+	Hashtags       []string `json:"hashtags"`
+	ProductionNote string   `json:"productionNote"`
+}
+
+func (c *Post) Decode(holder *cffi.CFFIValueClass, typeMap baml.TypeMap) {
+	typeName := holder.Name
+	if typeName.Namespace != cffi.CFFITypeNamespace_TYPES {
+		panic(fmt.Sprintf("expected cffi.CFFITypeNamespace_TYPES, got %s", string(typeName.Namespace.String())))
+	}
+	if typeName.Name != "Post" {
+		panic(fmt.Sprintf("expected Post, got %s", typeName.Name))
+	}
+
+	for _, field := range holder.Fields {
+		key := field.Key
+		valueHolder := field.Value
+		switch key {
+
+		case "caption":
+			c.Caption = baml.Decode(valueHolder).Interface().(string)
+
+		case "hashtags":
+			c.Hashtags = baml.Decode(valueHolder).Interface().([]string)
+
+		case "productionNote":
+			c.ProductionNote = baml.Decode(valueHolder).Interface().(string)
+
+		default:
+
+			panic(fmt.Sprintf("unexpected field: %s in class Post", key))
+
+		}
+	}
+
+}
+
+func (c Post) Encode() (*cffi.HostValue, error) {
+	fields := map[string]any{}
+
+	fields["caption"] = c.Caption
+
+	fields["hashtags"] = c.Hashtags
+
+	fields["productionNote"] = c.ProductionNote
+
+	return baml.EncodeClass("Post", fields, nil)
+}
+
+func (c Post) BamlTypeName() string {
+	return "Post"
+}
+
 type Service struct {
 	Name     string  `json:"name"`
 	PriceBRL float64 `json:"priceBRL"`

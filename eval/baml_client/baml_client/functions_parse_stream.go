@@ -25,8 +25,8 @@ type parse_stream struct{}
 
 var ParseStream = &parse_stream{}
 
-// / Parse version of GenerateContent (Takes in string and returns string)
-func (*parse_stream) GenerateContent(text string, opts ...CallOptionFunc) (string, error) {
+// / Parse version of GenerateContent (Takes in string and returns []stream_types.Post)
+func (*parse_stream) GenerateContent(text string, opts ...CallOptionFunc) ([]stream_types.Post, error) {
 
 	var callOpts callOption
 	for _, opt := range opts {
@@ -64,10 +64,10 @@ func (*parse_stream) GenerateContent(text string, opts ...CallOptionFunc) (strin
 
 	result, err := bamlRuntime.CallFunctionParse(context.Background(), "GenerateContent", encoded)
 	if err != nil {
-		return "", err
+		return nil, err
 	}
 
-	casted := (result).(string)
+	casted := (result).([]stream_types.Post)
 
 	return casted, nil
 }

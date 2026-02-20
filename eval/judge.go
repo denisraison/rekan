@@ -22,7 +22,7 @@ var judgeNames = []string{
 var JudgeClients = []string{
 	"JudgeClient",         // Google Gemini 3 Flash
 	"JudgeClientClaude",   // Anthropic Claude Haiku 4.5
-	"JudgeClientDeepSeek", // DeepSeek V3.2
+	"JudgeClientGemini25", // Google Gemini 2.5 Flash
 }
 
 type Vote struct {

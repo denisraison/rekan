@@ -21,7 +21,7 @@ import (
 	"github.com/denisraison/rekan/eval/baml_client/baml_client/types"
 )
 
-func GenerateContent(ctx context.Context, profile types.BusinessProfile, roles []types.ContentRole, previousHooks []string, opts ...CallOptionFunc) (string, error) {
+func GenerateContent(ctx context.Context, profile types.BusinessProfile, roles []types.ContentRole, previousHooks []string, opts ...CallOptionFunc) ([]types.Post, error) {
 
 	var callOpts callOption
 	for _, opt := range opts {
@@ -65,33 +65,33 @@ func GenerateContent(ctx context.Context, profile types.BusinessProfile, roles [
 	if callOpts.onTick == nil {
 		result, err := bamlRuntime.CallFunction(ctx, "GenerateContent", encoded, callOpts.onTick)
 		if err != nil {
-			return "", err
+			return nil, err
 		}
 
 		if result.Error != nil {
-			return "", result.Error
+			return nil, result.Error
 		}
 
-		casted := (result.Data).(string)
+		casted := (result.Data).([]types.Post)
 
 		return casted, nil
 	} else {
 		channel, err := bamlRuntime.CallFunctionStream(ctx, "GenerateContent", encoded, callOpts.onTick)
 		if err != nil {
-			return "", err
+			return nil, err
 		}
 
 		for result := range channel {
 			if result.Error != nil {
-				return "", result.Error
+				return nil, result.Error
 			}
 
 			if result.HasData {
-				return result.Data.(string), nil
+				return result.Data.([]types.Post), nil
 			}
 		}
 
-		return "", fmt.Errorf("No data returned from stream")
+		return nil, fmt.Errorf("No data returned from stream")
 	}
 }
 

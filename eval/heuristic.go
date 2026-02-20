@@ -1,6 +1,7 @@
 package eval
 
 import (
+	"fmt"
 	"regexp"
 	"strings"
 	"unicode"
@@ -28,15 +29,15 @@ type CheckResult struct {
 	Reason string
 }
 
-func RunChecks(content string, profile BusinessProfile) []CheckResult {
+func RunChecks(posts []Post, profile BusinessProfile) []CheckResult {
+	rendered := RenderPosts(posts)
 	return []CheckResult{
-		checkBusinessName(content, profile),
-		checkLocation(content, profile),
-		checkHashtags(content),
-		checkCTA(content),
-		checkBrazilianPortuguese(content),
-		checkCaptionLength(content),
-		checkProductionNote(content),
+		checkBusinessName(rendered, profile),
+		checkLocation(rendered, profile),
+		checkHashtags(posts),
+		checkBrazilianPortuguese(rendered),
+		checkCaptionLength(posts),
+		checkProductionNote(posts),
 	}
 }
 
@@ -105,56 +106,20 @@ func checkLocation(content string, profile BusinessProfile) CheckResult {
 	}
 }
 
-var hashtagRe = regexp.MustCompile(`#[\p{L}\p{N}_]+`)
-
-func checkHashtags(content string) CheckResult {
-	matches := hashtagRe.FindAllString(content, -1)
-	if len(matches) >= 3 {
+func checkHashtags(posts []Post) CheckResult {
+	total := 0
+	for _, p := range posts {
+		total += len(p.Hashtags)
+	}
+	if total >= 3 {
 		return CheckResult{Name: "hashtags", Pass: true}
 	}
 	return CheckResult{
 		Name:   "hashtags",
-		Reason: "fewer than 3 hashtags found",
+		Reason: fmt.Sprintf("only %d hashtags found (need at least 3)", total),
 	}
 }
 
-func checkCTA(content string) CheckResult {
-	lower := strings.ToLower(content)
-	patterns := []string{
-		"chama no dm",
-		"link na bio",
-		"link da bio",
-		"agende",
-		"entre em contato",
-		"manda mensagem",
-		"manda um",
-		"fale conosco",
-		"chama no whatsapp",
-		"chama no zap",
-		"garanta o seu",
-		"garanta a sua",
-		"aproveite",
-		"reserve",
-		"venha conhecer",
-		"vem conhecer",
-		"peça já",
-		"faça seu pedido",
-		"clique no link",
-		"clica no link",
-		"comenta aqui",
-		"no direct",
-		"salve no zap",
-	}
-	for _, p := range patterns {
-		if strings.Contains(lower, p) {
-			return CheckResult{Name: "cta", Pass: true}
-		}
-	}
-	return CheckResult{
-		Name:   "cta",
-		Reason: "no call-to-action pattern found",
-	}
-}
 
 func checkBrazilianPortuguese(content string) CheckResult {
 	lower := strings.ToLower(content)
@@ -174,7 +139,7 @@ func checkBrazilianPortuguese(content string) CheckResult {
 		}
 	}
 
-	ptPTMarkers := []string{"consigo", "telemóvel", "telemovel", "autocarro"}
+	ptPTMarkers := []string{"telemóvel", "telemovel", "autocarro"}
 	for _, m := range ptPTMarkers {
 		if containsWord(lower, m) {
 			return CheckResult{
@@ -203,25 +168,9 @@ func containsWord(text, word string) bool {
 
 const maxCaptionLength = 2200
 
-// splitPosts splits multi-post output on "---" separators.
-var postSepRe = regexp.MustCompile(`(?m)^-{3,}\s*$`)
-
-func splitPosts(content string) []string {
-	parts := postSepRe.Split(content, -1)
-	posts := make([]string, 0, len(parts))
-	for _, p := range parts {
-		p = strings.TrimSpace(p)
-		if p != "" {
-			posts = append(posts, p)
-		}
-	}
-	return posts
-}
-
-func checkCaptionLength(content string) CheckResult {
-	posts := splitPosts(content)
+func checkCaptionLength(posts []Post) CheckResult {
 	for _, p := range posts {
-		if len([]rune(p)) > maxCaptionLength {
+		if len([]rune(p.Caption)) > maxCaptionLength {
 			return CheckResult{
 				Name:   "caption_length",
 				Reason: "a post exceeds 2200 characters",
@@ -231,16 +180,14 @@ func checkCaptionLength(content string) CheckResult {
 	return CheckResult{Name: "caption_length", Pass: true}
 }
 
-func checkProductionNote(content string) CheckResult {
-	lower := strings.ToLower(content)
-	keywords := []string{"foto", "vídeo", "video", "imagem", "registre", "poste", "stories", "reels"}
-	for _, k := range keywords {
-		if strings.Contains(lower, k) {
+func checkProductionNote(posts []Post) CheckResult {
+	for _, p := range posts {
+		if p.ProductionNote != "" {
 			return CheckResult{Name: "production_note", Pass: true}
 		}
 	}
 	return CheckResult{
 		Name:   "production_note",
-		Reason: "no photo/video suggestion keywords found",
+		Reason: "no production notes found",
 	}
 }

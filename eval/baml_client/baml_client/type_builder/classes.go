@@ -147,6 +147,46 @@ func (t *JudgeResultClassView) Type() (baml.Type, error) {
 	return t.inner.Type()
 }
 
+type PostClassView struct {
+	inner baml.ClassBuilder
+}
+
+func (t *PostClassView) ListProperties() ([]ClassPropertyView, error) {
+	result, err := t.inner.ListProperties()
+	if err != nil {
+		return nil, err
+	}
+	builders := make([]ClassPropertyView, len(result))
+	for i, p := range result {
+		builders[i] = p
+	}
+	return builders, nil
+}
+
+func (t *PostClassView) PropertyCaption() (ClassPropertyView, error) {
+	return t.inner.Property("caption")
+}
+
+func (t *PostClassView) PropertyHashtags() (ClassPropertyView, error) {
+	return t.inner.Property("hashtags")
+}
+
+func (t *PostClassView) PropertyProductionNote() (ClassPropertyView, error) {
+	return t.inner.Property("productionNote")
+}
+
+func (t *TypeBuilder) Post() (*PostClassView, error) {
+	bld, err := t.inner.Class("Post")
+	if err != nil {
+		return nil, err
+	}
+	return &PostClassView{inner: bld}, nil
+}
+
+func (t *PostClassView) Type() (baml.Type, error) {
+	return t.inner.Type()
+}
+
 type ServiceClassView struct {
 	inner baml.ClassBuilder
 }

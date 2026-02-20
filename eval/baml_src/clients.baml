@@ -18,10 +18,10 @@ client<llm> JudgeClientClaude {
   }
 }
 
-client<llm> JudgeClientDeepSeek {
+client<llm> JudgeClientGemini25 {
   provider openrouter
   options {
-    model "deepseek/deepseek-v3.2"
+    model "google/gemini-2.5-flash"
     api_key env.OPENROUTER_API_KEY
     temperature 0.1
     max_tokens 1024

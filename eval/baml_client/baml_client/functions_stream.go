@@ -43,7 +43,7 @@ func (s *StreamValue[TStream, TFinal]) Stream() *TStream {
 }
 
 // / Streaming version of GenerateContent
-func (*stream) GenerateContent(ctx context.Context, profile types.BusinessProfile, roles []types.ContentRole, previousHooks []string, opts ...CallOptionFunc) (<-chan StreamValue[string, string], error) {
+func (*stream) GenerateContent(ctx context.Context, profile types.BusinessProfile, roles []types.ContentRole, previousHooks []string, opts ...CallOptionFunc) (<-chan StreamValue[[]stream_types.Post, []types.Post], error) {
 
 	var callOpts callOption
 	for _, opt := range opts {
@@ -84,11 +84,11 @@ func (*stream) GenerateContent(ctx context.Context, profile types.BusinessProfil
 		return nil, err
 	}
 
-	channel := make(chan StreamValue[string, string])
+	channel := make(chan StreamValue[[]stream_types.Post, []types.Post])
 	go func() {
 		for result := range internal_channel {
 			if result.Error != nil {
-				channel <- StreamValue[string, string]{
+				channel <- StreamValue[[]stream_types.Post, []types.Post]{
 					IsError: true,
 					Error:   result.Error,
 				}
@@ -96,14 +96,14 @@ func (*stream) GenerateContent(ctx context.Context, profile types.BusinessProfil
 				return
 			}
 			if result.HasData {
-				data := (result.Data).(string)
-				channel <- StreamValue[string, string]{
+				data := (result.Data).([]types.Post)
+				channel <- StreamValue[[]stream_types.Post, []types.Post]{
 					IsFinal:  true,
 					as_final: &data,
 				}
 			} else {
-				data := (result.StreamData).(string)
-				channel <- StreamValue[string, string]{
+				data := (result.StreamData).([]stream_types.Post)
+				channel <- StreamValue[[]stream_types.Post, []types.Post]{
 					IsFinal:   false,
 					as_stream: &data,
 				}

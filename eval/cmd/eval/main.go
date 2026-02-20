@@ -167,7 +167,7 @@ func generateAndEvaluate(withJudges, verbose bool, profileFilter string, sample 
 	type genOut struct {
 		idx     int
 		profile eval.BusinessProfile
-		content string
+		posts   []eval.Post
 		err     error
 	}
 
@@ -179,8 +179,8 @@ func generateAndEvaluate(withJudges, verbose bool, profileFilter string, sample 
 		}
 		go func(i int, p eval.BusinessProfile, roles []eval.Role) {
 			fmt.Fprintf(os.Stderr, "Generating: %s...\n", p.BusinessName)
-			content, err := eval.Generate(ctx, p, roles, nil)
-			genCh <- genOut{idx: i, profile: p, content: content, err: err}
+			posts, err := eval.Generate(ctx, p, roles, nil)
+			genCh <- genOut{idx: i, profile: p, posts: posts, err: err}
 		}(i, p, r)
 	}
 
@@ -193,10 +193,10 @@ func generateAndEvaluate(withJudges, verbose bool, profileFilter string, sample 
 		generated[out.idx] = out
 	}
 
-	// Build results with content, then evaluate.
+	// Build results with posts, then evaluate.
 	results := make([]result, len(generated))
 	for _, g := range generated {
-		results[g.idx] = result{name: g.profile.BusinessName, content: g.content, profile: g.profile}
+		results[g.idx] = result{name: g.profile.BusinessName, posts: g.posts, profile: g.profile}
 	}
 
 	return evaluateResults(ctx, results, withJudges, verbose)
@@ -243,15 +243,15 @@ func chainGenerate(ctx context.Context, n int, profileName string, withJudges, v
 		}
 		fmt.Fprintf(os.Stderr, "Batch %d/%d [%s] (%d hooks excluded)...\n", i, n, strings.Join(roleNames, ", "), len(allHooks))
 
-		content, err := eval.Generate(ctx, prof, roles, allHooks)
+		posts, err := eval.Generate(ctx, prof, roles, allHooks)
 		if err != nil {
 			return nil, fmt.Errorf("batch %d: %w", i, err)
 		}
 
-		hooks := eval.ExtractHooks(content)
+		hooks := eval.ExtractHooks(posts)
 		allHooks = append(allHooks, hooks...)
 
-		results = append(results, result{name: fmt.Sprintf("%s [batch %d]", prof.BusinessName, i), content: content, profile: prof})
+		results = append(results, result{name: fmt.Sprintf("%s [batch %d]", prof.BusinessName, i), posts: posts, profile: prof})
 	}
 
 	fmt.Fprintf(os.Stderr, "\n--- Hook summary (%d total) ---\n", len(allHooks))
@@ -288,13 +288,13 @@ func evaluateContent(results []result, withJudges, verbose bool) ([]result, erro
 func evaluateResults(ctx context.Context, results []result, withJudges, verbose bool) ([]result, error) {
 	if verbose {
 		for _, r := range results {
-			fmt.Printf("\n=== %s ===\n%s\n", r.name, r.content)
+			fmt.Printf("\n=== %s ===\n%s\n", r.name, eval.RenderPosts(r.posts))
 		}
 	}
 
 	// Run heuristics (instant, no need for goroutines).
 	for i := range results {
-		results[i].checks = eval.RunChecks(results[i].content, results[i].profile)
+		results[i].checks = eval.RunChecks(results[i].posts, results[i].profile)
 	}
 
 	if !withJudges {
@@ -312,7 +312,8 @@ func evaluateResults(ctx context.Context, results []result, withJudges, verbose 
 	for i, r := range results {
 		go func(i int, r result) {
 			fmt.Fprintf(os.Stderr, "Judging: %s...\n", r.name)
-			j, err := eval.RunAllJudges(ctx, r.profile, r.content)
+			rendered := eval.RenderPosts(r.posts)
+			j, err := eval.RunAllJudges(ctx, r.profile, rendered)
 			judgeCh <- judgeOut{idx: i, judges: j, err: err}
 		}(i, r)
 	}
@@ -363,6 +364,7 @@ type runRecord struct {
 type businessRecord struct {
 	Business string        `json:"business"`
 	Content  string        `json:"content"`
+	Posts    []eval.Post   `json:"posts,omitempty"`
 	Checks   []checkRecord `json:"checks"`
 	Judges   []judgeRecord `json:"judges,omitempty"`
 }
@@ -427,7 +429,8 @@ func saveRun(results []result, withJudges bool) error {
 
 		records = append(records, businessRecord{
 			Business: r.name,
-			Content:  r.content,
+			Content:  eval.RenderPosts(r.posts),
+			Posts:    r.posts,
 			Checks:   checks,
 			Judges:   judges,
 		})
@@ -471,7 +474,12 @@ func loadRun(path string) ([]result, error) {
 	}
 	results := make([]result, len(run.Results))
 	for i, r := range run.Results {
-		results[i] = result{name: r.Business, content: r.Content}
+		posts := r.Posts
+		if len(posts) == 0 && r.Content != "" {
+			// Legacy run file without structured posts.
+			posts = []eval.Post{{Caption: r.Content}}
+		}
+		results[i] = result{name: r.Business, posts: posts}
 	}
 	return results, nil
 }
@@ -799,6 +807,6 @@ type result struct {
 	name    string
 	checks  []eval.CheckResult
 	judges  []eval.JudgeResult
-	content string
+	posts   []eval.Post
 	profile eval.BusinessProfile
 }

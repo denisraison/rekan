@@ -2,16 +2,11 @@ package eval
 
 import "strings"
 
-// ExtractHooks pulls the first sentence of each post from generated content.
-// Skips segments without hashtags (model preambles).
-func ExtractHooks(content string) []string {
-	posts := splitPosts(content)
+// ExtractHooks pulls the first sentence of each post's caption.
+func ExtractHooks(posts []Post) []string {
 	hooks := make([]string, 0, len(posts))
-	for _, post := range posts {
-		if !strings.Contains(post, "#") {
-			continue
-		}
-		if h := firstSentence(post); h != "" {
+	for _, p := range posts {
+		if h := firstSentence(p.Caption); h != "" {
 			hooks = append(hooks, h)
 		}
 	}

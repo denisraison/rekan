@@ -19,17 +19,21 @@ var testProfile = BusinessProfile{
 	Quirks:         []string{"atende com hora marcada"},
 }
 
-const passingSample = `Gente, olha que perfeição essas unhas da Studio Nails da Jéssica! 💅
+var passingSample = []Post{
+	{
+		Caption:        "Gente, olha que perfeição essas unhas da Studio Nails da Jéssica! 💅\n\nAqui em Manaus a gente transforma suas mãos com muito carinho e estilo. Bora agendar seu horário pra ficar com as unhas dos sonhos?\n\n📸 Registre suas unhas novas e marque a gente!\n\nChama no WhatsApp pra agendar ✨",
+		Hashtags:       []string{"#NailsManaus", "#UnhasDeGel", "#StudioNails"},
+		ProductionNote: "Foto das unhas prontas com luz natural da janela",
+	},
+}
 
-Aqui em Manaus a gente transforma suas mãos com muito carinho e estilo. Bora agendar seu horário pra ficar com as unhas dos sonhos?
-
-📸 Registre suas unhas novas e marque a gente!
-
-Chama no WhatsApp pra agendar ✨
-
-#NailsManaus #UnhasDeGel #StudioNails`
-
-const failingSample = `We are pleased to announce our new service offerings. Our company provides excellent quality at competitive prices. Contact our sales department for more information about our premium packages. We look forward to serving you.`
+var failingSample = []Post{
+	{
+		Caption:        "We are pleased to announce our new service offerings. Our company provides excellent quality at competitive prices. Contact our sales department for more information about our premium packages. We look forward to serving you.",
+		Hashtags:       nil,
+		ProductionNote: "",
+	},
+}
 
 func TestPassingSamplePassesAll(t *testing.T) {
 	results := RunChecks(passingSample, testProfile)
@@ -48,8 +52,8 @@ func TestFailingSampleFailsMost(t *testing.T) {
 			failCount++
 		}
 	}
-	if failCount < 5 {
-		t.Errorf("expected at least 5 failures, got %d", failCount)
+	if failCount < 4 {
+		t.Errorf("expected at least 4 failures, got %d", failCount)
 		for _, r := range results {
 			t.Logf("  %s: pass=%v reason=%q", r.Name, r.Pass, r.Reason)
 		}
@@ -100,51 +104,38 @@ func TestCheckLocation(t *testing.T) {
 
 func TestCheckHashtags(t *testing.T) {
 	t.Run("exactly 3", func(t *testing.T) {
-		r := checkHashtags("texto #one #two #three")
+		posts := []Post{{Hashtags: []string{"#one", "#two", "#three"}}}
+		r := checkHashtags(posts)
 		if !r.Pass {
 			t.Error("exactly 3 hashtags should pass")
 		}
 	})
 	t.Run("two fails", func(t *testing.T) {
-		r := checkHashtags("texto #one #two")
+		posts := []Post{{Hashtags: []string{"#one", "#two"}}}
+		r := checkHashtags(posts)
 		if r.Pass {
 			t.Error("2 hashtags should fail")
 		}
 	})
-	t.Run("accented", func(t *testing.T) {
-		r := checkHashtags("#CafézinhoBH #PãoDeQueijo #Açaí")
+	t.Run("spread across posts", func(t *testing.T) {
+		posts := []Post{
+			{Hashtags: []string{"#one"}},
+			{Hashtags: []string{"#two", "#three"}},
+		}
+		r := checkHashtags(posts)
 		if !r.Pass {
-			t.Error("accented hashtags should be counted")
+			t.Error("3 hashtags across posts should pass")
 		}
 	})
 	t.Run("none", func(t *testing.T) {
-		r := checkHashtags("texto sem hashtag")
+		posts := []Post{{Hashtags: nil}}
+		r := checkHashtags(posts)
 		if r.Pass {
 			t.Error("no hashtags should fail")
 		}
 	})
 }
 
-func TestCheckCTA(t *testing.T) {
-	t.Run("whatsapp", func(t *testing.T) {
-		r := checkCTA("Chama no WhatsApp!")
-		if !r.Pass {
-			t.Error("should match WhatsApp CTA")
-		}
-	})
-	t.Run("agende", func(t *testing.T) {
-		r := checkCTA("Agende seu horário")
-		if !r.Pass {
-			t.Error("should match agende")
-		}
-	})
-	t.Run("none", func(t *testing.T) {
-		r := checkCTA("Nossas unhas são lindas.")
-		if r.Pass {
-			t.Error("should fail without CTA")
-		}
-	})
-}
 
 func TestCheckBrazilianPortuguese(t *testing.T) {
 	t.Run("has marker", func(t *testing.T) {
@@ -169,29 +160,36 @@ func TestCheckBrazilianPortuguese(t *testing.T) {
 
 func TestCheckCaptionLength(t *testing.T) {
 	t.Run("exactly 2200", func(t *testing.T) {
-		content := strings.Repeat("a", 2200)
-		r := checkCaptionLength(content)
+		posts := []Post{{Caption: strings.Repeat("a", 2200)}}
+		r := checkCaptionLength(posts)
 		if !r.Pass {
 			t.Error("exactly 2200 chars should pass")
 		}
 	})
 	t.Run("2201 fails", func(t *testing.T) {
-		content := strings.Repeat("a", 2201)
-		r := checkCaptionLength(content)
+		posts := []Post{{Caption: strings.Repeat("a", 2201)}}
+		r := checkCaptionLength(posts)
 		if r.Pass {
 			t.Error("2201 chars should fail")
 		}
 	})
 	t.Run("multi post under limit", func(t *testing.T) {
-		content := strings.Repeat("a", 1000) + "\n---\n" + strings.Repeat("b", 1000) + "\n---\n" + strings.Repeat("c", 1000)
-		r := checkCaptionLength(content)
+		posts := []Post{
+			{Caption: strings.Repeat("a", 1000)},
+			{Caption: strings.Repeat("b", 1000)},
+			{Caption: strings.Repeat("c", 1000)},
+		}
+		r := checkCaptionLength(posts)
 		if !r.Pass {
 			t.Error("3 posts each under 2200 should pass")
 		}
 	})
 	t.Run("multi post one over", func(t *testing.T) {
-		content := strings.Repeat("a", 500) + "\n---\n" + strings.Repeat("b", 2201)
-		r := checkCaptionLength(content)
+		posts := []Post{
+			{Caption: strings.Repeat("a", 500)},
+			{Caption: strings.Repeat("b", 2201)},
+		}
+		r := checkCaptionLength(posts)
 		if r.Pass {
 			t.Error("should fail when one post exceeds 2200")
 		}
@@ -199,22 +197,18 @@ func TestCheckCaptionLength(t *testing.T) {
 }
 
 func TestCheckProductionNote(t *testing.T) {
-	t.Run("foto", func(t *testing.T) {
-		r := checkProductionNote("Tire uma foto incrível!")
+	t.Run("has note", func(t *testing.T) {
+		posts := []Post{{ProductionNote: "Foto do bolo na bancada"}}
+		r := checkProductionNote(posts)
 		if !r.Pass {
-			t.Error("should match 'foto'")
-		}
-	})
-	t.Run("stories", func(t *testing.T) {
-		r := checkProductionNote("Poste nos stories")
-		if !r.Pass {
-			t.Error("should match 'stories'")
+			t.Error("should pass with production note")
 		}
 	})
 	t.Run("none", func(t *testing.T) {
-		r := checkProductionNote("Texto sem sugestão de mídia")
+		posts := []Post{{ProductionNote: ""}}
+		r := checkProductionNote(posts)
 		if r.Pass {
-			t.Error("should fail without production keywords")
+			t.Error("should fail without production note")
 		}
 	})
 }

@@ -19,6 +19,12 @@ class ContentRole {
   description string
 }
 
+class Post {
+  caption string
+  hashtags string[]
+  productionNote string
+}
+
 class JudgeResult {
   reasoning string
   verdict bool
