@@ -1,4 +1,4 @@
-.PHONY: dev dev-api dev-web eval eval-judges
+.PHONY: dev dev-api dev-web eval eval-judges eval-fast test-judges
 
 dev:
 	$(MAKE) dev-api &
@@ -18,3 +18,9 @@ eval:
 
 eval-judges:
 	set -a && . ./.env && set +a && cd eval && go run ./cmd/eval --judges
+
+eval-fast:
+	set -a && . ./.env && set +a && cd eval && go run ./cmd/eval --fast
+
+test-judges:
+	set -a && . ./.env && set +a && cd eval && go test -tags integration -v -run TestJudge

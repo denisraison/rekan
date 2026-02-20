@@ -1,6 +1,6 @@
 # PEP-001: Eval Pipeline MVP
 
-**Status:** Wave 3 Complete
+**Status:** Complete
 **Date:** 2026-02-19
 
 ## Context
@@ -56,7 +56,7 @@ Each check returns a name, pass/fail, and a short reason on failure. The functio
 
 ### Status: Done (2026-02-19)
 
-Implemented in `eval/`. 12 test profiles committed, 7 heuristic checks passing (21 test cases). Accent-normalized matching for business names and locations. Unicode-aware hashtag and word-boundary regexes for Portuguese content. No external dependencies.
+Implemented in `eval/`. 12 test profiles committed across 12 distinct business types and 8 brand vibes, 7 heuristic checks passing (21 test cases). Accent-normalized matching for business names and locations. Unicode-aware hashtag and word-boundary regexes for Portuguese content. No external dependencies.
 
 ## Wave 2: Binary LLM Judges
 
@@ -88,7 +88,7 @@ Create `eval/judge.go`. Takes a business profile, generated content, and judge n
 
 ### Status: Done (2026-02-19)
 
-Implemented with BAML v0.219.0. Five judges defined in `eval/baml_src/judges.baml` using OpenRouter with Gemini 2.5 Flash. Generated Go client in `eval/baml_client/`. Judge runner in `eval/judge.go` with `RunJudge` and `RunAllJudges`. Six test cases in `eval/judge_test.go` (skip gracefully without `OPENROUTER_API_KEY`). All heuristic tests still pass (no regression). Added `$GOPATH/bin` to PATH in `flake.nix` devshell for `baml-cli` and `goimports`.
+Implemented with BAML v0.219.0. Five judges defined in `eval/baml_src/judges.baml` using OpenRouter with Gemini 2.5 Flash. Generated Go client in `eval/baml_client/`. Judge runner in `eval/judge.go` with `RunJudge` and `RunAllJudges`. Six test cases in `eval/judge_test.go` (integration build tag, run via `make test-judges`). All heuristic tests still pass (no regression). Added `$GOPATH/bin` to PATH in `flake.nix` devshell for `baml-cli` and `goimports`.
 
 ## Wave 3: Eval CLI and Optimization Loop
 

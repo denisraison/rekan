@@ -21,6 +21,7 @@ cd web && pnpm check           # typecheck
 cd web && pnpm build           # production build
 make eval                      # heuristics only (~5s, needs OPENROUTER_API_KEY)
 make eval-judges               # heuristics + LLM judges (~25s)
+make test-judges               # integration tests for judge verdicts
 ```
 
 ## Project structure
@@ -41,6 +42,16 @@ See `eval/CLAUDE.md` for full eval pipeline docs. The short version:
 3. Edit `eval/baml_src/content.baml`
 4. `make eval-judges`, diff the two runs
 5. Keep or revert. Max 5 cycles per session.
+
+## Browser inspection
+
+Use Playwright to inspect the running frontend:
+
+```bash
+cd web && npx playwright screenshot http://localhost:5173 /tmp/screenshot.png
+```
+
+Then read the screenshot with the Read tool to verify visual output.
 
 ## Conventions
 

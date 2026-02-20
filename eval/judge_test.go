@@ -23,36 +23,32 @@ var judgeProfile = BusinessProfile{
 }
 
 const knownGoodContent = `POST 1:
-Gente, quem aí já provou o bolo personalizado da Confeitaria da Tia Marta? 🎂
+Hoje de manhã a cozinha já tava cheirando chocolate às 6h. A Marta tava quieta, concentrada, desenhando uma Magali no bolo de uma menina que vai fazer 7 anos amanhã.
 
-Aqui no bairro Funcionários, em BH, a gente faz cada bolo que é uma obra de arte! Personaliza nome, desenho, tema... tudo do jeitinho que você quer pra sua festa ficar perfeita.
+Esse é o tipo de encomenda que não aparece no cardápio. A cliente mandou foto do caderno de desenho da filha e pediu pra gente reproduzir. Ficou igualzinho.
 
-E olha, tem opção vegana também, viu? Ninguém fica de fora! 🌱
+Bolo personalizado a partir de R$180, mas o desenho feito com a referência da própria criança? Isso não tem preço 😊
 
-Nossos docinhos pra festa (a partir de R$120) são aquele sucesso que todo mundo elogia. E o melhor: entrega no dia!
+Pra encomendar chama no zap. A gente entrega no dia se precisar.
 
-Bora encomendar? Chama no WhatsApp que a Tia Marta cuida de tudo 💕
+📸 Foto do bolo ao lado do desenho original da criança, luz natural da janela da cozinha
 
-🎥 Sugestão: filme um vídeo curto mostrando o bolo pronto com o nome personalizado, de perto
-
-#ConfeitariaBH #BoloBH #DocinhosBH #FestaBH #ConfeitariaDaTiaMarta
+#ConfeitariaDaTiaMarta #BoloBH #BoloPersonalizado #Funcionarios #ConfeitariaBH
 
 ---
 
 POST 2:
-3 erros que acabam com seu bolo de aniversário (e como evitar) 👇
+Pergunta honesta pra quem já tentou: alguém conseguiu fazer brigadeiro vegano em casa sem gosto de leite de coco?
 
-1️⃣ Encomendar em cima da hora — aqui na Confeitaria da Tia Marta a gente pede pelo menos 48h, pra caprichar nos detalhes
-2️⃣ Não combinar o tema antes — a gente personaliza tudo, mas precisa saber o que você sonha!
-3️⃣ Esquecer dos convidados com restrição — temos opção vegana que é tão gostosa quanto a tradicional
+A gente testou 11 receitas até chegar numa que ninguém percebe a diferença. O truque é o cacau que a Marta compra direto de Ilhéus, não é o mesmo do mercado.
 
-Salva esse post pra não esquecer na hora de encomendar! 📌
+Bandeja com 50 docinhos por R$120. Metade vegano, metade tradicional, mistura sem drama.
 
-Funcionários, BH — chama no zap e garanta o seu 🎂
+Próxima festa, testa. Chama no zap e conta quantos convidados tem.
 
-📸 Sugestão: foto de antes e depois mostrando a massa crua e o bolo decorado finalizado
+🎥 Vídeo curto: close na mão da Marta enrolando o brigadeiro, mostra a textura cremosa. Fundo desfocado da bancada.
 
-#ConfeitariaDaTiaMarta #DicasDeConfeitaria #BoloBH #ConfeitariaBH #BoloPersonalizado`
+#BrigadeiroVegano #DocinhoBH #ConfeitariaDaTiaMarta #FestaBH #DocinhosDeFesta`
 
 const knownBadContent = `We are pleased to announce our premium confectionery services. Our establishment offers a wide range of high-quality baked goods at competitive prices. We pride ourselves on excellent customer service and timely delivery. Contact our sales team for corporate catering packages and bulk order discounts. We look forward to serving your confectionery needs.`
 

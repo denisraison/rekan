@@ -1,14 +1,14 @@
 {
-  "businessName": "Studio Nails da Jéssica",
-  "businessType": "nail designer",
+  "businessName": "Salão da Jéssica",
+  "businessType": "salão de beleza",
   "city": "Manaus",
   "neighbourhood": "Adrianópolis",
   "services": [
-    {"name": "Alongamento em gel", "priceBRL": 120},
-    {"name": "Esmaltação em gel", "priceBRL": 60},
-    {"name": "Nail art", "priceBRL": 80}
+    {"name": "Corte feminino", "priceBRL": 80},
+    {"name": "Escova progressiva", "priceBRL": 200},
+    {"name": "Coloração", "priceBRL": 150}
   ],
-  "targetAudience": "mulheres 20-35",
-  "brandVibe": "trendy",
-  "quirks": ["atende com hora marcada", "não trabalha com esmalte comum"]
+  "targetAudience": "mulheres 25-50",
+  "brandVibe": "acolhedor",
+  "quirks": ["cafezinho e biscoito na espera", "fecha segunda"]
 }

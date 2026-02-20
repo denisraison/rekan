@@ -1,6 +1,6 @@
 # PEP-003: Content Rotation System
 
-**Status:** Wave 2 Implemented
+**Status:** Draft
 **Date:** 2026-02-20
 
 ## Context
@@ -39,45 +39,35 @@ Proposed pool (~12, each with a provocative description that forces non-generic 
 
 The pool is not exhaustive. New roles can be added over time. Not all roles make sense for all business types (antes/depois is natural for salões and tattoo studios, less so for restaurants). Role filtering by business type is a future optimization, not part of this PEP.
 
-## Wave 1: Dynamic Role Selection in Prompt (Implemented)
+## Wave 1: Dynamic Role Selection in Prompt
 
 **Goal:** Make the prompt accept roles as a parameter instead of hardcoding 3 types. Verify that rotating roles produces different hooks across batches.
 
-**Changes (as implemented):**
+**Changes:**
 
-`eval/baml_src/judges.baml`: Added `ContentRole` class with `name string` and `description string`.
+`eval/baml_src/judges.baml`: Add a `ContentRole` class with `name` and `description` fields. Add a `GenerationContext` class with `roles ContentRole[]` and `previousHooks string[]` (empty for now).
 
-`eval/baml_src/content.baml`: Changed signature to `GenerateContent(profile: BusinessProfile, roles: ContentRole[])`. Replaced hardcoded role block with a Jinja `{% for r in roles %}` loop rendering each role name and description.
+`eval/baml_src/content.baml`: Change function signature from `GenerateContent(profile: BusinessProfile)` to `GenerateContent(profile: BusinessProfile, ctx: GenerationContext)`. Replace the hardcoded role block with a Jinja loop over `ctx.roles`. Render each role name and description dynamically.
 
-`eval/role.go` (new): `Role` struct, `RolePool` var with all 12 roles and pt-BR descriptions, `PickRoles(n int, exclude []string) []Role` using `math/rand/v2`.
+`eval/generate.go`: Update the `Generate` function to accept roles. Add a `RolePool` variable containing all ~12 roles. Add a `PickRoles(n int, exclude []string) []Role` function that selects n roles randomly, excluding any in the exclude list.
 
-`eval/generate.go`: `Generate()` now accepts `[]Role`, converts to `[]types.ContentRole`, passes to BAML.
+`eval/cmd/eval/main.go`: For each profile, call `PickRoles(3, nil)` (no exclusion yet) and pass to `Generate`. Add a `--roles` flag to specify role names manually for testing (`--roles "bastidor,opinião,marco"`).
 
-`eval/judge.go`: Added `toBamlRoles()` conversion helper.
+**Gate:** Run `make eval-judges` with random role selection. Scores should not regress from current baseline (NAT 12, ESP 12, ACI 12, VAR 10, ENG 11). Then generate 4 batches for the same profile, verify that hooks vary across batches more than they do today.
 
-`eval/cmd/eval/main.go`: Added `--roles` flag (comma-separated names). When set, parses and resolves from pool. Otherwise calls `PickRoles(3, nil)` per profile so each run gets different random roles.
-
-**Design note:** The plan originally proposed a `GenerationContext` wrapper class. We went with `roles: ContentRole[]` as a direct parameter instead, keeping the signature simpler. The `previousHooks` field from `GenerationContext` will be added in Wave 2 as a separate parameter.
-
-**Gate results:** `make eval-fast` with random roles scored 27/28 checks, judges all passing (NAT 4/4, ESP 4/4, ACI 4/4, VAR 4/4, ENG 4/4). No regression. All tests (unit + integration) pass.
-
-## Wave 2: Exclusion Context (Implemented)
+## Wave 2: Exclusion Context
 
 **Goal:** Pass previously used hooks to the prompt so the model avoids repeating angles.
 
-**Changes (as implemented):**
+**Changes:**
 
-`eval/hooks.go` (new): `ExtractHooks(content string) []string` splits generated content into posts (using existing `splitPosts()`), extracts the first sentence of each as the "hook". A sentence ends at the first `.`, `!`, or `?` in the first paragraph.
+`eval/baml_src/content.baml`: Add a conditional block that renders `previousHooks` when the list is non-empty. Something like: "Estes ganchos já foram usados em posts anteriores. NÃO repita o mesmo ângulo: [hooks]".
 
-`eval/hooks_test.go` (new): Tests for `ExtractHooks` covering multi-post content and empty input.
+`eval/hooks.go` (new file): Add a `ExtractHooks(content string) []string` function that pulls the first sentence of each post from generated content. This is the "hook" that gets stored and passed as exclusion context.
 
-`eval/baml_src/content.baml`: Added `previousHooks: string[]` parameter. Conditional Jinja block renders before `ctx.output_format` when the list is non-empty: "IMPORTANTE: Estes ganchos já foram usados em posts anteriores. NÃO repita o mesmo ângulo, tema ou cena."
+`eval/cmd/eval/main.go`: Add a `--chain N` flag that generates N consecutive batches for one profile, passing extracted hooks from each batch to the next. Print a summary of hooks across batches to verify no repetition.
 
-`eval/generate.go`: `Generate()` now accepts `previousHooks []string`, passes through to BAML client.
-
-`eval/cmd/eval/main.go`: Added `--chain N` flag. Requires `--profile`. Generates N sequential batches for one profile, accumulating hooks between batches. Prints hook summary to stderr after all batches. Supports `--roles` for fixed roles across batches. Existing callers pass `nil` for previousHooks (no behavior change).
-
-**Gate results:** `--chain 2 --profile "Brigadeiros da Dani"` produced distinct hooks across batches (14/14 heuristics pass). Batch 2 hooks ("O barulhinho do batedor de arame...", "Lavei a mão umas 15 vezes...", "R$ 110,00 bem investidos...") are clearly different angles from batch 1 ("O cheirinho de cravo e canela...", "Minha mão chega a cansar...", "4 da manhã..."). `make eval` shows no regression (82/84).
+**Gate:** Run `--chain 4 --profile "Cantina da Nonna Rosa"` and verify: (1) no hook repetition across batches, (2) quality scores don't degrade on later batches, (3) the model doesn't just negate exclusions ("Hoje NÃO vou falar do forno" is still about the oven).
 
 ## Consequences
 
