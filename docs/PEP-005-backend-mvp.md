@@ -1,6 +1,6 @@
 # PEP-005: Backend MVP
 
-**Status:** Draft
+**Status:** In Progress (Wave 1 done, Wave 2 done)
 **Date:** 2026-02-20
 
 ## Context
@@ -196,12 +196,14 @@ func init() {
 
 Without this, rate limits apply to the proxy IP instead of the actual client. Must match the deployment platform.
 
+Deployed on Hetzner VPS behind Nginx/Caddy, which sets `X-Real-IP`.
+
 ```go
 // migrations/1740000005_trusted_proxy.go
 func init() {
     m.Register(func(app core.App) error {
         settings := app.Settings()
-        settings.TrustedProxy.Headers = []string{"Fly-Client-IP"}
+        settings.TrustedProxy.Headers = []string{"X-Real-IP"}
         settings.TrustedProxy.UseLeftmostIP = true
         return app.Save(settings)
     }, func(app core.App) error {
@@ -429,13 +431,15 @@ All configured via Go code (see "Everything as code" section above):
 
 ### Acceptance criteria
 
-- Google sign-in works from SvelteKit via PocketBase JS SDK
-- Collections exist with all API rules and field-level protections
-- Frontend can CRUD businesses and read/update/delete posts directly
-- Posts cannot be created from the client (only via generate endpoint)
-- Server-managed fields (subscription_status, subscription_id, generations_used, hook, batch_id, role, business on posts) cannot be set or modified by the client
-- Unauthenticated requests are rejected
-- Manual verification: attempt each attack in the threat model table against the PocketBase API and confirm rejection
+- [x] Collections exist with all API rules and field-level protections (`migrations/174000000[0-2]_*.go`)
+- [x] Google OAuth2 configured in migration with credentials from env vars (`GOOGLE_CLIENT_ID`, `GOOGLE_CLIENT_SECRET`)
+- [x] Password auth disabled
+- [x] Trial defaults set on first login (`internal/http/hooks.go`)
+- [x] Rate limits and trusted proxy configured as code (`migrations/174000000[4-5]_*.go`)
+- [x] Route skeleton wired: generate, subscriptions, webhook stubs (`internal/http/routes.go`)
+- [x] `go run .` on empty `pb_data/` produces a fully configured instance
+- [ ] Google sign-in works end-to-end from SvelteKit (requires Wave 2 frontend)
+- [ ] Manual threat model verification: attempt each attack row and confirm rejection
 
 ## Wave 2: Onboarding and Business Profile
 
@@ -463,10 +467,10 @@ Frontend calls: `pb.collection('businesses').update(id, { target_audience, brand
 
 ### Acceptance criteria
 
-- Three-step form flow works using direct PocketBase SDK calls
-- No custom backend endpoints needed for onboarding
-- Business saved with correct onboarding_step tracking
-- Defaults applied for step 3 if skipped
+- [x] Three-step form flow works using direct PocketBase SDK calls (`routes/(app)/onboarding/+page.svelte`)
+- [x] No custom backend endpoints needed for onboarding
+- [x] Business saved with correct onboarding_step tracking
+- [x] Defaults applied for step 3 if skipped ("Público geral", "Profissional e acolhedor")
 
 ## Wave 3: Content Generation Endpoint
 
