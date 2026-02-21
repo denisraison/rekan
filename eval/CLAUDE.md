@@ -22,6 +22,7 @@ go run ./cmd/eval --judges --verbose                 # + generated content and j
 go run ./cmd/eval --profile "Closet da Re"           # single profile
 go run ./cmd/eval --judges --from-run runs/FILE.json # re-judge saved content (skips generation)
 go run ./cmd/eval --diff runs/BEFORE.json runs/AFTER.json  # compare two runs
+go run ./cmd/eval --rekan --judges --verbose               # Rekan-specific prompt (founder-voice)
 ```
 
 ## How it works
@@ -61,7 +62,8 @@ generate.go          Content generation wrapper
 baml_src/
   clients.baml       JudgeClient (temp 0.1) + GeneratorClient (temp 0.7)
   judges.baml        5 judge prompt definitions
-  content.baml       Generation prompt (the file you optimize)
+  content.baml       Generation prompt for MEI businesses (the file you optimize)
+  rekan.baml         Generation prompt for Rekan itself (founder-voice)
   generators.baml    BAML codegen config
 baml_client/         Auto-generated Go client (do not edit)
 testdata/            12 business profile fixtures

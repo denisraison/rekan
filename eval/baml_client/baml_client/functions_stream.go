@@ -116,6 +116,80 @@ func (*stream) GenerateContent(ctx context.Context, profile types.BusinessProfil
 	return channel, nil
 }
 
+// / Streaming version of GenerateRekanContent
+func (*stream) GenerateRekanContent(ctx context.Context, profile types.BusinessProfile, roles []types.ContentRole, previousHooks []string, opts ...CallOptionFunc) (<-chan StreamValue[[]stream_types.Post, []types.Post], error) {
+
+	var callOpts callOption
+	for _, opt := range opts {
+		opt(&callOpts)
+	}
+
+	args := baml.BamlFunctionArguments{
+		Kwargs: map[string]any{"profile": profile, "roles": roles, "previousHooks": previousHooks},
+		Env:    getEnvVars(callOpts.env),
+	}
+
+	if callOpts.clientRegistry != nil {
+		args.ClientRegistry = callOpts.clientRegistry
+	}
+
+	if callOpts.collectors != nil {
+		args.Collectors = callOpts.collectors
+	}
+
+	if callOpts.typeBuilder != nil {
+		args.TypeBuilder = callOpts.typeBuilder
+	}
+
+	if callOpts.tags != nil {
+		args.Tags = callOpts.tags
+	}
+
+	encoded, err := args.Encode()
+	if err != nil {
+		// This should never happen. if it does, please file an issue at https://github.com/boundaryml/baml/issues
+		// and include the type of the args you're passing in.
+		wrapped_err := fmt.Errorf("BAML INTERNAL ERROR: GenerateRekanContent: %w", err)
+		panic(wrapped_err)
+	}
+
+	internal_channel, err := bamlRuntime.CallFunctionStream(ctx, "GenerateRekanContent", encoded, callOpts.onTick)
+	if err != nil {
+		return nil, err
+	}
+
+	channel := make(chan StreamValue[[]stream_types.Post, []types.Post])
+	go func() {
+		for result := range internal_channel {
+			if result.Error != nil {
+				channel <- StreamValue[[]stream_types.Post, []types.Post]{
+					IsError: true,
+					Error:   result.Error,
+				}
+				close(channel)
+				return
+			}
+			if result.HasData {
+				data := (result.Data).([]types.Post)
+				channel <- StreamValue[[]stream_types.Post, []types.Post]{
+					IsFinal:  true,
+					as_final: &data,
+				}
+			} else {
+				data := (result.StreamData).([]stream_types.Post)
+				channel <- StreamValue[[]stream_types.Post, []types.Post]{
+					IsFinal:   false,
+					as_stream: &data,
+				}
+			}
+		}
+
+		// when internal_channel is closed, close the output too
+		close(channel)
+	}()
+	return channel, nil
+}
+
 // / Streaming version of JudgeAcionavel
 func (*stream) JudgeAcionavel(ctx context.Context, profile types.BusinessProfile, content string, opts ...CallOptionFunc) (<-chan StreamValue[stream_types.JudgeResult, types.JudgeResult], error) {
 

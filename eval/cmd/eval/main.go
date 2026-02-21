@@ -22,11 +22,20 @@ func main() {
 	fast := flag.Bool("fast", false, "optimization mode: single judge (Gemini Flash) + 4 profiles")
 	roles := flag.String("roles", "", "comma-separated role names (e.g. \"bastidor,opinião,marco\")")
 	chain := flag.Int("chain", 0, "generate N consecutive batches for one profile, passing hooks forward")
+	rekan := flag.Bool("rekan", false, "use Rekan-specific generation prompt")
 	flag.Parse()
 
 	if *fast {
 		eval.JudgeClients = eval.JudgeClients[:1]
 		*judges = true
+	}
+
+	gen := eval.GenerateFunc(eval.Generate)
+	if *rekan {
+		gen = eval.GenerateRekan
+		if *profile == "" {
+			*profile = "Rekan"
+		}
 	}
 
 	if *diff {
@@ -50,7 +59,7 @@ func main() {
 			fmt.Fprintf(os.Stderr, "error: --chain requires --profile\n")
 			os.Exit(1)
 		}
-		results, err = chainGenerate(context.Background(), *chain, *profile, *judges, *verbose, *roles)
+		results, err = chainGenerate(context.Background(), *chain, *profile, *judges, *verbose, *roles, gen)
 	} else if *fromRun != "" {
 		results, err = loadRun(*fromRun)
 		if err != nil {
@@ -76,7 +85,7 @@ func main() {
 		if *fast && *profile == "" {
 			sample = 4
 		}
-		results, err = generateAndEvaluate(*judges, *verbose, *profile, sample, *roles)
+		results, err = generateAndEvaluate(*judges, *verbose, *profile, sample, *roles, gen)
 	}
 	if err != nil {
 		fmt.Fprintf(os.Stderr, "error: %v\n", err)
@@ -127,7 +136,7 @@ func parseRoles(names string) ([]eval.Role, error) {
 	return roles, nil
 }
 
-func generateAndEvaluate(withJudges, verbose bool, profileFilter string, sample int, rolesFlag string) ([]result, error) {
+func generateAndEvaluate(withJudges, verbose bool, profileFilter string, sample int, rolesFlag string, gen eval.GenerateFunc) ([]result, error) {
 	profiles, err := loadProfiles("testdata")
 	if err != nil {
 		return nil, err
@@ -179,7 +188,7 @@ func generateAndEvaluate(withJudges, verbose bool, profileFilter string, sample 
 		}
 		go func(i int, p eval.BusinessProfile, roles []eval.Role) {
 			fmt.Fprintf(os.Stderr, "Generating: %s...\n", p.BusinessName)
-			posts, err := eval.Generate(ctx, p, roles, nil)
+			posts, err := gen(ctx, p, roles, nil)
 			genCh <- genOut{idx: i, profile: p, posts: posts, err: err}
 		}(i, p, r)
 	}
@@ -202,7 +211,7 @@ func generateAndEvaluate(withJudges, verbose bool, profileFilter string, sample 
 	return evaluateResults(ctx, results, withJudges, verbose)
 }
 
-func chainGenerate(ctx context.Context, n int, profileName string, withJudges, verbose bool, rolesFlag string) ([]result, error) {
+func chainGenerate(ctx context.Context, n int, profileName string, withJudges, verbose bool, rolesFlag string, gen eval.GenerateFunc) ([]result, error) {
 	profiles, err := loadProfiles("testdata")
 	if err != nil {
 		return nil, err
@@ -243,7 +252,7 @@ func chainGenerate(ctx context.Context, n int, profileName string, withJudges, v
 		}
 		fmt.Fprintf(os.Stderr, "Batch %d/%d [%s] (%d hooks excluded)...\n", i, n, strings.Join(roleNames, ", "), len(allHooks))
 
-		posts, err := eval.Generate(ctx, prof, roles, allHooks)
+		posts, err := gen(ctx, prof, roles, allHooks)
 		if err != nil {
 			return nil, fmt.Errorf("batch %d: %w", i, err)
 		}

@@ -71,6 +71,52 @@ func (*build_request) GenerateContent(profile types.BusinessProfile, roles []typ
 	return bamlRuntime.BuildRequest(context.Background(), "GenerateContent", encoded)
 }
 
+// Build HTTP request for GenerateRekanContent (returns baml.HTTPRequest)
+func (*build_request) GenerateRekanContent(profile types.BusinessProfile, roles []types.ContentRole, previousHooks []string, opts ...CallOptionFunc) (baml.HTTPRequest, error) {
+
+	var callOpts callOption
+	for _, opt := range opts {
+		opt(&callOpts)
+	}
+
+	// Resolve client option to clientRegistry (client takes precedence)
+	if callOpts.client != nil {
+		if callOpts.clientRegistry == nil {
+			callOpts.clientRegistry = baml.NewClientRegistry()
+		}
+		callOpts.clientRegistry.SetPrimaryClient(*callOpts.client)
+	}
+
+	args := baml.BamlFunctionArguments{
+		Kwargs: map[string]any{"profile": profile, "roles": roles, "previousHooks": previousHooks, "stream": false},
+		Env:    getEnvVars(callOpts.env),
+	}
+
+	if callOpts.clientRegistry != nil {
+		args.ClientRegistry = callOpts.clientRegistry
+	}
+
+	if callOpts.collectors != nil {
+		args.Collectors = callOpts.collectors
+	}
+
+	if callOpts.typeBuilder != nil {
+		args.TypeBuilder = callOpts.typeBuilder
+	}
+
+	if callOpts.tags != nil {
+		args.Tags = callOpts.tags
+	}
+
+	encoded, err := args.Encode()
+	if err != nil {
+		wrapped_err := fmt.Errorf("BAML INTERNAL ERROR: GenerateRekanContent: %w", err)
+		panic(wrapped_err)
+	}
+
+	return bamlRuntime.BuildRequest(context.Background(), "GenerateRekanContent", encoded)
+}
+
 // Build HTTP request for JudgeAcionavel (returns baml.HTTPRequest)
 func (*build_request) JudgeAcionavel(profile types.BusinessProfile, content string, opts ...CallOptionFunc) (baml.HTTPRequest, error) {
 

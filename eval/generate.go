@@ -14,10 +14,29 @@ type Post struct {
 	ProductionNote string   `json:"productionNote"`
 }
 
+// GenerateFunc is the signature for content generation functions.
+type GenerateFunc func(ctx context.Context, profile BusinessProfile, roles []Role, previousHooks []string) ([]Post, error)
+
 func Generate(ctx context.Context, profile BusinessProfile, roles []Role, previousHooks []string) ([]Post, error) {
 	bamlPosts, err := baml.GenerateContent(ctx, toBamlProfile(profile), toBamlRoles(roles), previousHooks)
 	if err != nil {
 		return nil, fmt.Errorf("generate content: %w", err)
+	}
+	posts := make([]Post, len(bamlPosts))
+	for i, p := range bamlPosts {
+		posts[i] = Post{
+			Caption:        p.Caption,
+			Hashtags:       p.Hashtags,
+			ProductionNote: p.ProductionNote,
+		}
+	}
+	return posts, nil
+}
+
+func GenerateRekan(ctx context.Context, profile BusinessProfile, roles []Role, previousHooks []string) ([]Post, error) {
+	bamlPosts, err := baml.GenerateRekanContent(ctx, toBamlProfile(profile), toBamlRoles(roles), previousHooks)
+	if err != nil {
+		return nil, fmt.Errorf("generate rekan content: %w", err)
 	}
 	posts := make([]Post, len(bamlPosts))
 	for i, p := range bamlPosts {
