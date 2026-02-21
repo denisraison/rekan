@@ -21,6 +21,13 @@ function GenerateRekanContent(profile: BusinessProfile, roles: ContentRole[], pr
     - Um convite pra ação (testar grátis, link na bio, comentar dúvida, etc.)
     - Direção de foto/vídeo na nota de produção: screenshot do app, tela do notebook, selfie trabalhando, print de conversa com usuário, etc.
 
+    REGRA PRINCIPAL — valor antes de produto:
+    - Pelo menos 2 dos 3 posts devem entregar valor que o leitor aproveita MESMO SEM USAR o produto. Exemplos: uma dica prática de Instagram, um insight sobre o mercado MEI, um bastidor que ensina algo. O produto pode aparecer de passagem, mas o post não pode depender dele pra fazer sentido.
+    - No máximo 1 post pode ser centrado no produto (mostrar como funciona, contar a história de criação, etc.)
+
+    REGRA DE TEXTURA — personagens reais:
+    - Cada post deve mencionar uma pessoa específica (real ou verossímil) com nome e um detalhe sobre ela que NÃO tem relação com Instagram ou conteúdo digital. Ex: "A Dona Cida faz 200 coxinhas por dia e ainda cuida da neta", "O Seu Marcos fechou a oficina mais cedo porque ia chover e ele mora longe". O personagem existe como pessoa, não como exemplo de quem precisa do produto.
+
     Como você escreve:
     - Como fundador(a) falando com quem você quer ajudar, não como marca vendendo produto
     - Não liste features. Mostre o problema que você resolve, conte bastidores de construir o produto, compartilhe histórias de usuários reais (ou verossímeis)

@@ -17,12 +17,10 @@ var judgeNames = []string{
 }
 
 // JudgeClients are the BAML client names for the multi-model panel.
-// Each judge criterion runs on all clients; final verdict is majority vote.
-// Override to a single client for faster/cheaper optimization runs.
+// Each judge criterion runs on all clients; final verdict requires unanimity.
 var JudgeClients = []string{
-	"JudgeClient",         // Google Gemini 3 Flash
-	"JudgeClientClaude",   // Anthropic Claude Haiku 4.5
-	"JudgeClientGemini25", // Google Gemini 2.5 Flash
+	"JudgeClient",       // Google Gemini 3 Flash
+	"JudgeClientClaude", // Anthropic Claude Haiku 4.5
 }
 
 type Vote struct {
@@ -102,7 +100,7 @@ func runJudgeSingle(ctx context.Context, name string, bp types.BusinessProfile, 
 	}, nil
 }
 
-// RunJudge runs a single judge criterion across all panel models and returns a majority vote.
+// RunJudge runs a single judge criterion across all panel models and requires unanimity to pass.
 func RunJudge(ctx context.Context, name string, profile BusinessProfile, content string) (JudgeResult, error) {
 	bp := toBamlProfile(profile)
 
@@ -144,19 +142,20 @@ func RunJudge(ctx context.Context, name string, profile BusinessProfile, content
 		return JudgeResult{}, fmt.Errorf("judge %s: all models failed", name)
 	}
 
-	trueCount := 0
+	// Unanimity: all models must agree for a pass.
+	allTrue := true
 	for _, v := range successful {
-		if v.Verdict {
-			trueCount++
+		if !v.Verdict {
+			allTrue = false
+			break
 		}
 	}
-	majority := trueCount > len(successful)/2
 
 	// Pick reasoning from the dissenting vote (most informative for debugging).
 	// If unanimous, use the first successful vote's reasoning.
 	reasoning := successful[0].Reasoning
 	for _, v := range successful {
-		if v.Verdict != majority {
+		if v.Verdict != allTrue {
 			reasoning = v.Reasoning
 			break
 		}
@@ -165,7 +164,7 @@ func RunJudge(ctx context.Context, name string, profile BusinessProfile, content
 	return JudgeResult{
 		Name:      name,
 		Reasoning: reasoning,
-		Verdict:   majority,
+		Verdict:   allTrue,
 		Votes:     votes,
 	}, nil
 }
