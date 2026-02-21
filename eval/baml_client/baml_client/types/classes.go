@@ -200,6 +200,60 @@ func (c JudgeResult) BamlTypeName() string {
 	return "JudgeResult"
 }
 
+type JudgeVariedadeResult struct {
+	PostMessages []string `json:"postMessages"`
+	Reasoning    string   `json:"reasoning"`
+	Verdict      bool     `json:"verdict"`
+}
+
+func (c *JudgeVariedadeResult) Decode(holder *cffi.CFFIValueClass, typeMap baml.TypeMap) {
+	typeName := holder.Name
+	if typeName.Namespace != cffi.CFFITypeNamespace_TYPES {
+		panic(fmt.Sprintf("expected cffi.CFFITypeNamespace_TYPES, got %s", string(typeName.Namespace.String())))
+	}
+	if typeName.Name != "JudgeVariedadeResult" {
+		panic(fmt.Sprintf("expected JudgeVariedadeResult, got %s", typeName.Name))
+	}
+
+	for _, field := range holder.Fields {
+		key := field.Key
+		valueHolder := field.Value
+		switch key {
+
+		case "postMessages":
+			c.PostMessages = baml.Decode(valueHolder).Interface().([]string)
+
+		case "reasoning":
+			c.Reasoning = baml.Decode(valueHolder).Interface().(string)
+
+		case "verdict":
+			c.Verdict = baml.Decode(valueHolder).Bool()
+
+		default:
+
+			panic(fmt.Sprintf("unexpected field: %s in class JudgeVariedadeResult", key))
+
+		}
+	}
+
+}
+
+func (c JudgeVariedadeResult) Encode() (*cffi.HostValue, error) {
+	fields := map[string]any{}
+
+	fields["postMessages"] = c.PostMessages
+
+	fields["reasoning"] = c.Reasoning
+
+	fields["verdict"] = c.Verdict
+
+	return baml.EncodeClass("JudgeVariedadeResult", fields, nil)
+}
+
+func (c JudgeVariedadeResult) BamlTypeName() string {
+	return "JudgeVariedadeResult"
+}
+
 type Post struct {
 	Caption        string   `json:"caption"`
 	Hashtags       []string `json:"hashtags"`

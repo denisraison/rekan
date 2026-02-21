@@ -307,8 +307,8 @@ func (*parse) JudgeNaturalidade(text string, opts ...CallOptionFunc) (types.Judg
 	return casted, nil
 }
 
-// / Parse version of JudgeVariedade (Takes in string and returns types.JudgeResult)
-func (*parse) JudgeVariedade(text string, opts ...CallOptionFunc) (types.JudgeResult, error) {
+// / Parse version of JudgeVariedade (Takes in string and returns types.JudgeVariedadeResult)
+func (*parse) JudgeVariedade(text string, opts ...CallOptionFunc) (types.JudgeVariedadeResult, error) {
 
 	var callOpts callOption
 	for _, opt := range opts {
@@ -346,10 +346,10 @@ func (*parse) JudgeVariedade(text string, opts ...CallOptionFunc) (types.JudgeRe
 
 	result, err := bamlRuntime.CallFunctionParse(context.Background(), "JudgeVariedade", encoded)
 	if err != nil {
-		return types.JudgeResult{}, err
+		return types.JudgeVariedadeResult{}, err
 	}
 
-	casted := (result).(types.JudgeResult)
+	casted := (result).(types.JudgeVariedadeResult)
 
 	return casted, nil
 }

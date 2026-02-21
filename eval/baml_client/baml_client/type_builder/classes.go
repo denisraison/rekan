@@ -147,6 +147,46 @@ func (t *JudgeResultClassView) Type() (baml.Type, error) {
 	return t.inner.Type()
 }
 
+type JudgeVariedadeResultClassView struct {
+	inner baml.ClassBuilder
+}
+
+func (t *JudgeVariedadeResultClassView) ListProperties() ([]ClassPropertyView, error) {
+	result, err := t.inner.ListProperties()
+	if err != nil {
+		return nil, err
+	}
+	builders := make([]ClassPropertyView, len(result))
+	for i, p := range result {
+		builders[i] = p
+	}
+	return builders, nil
+}
+
+func (t *JudgeVariedadeResultClassView) PropertyPostMessages() (ClassPropertyView, error) {
+	return t.inner.Property("postMessages")
+}
+
+func (t *JudgeVariedadeResultClassView) PropertyReasoning() (ClassPropertyView, error) {
+	return t.inner.Property("reasoning")
+}
+
+func (t *JudgeVariedadeResultClassView) PropertyVerdict() (ClassPropertyView, error) {
+	return t.inner.Property("verdict")
+}
+
+func (t *TypeBuilder) JudgeVariedadeResult() (*JudgeVariedadeResultClassView, error) {
+	bld, err := t.inner.Class("JudgeVariedadeResult")
+	if err != nil {
+		return nil, err
+	}
+	return &JudgeVariedadeResultClassView{inner: bld}, nil
+}
+
+func (t *JudgeVariedadeResultClassView) Type() (baml.Type, error) {
+	return t.inner.Type()
+}
+
 type PostClassView struct {
 	inner baml.ClassBuilder
 }

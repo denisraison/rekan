@@ -77,7 +77,15 @@ func runJudgeSingle(ctx context.Context, name string, bp types.BusinessProfile, 
 	case "acionavel":
 		res, err = baml.JudgeAcionavel(ctx, bp, content, opt)
 	case "variedade":
-		res, err = baml.JudgeVariedade(ctx, bp, content, opt)
+		vr, verr := baml.JudgeVariedade(ctx, bp, content, opt)
+		if verr != nil {
+			return Vote{}, fmt.Errorf("judge %s (%s): %w", name, client, verr)
+		}
+		return Vote{
+			Client:    client,
+			Verdict:   vr.Verdict,
+			Reasoning: fmt.Sprintf("postMessages: %v | %s", vr.PostMessages, vr.Reasoning),
+		}, nil
 	case "engajamento":
 		res, err = baml.JudgeEngajamento(ctx, bp, content, opt)
 	default:

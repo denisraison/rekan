@@ -30,6 +30,12 @@ class JudgeResult {
   verdict bool
 }
 
+class JudgeVariedadeResult {
+  postMessages string[]
+  reasoning string
+  verdict bool
+}
+
 function JudgeNaturalidade(profile: BusinessProfile, content: string) -> JudgeResult {
   client JudgeClient
   prompt #"
@@ -77,9 +83,9 @@ function JudgeEspecificidade(profile: BusinessProfile, content: string) -> Judge
   prompt #"
     Você é um avaliador rigoroso de conteúdo para Instagram brasileiro.
 
-    Já foi verificado que o texto menciona o nome do negócio e a localização. Sua tarefa é diferente: avaliar se o conteúdo vai ALÉM dos dados do perfil, ou se é apenas os dados reformatados em tom de Instagram.
+    Sua tarefa: o conteúdo tem detalhes que existem POR SI SÓS, ou todo detalhe inventado serve apenas para vender o produto/serviço?
 
-    Perfil do negócio (estes são os dados que a IA recebeu para gerar o conteúdo):
+    Perfil do negócio (dados que a IA recebeu):
     - Nome: {{ profile.businessName }}
     - Tipo: {{ profile.businessType }}
     - Cidade: {{ profile.city }}
@@ -94,36 +100,22 @@ function JudgeEspecificidade(profile: BusinessProfile, content: string) -> Judge
     {{ content }}
     ---
 
-    Compare o conteúdo com os dados do perfil acima. Cada fato no conteúdo veio de um campo do perfil, ou existe pelo menos um detalhe inventado criativamente?
+    Teste decisivo: para cada detalhe inventado, tire a menção ao produto/serviço. O detalhe ainda tem valor para o leitor? Se não, é decoração de pitch.
 
-    Reprove se:
-    - Toda informação no conteúdo é rastreável a um campo do perfil acima
-    - O conteúdo é o perfil reescrito em tom casual, sem adicionar nada
-    - Não há nenhuma cena, momento, anedota ou detalhe além dos dados
-    - O conteúdo inventa cenas ou personagens, mas toda cena existe para montar um pitch: apresentar um problema e explicar como o produto/serviço resolve. Teste: se tirar a menção ao produto/serviço, a cena perde o propósito? Se sim, é pitch com moldura narrativa, não especificidade genuína
-
-    Aprove se:
-    - Pelo menos um detalhe concreto que não está no perfil (uma cena do dia a dia, uma observação sobre o bairro, um hábito dos clientes, um momento específico)
-    - O conteúdo conta uma micro-história ou pinta um cenário, não apenas lista atributos
-    - Os detalhes inventados enriquecem a experiência do leitor por si sós, independente de vender algo
-
-    Exemplo de reprovação (dados do perfil reformatados):
+    EXEMPLO 1 — verdict: false (dados do perfil reformatados)
     "Aqui no Setor Bueno a gente faz smash burger com nosso blend secreto 🍔 O molho da casa é preparado todo dia! Simples por R$28, duplo por R$38, combo completo por R$52. Bora provar?"
-    Motivo: Setor Bueno = campo bairro, blend secreto = campo diferenciais, molho da casa = campo diferenciais, preços = campo serviços. Cada informação veio do perfil. Zero textura, zero cenas.
+    Motivo: Setor Bueno = campo bairro, blend secreto = campo diferenciais, preços = campo serviços. Cada informação veio do perfil. Zero textura.
 
-    Exemplo de reprovação (pitch disfarçado de história):
+    EXEMPLO 2 — verdict: false (pitch embrulhado em história)
     "Era uma terça à noite e a Maria, dona de uma loja de roupas, tava exausta tentando escrever uma legenda pro Instagram. Ela não sabia o que postar. Foi aí que ela descobriu o AppX. O AppX olha pro conteúdo dela e escreve a legenda perfeita. Maria nunca mais travou."
-    Motivo: a cena da Maria existe apenas para apresentar o problema que o AppX resolve. Tire o AppX e a história não tem razão de existir. É um pitch embrulhado em narrativa.
+    Motivo: tire o AppX e a história da Maria não tem razão de existir. A cena foi inventada apenas para montar o pitch. Isso não é especificidade, é narrativa instrumental.
 
-    Exemplo de aprovação:
+    EXEMPLO 3 — verdict: true (detalhes com vida própria)
     "Sexta 18h e o cheiro da chapa já tá chamando a galera aqui no Bueno 🔥 Tem fila? Tem. Mas quem já mordeu o duplo sabe que vale cada minuto. Hoje o Rafa tá no comando da chapa, capricho dobrado 😂"
-    Motivo: "sexta 18h" (cena temporal), "cheiro da chapa" (sensorial), "tem fila" (observação real), "Rafa no comando" (personagem). Detalhes que dão vida e não estão nos dados do perfil. A cena tem valor mesmo sem vender nada.
+    Motivo: "sexta 18h" (cena temporal), "cheiro da chapa" (sensorial), "tem fila" (observação), "Rafa no comando" (personagem). Tire o produto e a cena ainda pinta um momento real. Os detalhes enriquecem por si sós.
 
-    No seu raciocínio, responda obrigatoriamente:
-    1. Que detalhes no conteúdo NÃO estão no perfil?
-    2. Para cada detalhe inventado: se tirar a menção ao produto/serviço, o detalhe ainda tem valor para o leitor?
-    Depois dê o veredito.
-    Veredito: true se vai além dos dados COM detalhes que valem por si sós, false se é perfil reformatado OU pitch disfarçado de história.
+    Primeiro explique seu raciocínio em 2-3 frases, depois dê o veredito.
+    Veredito: true se os detalhes inventados valem por si sós, false se servem apenas ao pitch.
 
     {{ ctx.output_format }}
   "#
@@ -169,12 +161,10 @@ function JudgeAcionavel(profile: BusinessProfile, content: string) -> JudgeResul
   "#
 }
 
-function JudgeVariedade(profile: BusinessProfile, content: string) -> JudgeResult {
+function JudgeVariedade(profile: BusinessProfile, content: string) -> JudgeVariedadeResult {
   client JudgeClient
   prompt #"
     Você é um avaliador rigoroso de conteúdo para Instagram brasileiro.
-
-    Analise se os posts são genuinamente diferentes ou se são o mesmo template com temas trocados.
 
     Perfil do negócio:
     - Nome: {{ profile.businessName }}
@@ -185,45 +175,27 @@ function JudgeVariedade(profile: BusinessProfile, content: string) -> JudgeResul
     {{ content }}
     ---
 
-    Não basta os posts terem temas diferentes. Eles precisam ter:
-    - Estruturas diferentes (um narrativo, outro lista, outro pergunta/resposta)
-    - Aberturas com ritmos diferentes (não todos com emoji + frase de efeito)
-    - Tons diferentes (um animado, outro informativo, outro íntimo)
-    - CTAs diferentes (não todos terminam com "chama no WhatsApp")
+    TAREFA em 2 passos:
 
-    Teste do template: pegue a estrutura de um post e troque o tema. Se funcionar sem alterar nada, os posts são o mesmo template.
+    PASSO 1: Para cada post, escreva em UMA frase curta o que o leitor leva depois de ler. Coloque cada frase no campo postMessages. ATENÇÃO: se todas as frases mencionam o mesmo produto/serviço como solução, elas são a mesma mensagem. Escreva sem mencionar o nome do produto.
 
-    Reprove se:
-    - Todos seguem o padrão: [abertura animada] → [info sobre serviço] → [pergunta ao público] → [CTA] → [hashtags]
-    - As aberturas têm o mesmo ritmo/energia mesmo com palavras diferentes
-    - Troque os temas entre posts e a estrutura ainda funciona
-    - Os posts têm estruturas diferentes (narrativo, lista, pergunta) mas o leitor leva a MESMA mensagem de todos: "use/experimente este produto/serviço." Se cada post é apenas uma razão diferente para usar a mesma coisa, é pitch repetido com estrutura variada, não variedade real
+    PASSO 2: Compare as frases. Se são essencialmente a mesma ("use X", "experimente X", "X resolve"), reprove.
 
-    Aprove se:
-    - Pelo menos 2 posts têm estruturas claramente diferentes (ex: um é lista numerada, outro é narrativa, outro começa com pergunta provocativa)
-    - A energia varia entre posts (não são todos no mesmo nível de entusiasmo)
-    - Os posts dão ao leitor algo DIFERENTE para pensar ou fazer (não apenas razões diferentes para usar o mesmo produto/serviço)
+    Exemplo que REPROVA (verdict: false):
+    Post 1 (história): "Era terça à noite e eu vi minha amiga Ana travada tentando escrever uma legenda. O AppX nasceu ali. Testa, o link tá na bio."
+    Post 2 (números): "1.500 pessoas já baixaram o AppX. O pequeno negócio quer mostrar o trabalho sem gastar horas num post."
+    Post 3 (citação): "Um dono de oficina me disse que Instagram virou trabalho não remunerado. O AppX resolve isso."
+    postMessages: ["Existe solução pra quem trava na hora de postar", "Existe solução pra quem trava na hora de postar", "Existe solução pra quem trava na hora de postar"]
+    Motivo: sem o nome do produto, as três mensagens são idênticas. Três estruturas, um só pitch.
 
-    Exemplo de reprovação (template com temas trocados):
-    Post 1: "Gente, vocês sabiam que [corte X] é sucesso? 😍 Aqui no salão a gente faz com carinho! Qual é o seu favorito? Comenta! 💇‍♀️ Chama no WhatsApp!"
-    Post 2: "Gente, olha que incrível essa [coloração Y]! 🔥 Aqui no salão a gente arrasa! Já experimentou? Conta pra gente! 💕 Chama no WhatsApp!"
-    Post 3: "Gente, prepara o coração pra [tratamento Z]! ✨ Aqui no salão a gente cuida de tudo! O que vocês acham? Comenta aqui! 💆‍♀️ Chama no WhatsApp!"
-    Motivo: todos abrem com "Gente" + emoji, mesma estrutura (fato → serviço → pergunta → CTA), mesmo tom, mesmo CTA. Temas mudaram, template não.
+    Exemplo que APROVA (verdict: true):
+    Post 1: "Sexta 18h e o cheiro da chapa já tá chamando a galera 🔥 Tem fila? Tem. Mas quem já mordeu o duplo sabe que vale cada minuto."
+    Post 2: "3 erros que todo mundo comete na hora de montar o hambúrguer em casa: carne fria na chapa, pão sem tostar, queijo errado."
+    Post 3: "Pergunta honesta: alguém consegue comer smash sem fazer sujeira? Porque aqui a gente já desistiu 😂"
+    postMessages: ["Vale esperar na fila", "Como fazer melhor em casa", "Hambúrguer é pra curtir sem frescura"]
+    Motivo: cada post dá ao leitor algo diferente para pensar.
 
-    Exemplo de reprovação (estruturas diferentes, monotonia temática):
-    Post 1 (narrativo): "A Carla estava exausta tentando postar todo dia. Então descobriu o AppX e nunca mais travou..."
-    Post 2 (dados): "2.000 pessoas já usam o AppX. Ninguém aguenta criar conteúdo sozinho..."
-    Post 3 (depoimento): "O João me mandou mensagem: 'consigo postar sem sofrer, graças ao AppX'..."
-    Motivo: narrativo, dados, depoimento — três estruturas. Mas o tema é um só: "criar conteúdo é difícil, AppX resolve." Troque o produto e os posts funcionam igual.
-
-    Se houver apenas um post, avalie se demonstra criatividade e não segue um template óbvio.
-
-    No seu raciocínio, responda obrigatoriamente estas 3 perguntas:
-    1. Qual é a estrutura de cada post? (narrativa, lista, pergunta, dados, etc.)
-    2. Qual é a CONCLUSÃO que o leitor leva de cada post? (O que ele deve fazer ou pensar depois de ler? Resuma em uma frase curta.)
-    3. As conclusões são genuinamente diferentes ou todas dizem "use/experimente este produto/serviço"?
-    Se a conclusão de todos os posts é a mesma ação ("use X", "teste X", "conheça X"), reprove por monotonia temática mesmo que as estruturas variem.
-    Veredito: true se há variedade real (estrutural E temática), false se falta uma das duas.
+    Se houver apenas um post, coloque sua mensagem em postMessages e avalie se demonstra criatividade.
 
     {{ ctx.output_format }}
   "#

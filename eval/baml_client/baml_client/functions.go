@@ -465,7 +465,7 @@ func JudgeNaturalidade(ctx context.Context, profile types.BusinessProfile, conte
 	}
 }
 
-func JudgeVariedade(ctx context.Context, profile types.BusinessProfile, content string, opts ...CallOptionFunc) (types.JudgeResult, error) {
+func JudgeVariedade(ctx context.Context, profile types.BusinessProfile, content string, opts ...CallOptionFunc) (types.JudgeVariedadeResult, error) {
 
 	var callOpts callOption
 	for _, opt := range opts {
@@ -509,32 +509,32 @@ func JudgeVariedade(ctx context.Context, profile types.BusinessProfile, content 
 	if callOpts.onTick == nil {
 		result, err := bamlRuntime.CallFunction(ctx, "JudgeVariedade", encoded, callOpts.onTick)
 		if err != nil {
-			return types.JudgeResult{}, err
+			return types.JudgeVariedadeResult{}, err
 		}
 
 		if result.Error != nil {
-			return types.JudgeResult{}, result.Error
+			return types.JudgeVariedadeResult{}, result.Error
 		}
 
-		casted := (result.Data).(types.JudgeResult)
+		casted := (result.Data).(types.JudgeVariedadeResult)
 
 		return casted, nil
 	} else {
 		channel, err := bamlRuntime.CallFunctionStream(ctx, "JudgeVariedade", encoded, callOpts.onTick)
 		if err != nil {
-			return types.JudgeResult{}, err
+			return types.JudgeVariedadeResult{}, err
 		}
 
 		for result := range channel {
 			if result.Error != nil {
-				return types.JudgeResult{}, result.Error
+				return types.JudgeVariedadeResult{}, result.Error
 			}
 
 			if result.HasData {
-				return result.Data.(types.JudgeResult), nil
+				return result.Data.(types.JudgeVariedadeResult), nil
 			}
 		}
 
-		return types.JudgeResult{}, fmt.Errorf("No data returned from stream")
+		return types.JudgeVariedadeResult{}, fmt.Errorf("No data returned from stream")
 	}
 }

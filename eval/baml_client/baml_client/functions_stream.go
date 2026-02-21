@@ -487,7 +487,7 @@ func (*stream) JudgeNaturalidade(ctx context.Context, profile types.BusinessProf
 }
 
 // / Streaming version of JudgeVariedade
-func (*stream) JudgeVariedade(ctx context.Context, profile types.BusinessProfile, content string, opts ...CallOptionFunc) (<-chan StreamValue[stream_types.JudgeResult, types.JudgeResult], error) {
+func (*stream) JudgeVariedade(ctx context.Context, profile types.BusinessProfile, content string, opts ...CallOptionFunc) (<-chan StreamValue[stream_types.JudgeVariedadeResult, types.JudgeVariedadeResult], error) {
 
 	var callOpts callOption
 	for _, opt := range opts {
@@ -528,11 +528,11 @@ func (*stream) JudgeVariedade(ctx context.Context, profile types.BusinessProfile
 		return nil, err
 	}
 
-	channel := make(chan StreamValue[stream_types.JudgeResult, types.JudgeResult])
+	channel := make(chan StreamValue[stream_types.JudgeVariedadeResult, types.JudgeVariedadeResult])
 	go func() {
 		for result := range internal_channel {
 			if result.Error != nil {
-				channel <- StreamValue[stream_types.JudgeResult, types.JudgeResult]{
+				channel <- StreamValue[stream_types.JudgeVariedadeResult, types.JudgeVariedadeResult]{
 					IsError: true,
 					Error:   result.Error,
 				}
@@ -540,14 +540,14 @@ func (*stream) JudgeVariedade(ctx context.Context, profile types.BusinessProfile
 				return
 			}
 			if result.HasData {
-				data := (result.Data).(types.JudgeResult)
-				channel <- StreamValue[stream_types.JudgeResult, types.JudgeResult]{
+				data := (result.Data).(types.JudgeVariedadeResult)
+				channel <- StreamValue[stream_types.JudgeVariedadeResult, types.JudgeVariedadeResult]{
 					IsFinal:  true,
 					as_final: &data,
 				}
 			} else {
-				data := (result.StreamData).(stream_types.JudgeResult)
-				channel <- StreamValue[stream_types.JudgeResult, types.JudgeResult]{
+				data := (result.StreamData).(stream_types.JudgeVariedadeResult)
+				channel <- StreamValue[stream_types.JudgeVariedadeResult, types.JudgeVariedadeResult]{
 					IsFinal:   false,
 					as_stream: &data,
 				}
