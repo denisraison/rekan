@@ -27,6 +27,12 @@ export interface Business {
 	onboarding_step: number;
 }
 
+export interface GeneratedPost {
+	caption: string;
+	hashtags: string[];
+	production_note: string;
+}
+
 export interface Post {
 	id: string;
 	business: string;

@@ -49,6 +49,18 @@ func GenerateRekan(ctx context.Context, profile BusinessProfile, roles []Role, p
 	return posts, nil
 }
 
+func GenerateFromMessage(ctx context.Context, profile BusinessProfile, message string, previousHooks []string) (Post, error) {
+	bamlPost, err := baml.GenerateFromMessage(ctx, toBamlProfile(profile), message, previousHooks)
+	if err != nil {
+		return Post{}, fmt.Errorf("generate from message: %w", err)
+	}
+	return Post{
+		Caption:        bamlPost.Caption,
+		Hashtags:       bamlPost.Hashtags,
+		ProductionNote: bamlPost.ProductionNote,
+	}, nil
+}
+
 // RenderPosts reconstructs a human-readable text format from structured posts.
 // Used for judge input and verbose display.
 func RenderPosts(posts []Post) string {

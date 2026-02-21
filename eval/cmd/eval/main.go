@@ -23,11 +23,23 @@ func main() {
 	roles := flag.String("roles", "", "comma-separated role names (e.g. \"bastidor,opinião,marco\")")
 	chain := flag.Int("chain", 0, "generate N consecutive batches for one profile, passing hooks forward")
 	rekan := flag.Bool("rekan", false, "use Rekan-specific generation prompt")
+	message := flag.String("message", "", "generate a single post from a WhatsApp message (requires --profile)")
 	flag.Parse()
 
 	if *fast {
 		eval.JudgeClients = eval.JudgeClients[:1]
 		*judges = true
+	}
+
+	if *message != "" {
+		// Skip variedade judge (compares across posts, meaningless for single post)
+		filtered := make([]string, 0, len(eval.JudgeNames))
+		for _, n := range eval.JudgeNames {
+			if n != "variedade" {
+				filtered = append(filtered, n)
+			}
+		}
+		eval.JudgeNames = filtered
 	}
 
 	gen := eval.GenerateFunc(eval.Generate)
@@ -54,7 +66,13 @@ func main() {
 	var results []result
 	var err error
 
-	if *chain > 0 {
+	if *message != "" {
+		if *profile == "" {
+			fmt.Fprintf(os.Stderr, "error: --message requires --profile\n")
+			os.Exit(1)
+		}
+		results, err = messageGenerate(context.Background(), *profile, *message, *judges, *verbose)
+	} else if *chain > 0 {
 		if *profile == "" {
 			fmt.Fprintf(os.Stderr, "error: --chain requires --profile\n")
 			os.Exit(1)
@@ -268,6 +286,39 @@ func chainGenerate(ctx context.Context, n int, profileName string, withJudges, v
 		fmt.Fprintf(os.Stderr, "  %d. %s\n", i+1, h)
 	}
 	fmt.Fprintf(os.Stderr, "---\n\n")
+
+	return evaluateResults(ctx, results, withJudges, verbose)
+}
+
+func messageGenerate(ctx context.Context, profileName, message string, withJudges, verbose bool) ([]result, error) {
+	profiles, err := loadProfiles("testdata")
+	if err != nil {
+		return nil, err
+	}
+	var prof eval.BusinessProfile
+	found := false
+	for _, p := range profiles {
+		if strings.EqualFold(p.BusinessName, profileName) {
+			prof = p
+			found = true
+			break
+		}
+	}
+	if !found {
+		return nil, fmt.Errorf("profile %q not found", profileName)
+	}
+
+	fmt.Fprintf(os.Stderr, "Generating from message: %s...\n", prof.BusinessName)
+	post, err := eval.GenerateFromMessage(ctx, prof, message, nil)
+	if err != nil {
+		return nil, fmt.Errorf("generating from message for %s: %w", prof.BusinessName, err)
+	}
+
+	results := []result{{
+		name:    prof.BusinessName,
+		posts:   []eval.Post{post},
+		profile: prof,
+	}}
 
 	return evaluateResults(ctx, results, withJudges, verbose)
 }
@@ -707,8 +758,25 @@ func printTable(results []result, showJudges bool) {
 	judgeTotals := map[string]int{}
 
 	if showJudges {
-		fmt.Printf("%-*s  Checks  NAT  ESP  ACI  VAR  ENG\n", nameWidth, "Business")
-		fmt.Printf("%s  ------  ---  ---  ---  ---  ---\n", strings.Repeat("-", nameWidth))
+		judgeShorts := map[string]string{
+			"naturalidade":    "NAT",
+			"especificidade":  "ESP",
+			"acionavel":       "ACI",
+			"variedade":       "VAR",
+			"engajamento":     "ENG",
+		}
+
+		// Header
+		fmt.Printf("%-*s  Checks", nameWidth, "Business")
+		for _, jn := range eval.JudgeNames {
+			fmt.Printf("  %s", judgeShorts[jn])
+		}
+		fmt.Println()
+		fmt.Printf("%s  ------", strings.Repeat("-", nameWidth))
+		for range eval.JudgeNames {
+			fmt.Print("  ---")
+		}
+		fmt.Println()
 
 		for _, r := range results {
 			passed := 0
@@ -729,27 +797,23 @@ func printTable(results []result, showJudges bool) {
 				}
 			}
 
-			fmt.Printf("%-*s  %d/%d     %s    %s    %s    %s    %s\n",
-				nameWidth, r.name,
-				passed, total,
-				verdict(judgeMap["naturalidade"]),
-				verdict(judgeMap["especificidade"]),
-				verdict(judgeMap["acionavel"]),
-				verdict(judgeMap["variedade"]),
-				verdict(judgeMap["engajamento"]),
-			)
+			fmt.Printf("%-*s  %d/%d  ", nameWidth, r.name, passed, total)
+			for _, jn := range eval.JudgeNames {
+				fmt.Printf("   %s ", verdict(judgeMap[jn]))
+			}
+			fmt.Println()
 		}
 
-		fmt.Printf("%s  ------  ---  ---  ---  ---  ---\n", strings.Repeat("-", nameWidth))
-		fmt.Printf("%-*s  %d/%-4d  %-3d  %-3d  %-3d  %-3d  %-3d\n",
-			nameWidth, "TOTAL",
-			totalPassed, totalChecks,
-			judgeTotals["naturalidade"],
-			judgeTotals["especificidade"],
-			judgeTotals["acionavel"],
-			judgeTotals["variedade"],
-			judgeTotals["engajamento"],
-		)
+		fmt.Printf("%s  ------", strings.Repeat("-", nameWidth))
+		for range eval.JudgeNames {
+			fmt.Print("  ---")
+		}
+		fmt.Println()
+		fmt.Printf("%-*s  %d/%-4d", nameWidth, "TOTAL", totalPassed, totalChecks)
+		for _, jn := range eval.JudgeNames {
+			fmt.Printf("  %-3d", judgeTotals[jn])
+		}
+		fmt.Println()
 	} else {
 		fmt.Printf("%-*s  Checks  Pass\n", nameWidth, "Business")
 		fmt.Printf("%s  ------  ----\n", strings.Repeat("-", nameWidth))

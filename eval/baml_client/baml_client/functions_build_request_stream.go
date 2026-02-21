@@ -71,6 +71,52 @@ func (*build_request_stream) GenerateContent(profile types.BusinessProfile, role
 	return bamlRuntime.BuildRequest(context.Background(), "GenerateContent", encoded)
 }
 
+// Build streaming HTTP request for GenerateFromMessage (returns baml.HTTPRequest)
+func (*build_request_stream) GenerateFromMessage(profile types.BusinessProfile, clientMessage string, previousHooks []string, opts ...CallOptionFunc) (baml.HTTPRequest, error) {
+
+	var callOpts callOption
+	for _, opt := range opts {
+		opt(&callOpts)
+	}
+
+	// Resolve client option to clientRegistry (client takes precedence)
+	if callOpts.client != nil {
+		if callOpts.clientRegistry == nil {
+			callOpts.clientRegistry = baml.NewClientRegistry()
+		}
+		callOpts.clientRegistry.SetPrimaryClient(*callOpts.client)
+	}
+
+	args := baml.BamlFunctionArguments{
+		Kwargs: map[string]any{"profile": profile, "clientMessage": clientMessage, "previousHooks": previousHooks, "stream": true},
+		Env:    getEnvVars(callOpts.env),
+	}
+
+	if callOpts.clientRegistry != nil {
+		args.ClientRegistry = callOpts.clientRegistry
+	}
+
+	if callOpts.collectors != nil {
+		args.Collectors = callOpts.collectors
+	}
+
+	if callOpts.typeBuilder != nil {
+		args.TypeBuilder = callOpts.typeBuilder
+	}
+
+	if callOpts.tags != nil {
+		args.Tags = callOpts.tags
+	}
+
+	encoded, err := args.Encode()
+	if err != nil {
+		wrapped_err := fmt.Errorf("BAML INTERNAL ERROR: GenerateFromMessage: %w", err)
+		panic(wrapped_err)
+	}
+
+	return bamlRuntime.BuildRequest(context.Background(), "GenerateFromMessage", encoded)
+}
+
 // Build streaming HTTP request for GenerateRekanContent (returns baml.HTTPRequest)
 func (*build_request_stream) GenerateRekanContent(profile types.BusinessProfile, roles []types.ContentRole, previousHooks []string, opts ...CallOptionFunc) (baml.HTTPRequest, error) {
 

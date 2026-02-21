@@ -8,7 +8,7 @@ import (
 	"github.com/denisraison/rekan/eval/baml_client/baml_client/types"
 )
 
-var judgeNames = []string{
+var JudgeNames = []string{
 	"naturalidade",
 	"especificidade",
 	"acionavel",
@@ -176,16 +176,16 @@ func RunAllJudges(ctx context.Context, profile BusinessProfile, content string) 
 		err    error
 	}
 
-	ch := make(chan judgeOut, len(judgeNames))
-	for i, name := range judgeNames {
+	ch := make(chan judgeOut, len(JudgeNames))
+	for i, name := range JudgeNames {
 		go func(i int, name string) {
 			r, err := RunJudge(ctx, name, profile, content)
 			ch <- judgeOut{idx: i, result: r, err: err}
 		}(i, name)
 	}
 
-	results := make([]JudgeResult, len(judgeNames))
-	for range judgeNames {
+	results := make([]JudgeResult, len(JudgeNames))
+	for range JudgeNames {
 		out := <-ch
 		if out.err != nil {
 			return nil, out.err
