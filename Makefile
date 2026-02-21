@@ -8,10 +8,10 @@ dev:
 	$(MAKE) dev-web
 
 dev-api:
-	cd api && go run .
+	cd api && go run . serve --http=0.0.0.0:8090
 
 dev-web:
-	cd web && pnpm dev
+	cd web && pnpm dev --host 0.0.0.0
 
 eval:
 	set -a && . ./.env && set +a && cd eval && go run ./cmd/eval
