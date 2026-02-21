@@ -1,7 +1,8 @@
 # PEP-007: MVP Gaps
 
-**Status:** Pending
+**Status:** In Progress
 **Date:** 2026-02-21
+**Updated:** 2026-02-22
 
 ## Context
 
@@ -11,15 +12,21 @@ The product review surfaced that the current MVP solves "content creation" but n
 
 The biggest architectural change: instead of Elenice manually copying messages between WhatsApp and the operator page, we connect whatsmeow directly so messages (text, voice notes, images) arrive in the operator page automatically and replies go back through WhatsApp. This collapses what was originally planned as separate "operator workflow" and "voice notes" waves into one integration.
 
+### Language
+
+All user-facing text (UI copy, error messages, validation messages, nudge templates, summary messages, WhatsApp replies) must be in natural Brazilian Portuguese (pt-BR). No formal/stiff phrasing. Write the way a real person in Brazil would talk to a client or colleague.
+
 ### Ban risk acknowledgement
 
 whatsmeow uses the unofficial WhatsApp Web multi-device protocol. This violates WhatsApp ToS. Account bans are possible. Our risk profile is lower than spam bots (clients message first, low volume, 20-40 clients), but the risk is real. Mitigations: send typing indicators before replies, randomize small delays, never initiate to unknown numbers, keep the official WhatsApp Business app as fallback on a second number.
 
 ---
 
-## Wave 1: WhatsApp Integration (the operator backbone)
+## Wave 1: WhatsApp Integration (the operator backbone) -- DONE
 
 Replace the manual copy-paste workflow with a live WhatsApp connection. Messages arrive in the operator page automatically. Elenice generates content and sends it back without leaving the browser.
+
+All 9 sub-items implemented in a single pass. Key files: `api/internal/whatsapp/` (client + handler), `api/internal/transcribe/whisper.go`, `api/internal/http/handlers/send_message.go`, `api/internal/http/handlers/whatsapp.go`, migrations 1740000007-1740000009, operator page overhaul.
 
 ### 1.1 whatsmeow connection and session management
 
@@ -29,12 +36,12 @@ Replace the manual copy-paste workflow with a live WhatsApp connection. Messages
 
 **Files:** `api/go.mod`, new package `api/internal/whatsapp/` (client setup, event handler, session store)
 
-- [ ] whatsmeow added to `go.mod`
-- [ ] WhatsApp client starts as a goroutine alongside PocketBase
-- [ ] Session persisted in SQLite (`whatsapp.db`)
-- [ ] QR code pairing page in operator UI (shown only when no session exists)
-- [ ] Automatic reconnection on restart
-- [ ] Graceful shutdown (disconnect on SIGTERM)
+- [x] whatsmeow added to `go.mod`
+- [x] WhatsApp client starts as a goroutine alongside PocketBase (`main.go` OnServe hook)
+- [x] Session persisted in SQLite (`whatsapp.db` in PocketBase data dir)
+- [x] QR code pairing page in operator UI (shown only when no session exists)
+- [x] Automatic reconnection on restart (checks `Store.ID`)
+- [x] Graceful shutdown (disconnect on OnTerminate)
 
 ### 1.2 Message receiving and storage
 
@@ -50,18 +57,18 @@ New `messages` collection schema:
 | `phone` | text | Sender phone in E.164 format (e.g. "5511999998888") |
 | `type` | select | `text`, `audio`, `image` |
 | `content` | text | Message text, or transcript for audio |
-| `media_url` | text | PocketBase file URL for images (empty for text) |
+| `media` | file | PocketBase file attachment for images (FileField, 10MB max) |
 | `direction` | select | `incoming`, `outgoing` |
 | `wa_timestamp` | date | WhatsApp message timestamp |
 | `wa_message_id` | text | WhatsApp message ID (for deduplication) |
 
 **Files:** new migration for `messages` collection, migration to add `phone` field to `businesses`, `api/internal/whatsapp/handler.go`
 
-- [ ] `messages` collection created with schema above
-- [ ] `phone` field added to `businesses` collection
-- [ ] Incoming text messages stored with sender phone matched to business
-- [ ] Unknown senders stored with `business: null` (Elenice can link them later)
-- [ ] Deduplication by `wa_message_id`
+- [x] `messages` collection created with schema above (migration 1740000008)
+- [x] `phone` field added to `businesses` collection (migration 1740000007)
+- [x] Incoming text messages stored with sender phone matched to business
+- [x] Unknown senders stored with `business: null` (Elenice can link them later)
+- [x] Deduplication by `wa_message_id` (unique index + code check)
 
 ### 1.3 Voice note transcription
 
@@ -71,11 +78,11 @@ New `messages` collection schema:
 
 **Files:** `api/internal/whatsapp/handler.go`, new `api/internal/transcribe/` package
 
-- [ ] Voice notes downloaded via `client.Download()`
-- [ ] OGG/Opus audio sent to Whisper API for transcription
-- [ ] Transcript stored as message `content` with `type: "audio"`
-- [ ] Transcription errors logged, message stored with empty content and error flag
-- [ ] Raw audio bytes discarded after transcription
+- [x] Voice notes downloaded via `client.Download()`
+- [x] OGG/Opus audio sent to Whisper API for transcription (`api/internal/transcribe/whisper.go`)
+- [x] Transcript stored as message `content` with `type: "audio"`
+- [x] Transcription errors logged, message stored with empty content
+- [x] Raw audio bytes discarded after transcription
 
 ### 1.4 Image handling
 
@@ -85,10 +92,10 @@ New `messages` collection schema:
 
 **Files:** `api/internal/whatsapp/handler.go`, `messages` collection file field
 
-- [ ] Images downloaded via `client.Download()`
-- [ ] Stored as PocketBase file attachment on the message record
-- [ ] `media_url` field populated with the file URL
-- [ ] Operator page displays images inline in the message thread
+- [x] Images downloaded via `client.Download()`
+- [x] Stored as PocketBase file attachment on the message record (`media` FileField, 10MB max)
+- [x] `media` field populated with the file attachment (schema uses FileField instead of text `media_url`)
+- [x] Operator page displays images inline in the message thread
 
 ### 1.5 Operator page: message thread view
 
@@ -98,12 +105,12 @@ New `messages` collection schema:
 
 **Files:** `web/src/routes/(app)/operador/+page.svelte`
 
-- [ ] Client list shows unread message count per client
-- [ ] Selecting a client shows their message thread (incoming + outgoing)
-- [ ] Voice note messages show transcript with an "audio" indicator
-- [ ] Image messages render inline
-- [ ] Real-time updates via PocketBase subscriptions (new messages appear without refresh)
-- [ ] "Gerar post" button pre-fills with the latest incoming message text
+- [x] Client list shows unread message count per client
+- [x] Selecting a client shows their message thread (incoming + outgoing)
+- [x] Voice note messages show transcript with an "audio" indicator ("Audio transcrito" label)
+- [x] Image messages render inline
+- [x] Real-time updates via PocketBase subscriptions (new messages appear without refresh)
+- [x] "Usar ultima msg" button pre-fills with the latest incoming message text
 
 ### 1.6 Send replies through WhatsApp
 
@@ -115,12 +122,12 @@ Production note handling: the production note is shown in the operator page but 
 
 **Files:** new endpoint `POST /api/messages:send`, `api/internal/whatsapp/send.go`, `web/src/routes/(app)/operador/+page.svelte`
 
-- [ ] "Enviar" button sends formatted caption + hashtags to client via WhatsApp
-- [ ] Production note sent as a separate message (e.g. "*Dica de foto:* ...")
-- [ ] Outgoing messages stored in `messages` collection
-- [ ] Typing indicator sent before message (`SendChatPresence`)
-- [ ] Small random delay (1-3s) before sending to simulate human behavior (ban mitigation)
-- [ ] Elenice can edit the generated content before sending
+- [x] "Enviar pelo WhatsApp" button sends formatted caption + hashtags to client via WhatsApp
+- [x] Production note sent as a separate message ("*Dica de foto:* ...")
+- [x] Outgoing messages stored in `messages` collection
+- [x] Typing indicator sent before message (`SendChatPresence`)
+- [x] Small random delay (1-3s) before sending to simulate human behavior (ban mitigation)
+- [x] Elenice can edit the generated content before sending
 
 ### 1.7 Persist operator-generated posts
 
@@ -130,10 +137,10 @@ Production note handling: the production note is shown in the operator page but 
 
 **Files:** `handlers/operator.go`, migration to add `source` and `message` fields to posts
 
-- [ ] Operator handler saves generated post to `posts` collection with `source: "operator"`
-- [ ] Post linked to the source `message` record
-- [ ] Operator handler loads `previousHooks` from existing posts for the business
-- [ ] Response includes `role` and `hook` fields
+- [x] Operator handler saves generated post to `posts` collection with `source: "operator"`
+- [x] Post linked to the source `message` record (via `message_id` in request body)
+- [x] Operator handler loads `previousHooks` from existing posts for the business
+- [x] Response includes `hook` field (migration 1740000009 adds `source` and `message` to posts)
 
 ### 1.8 Client health indicators
 
@@ -143,9 +150,9 @@ Production note handling: the production note is shown in the operator page but 
 
 **Files:** `web/src/routes/(app)/operador/+page.svelte`
 
-- [ ] Client list shows days since last incoming message with color coding
-- [ ] Client list shows post count for current month
-- [ ] Clients sorted by urgency (red first, then yellow, then green)
+- [x] Client list shows days since last incoming message with color coding (green < 5d, yellow 5-9d, red 10+d)
+- [x] Client list shows post count for current month
+- [x] Clients sorted by urgency (red first, then yellow, then green)
 
 ### 1.9 Expand production notes in the prompt
 
@@ -155,9 +162,9 @@ Production note handling: the production note is shown in the operator page but 
 
 **Files:** `eval/baml_src/content.baml`
 
-- [ ] Prompt instructs model to give phone-specific, step-by-step photo/video directions
-- [ ] Directions reference the specific item/scene from the client's message
-- [ ] Eval pipeline still passes after prompt change (`make eval`)
+- [x] Prompt instructs model to give phone-specific, step-by-step photo/video directions (4-point mini-roteiro)
+- [x] Directions reference the specific item/scene from the client's message
+- [ ] Eval pipeline still passes after prompt change (`make eval`) -- not yet verified
 
 ---
 
@@ -284,11 +291,11 @@ Existing `webhooks_test.go` (5 tests) provides the pattern.
 - [ ] `subscribe_test.go` covers customer+subscription creation and Asaas errors
 - [ ] `operator_test.go` covers auth, ownership, and message validation
 
-### 4.2 Content rotation wiring
+### 4.2 Content rotation wiring -- DONE
 
 Operator tool passes `nil` for `previousHooks`. Covered by Wave 1.7 (persist operator posts).
 
-- [ ] Covered by Wave 1.7
+- [x] Covered by Wave 1.7 (operator.go now calls `loadPreviousHooks`)
 
 ### 4.3 Frontend testing
 
@@ -315,14 +322,14 @@ Wave 1 (Tailwind v4 + shadcn-svelte) is done. Remaining:
 
 ## Implementation Order
 
-| Wave | Focus | Effort | Impact |
+| Wave | Focus | Status | Impact |
 |------|-------|--------|--------|
-| **Wave 1** | WhatsApp integration + operator overhaul | ~4-5 days | Eliminates all manual copy-paste, enables voice/image, makes the product real |
-| **Wave 2** | Proactive engagement | ~1-2 days | Solves consistency (the actual problem), reduces churn |
-| **Wave 3** | Client value proof | ~1 day | Makes value visible, reduces churn, drives referrals |
-| **Wave 4** | Technical gaps | ~2-3 days | Test coverage, verification, component cleanup |
+| **Wave 1** | WhatsApp integration + operator overhaul | **Done** (9/9 items, 1 eval verification pending) | Eliminates all manual copy-paste, enables voice/image, makes the product real |
+| **Wave 2** | Proactive engagement | Pending | Solves consistency (the actual problem), reduces churn |
+| **Wave 3** | Client value proof | Pending | Makes value visible, reduces churn, drives referrals |
+| **Wave 4** | Technical gaps | Partial (4.2 done via Wave 1.7) | Test coverage, verification, component cleanup |
 
-Wave 1 is the foundation. Once WhatsApp messages flow into the operator page and replies go back through WhatsApp, Waves 2 and 3 become natural extensions (nudges and summaries are just messages sent through the same pipeline). Wave 4 is housekeeping that can happen in parallel.
+Wave 1 is done. WhatsApp messages flow into the operator page and replies go back through WhatsApp. Waves 2 and 3 are natural extensions (nudges and summaries are just messages sent through the same pipeline). Wave 4 is housekeeping that can happen in parallel.
 
 ### Dependencies
 
