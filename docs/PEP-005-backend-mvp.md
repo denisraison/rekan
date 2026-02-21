@@ -1,6 +1,6 @@
 # PEP-005: Backend MVP
 
-**Status:** In Progress (Wave 1 done, Wave 2 done)
+**Status:** In Progress (Wave 1 done, Wave 2 done, Wave 3 done)
 **Date:** 2026-02-20
 
 ## Context
@@ -511,11 +511,11 @@ The business ID is in the URL path, not the request body. No body needed for thi
 
 ### Acceptance criteria
 
-- Authenticated user can generate content for their business
-- Generated posts appear in `posts` collection (queryable via SDK)
-- Previous hooks loaded and passed to generation (rotation works)
-- Trial usage tracked, generation blocked when trial exhausted and no subscription
-- Proper error response if LLM is down
+- [x] Authenticated user can generate content for their business
+- [x] Generated posts appear in `posts` collection (queryable via SDK)
+- [x] Previous hooks loaded and passed to generation (rotation works)
+- [x] Trial usage tracked, generation blocked when trial exhausted and no subscription (limit: 3)
+- [x] Proper error response if LLM is down (502 Bad Gateway)
 
 ## Wave 4: Post Management
 
