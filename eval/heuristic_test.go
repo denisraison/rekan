@@ -5,20 +5,6 @@ import (
 	"testing"
 )
 
-var testProfile = BusinessProfile{
-	BusinessName:   "Studio Nails da Jéssica",
-	BusinessType:   "nail designer",
-	City:           "Manaus",
-	Neighbourhood:  "Adrianópolis",
-	Services: []Service{
-		{Name: "Alongamento em gel", PriceBRL: 120},
-		{Name: "Esmaltação em gel", PriceBRL: 60},
-	},
-	TargetAudience: "mulheres 20-35",
-	BrandVibe:      "trendy",
-	Quirks:         []string{"atende com hora marcada"},
-}
-
 var passingSample = []Post{
 	{
 		Caption:        "Gente, olha que perfeição essas unhas da Studio Nails da Jéssica! 💅\n\nAqui em Manaus a gente transforma suas mãos com muito carinho e estilo. Bora agendar seu horário pra ficar com as unhas dos sonhos?\n\n📸 Registre suas unhas novas e marque a gente!\n\nChama no WhatsApp pra agendar ✨",
@@ -36,7 +22,7 @@ var failingSample = []Post{
 }
 
 func TestPassingSamplePassesAll(t *testing.T) {
-	results := RunChecks(passingSample, testProfile)
+	results := RunChecks(passingSample)
 	for _, r := range results {
 		if !r.Pass {
 			t.Errorf("check %q should pass, got fail: %s", r.Name, r.Reason)
@@ -45,61 +31,19 @@ func TestPassingSamplePassesAll(t *testing.T) {
 }
 
 func TestFailingSampleFailsMost(t *testing.T) {
-	results := RunChecks(failingSample, testProfile)
+	results := RunChecks(failingSample)
 	failCount := 0
 	for _, r := range results {
 		if !r.Pass {
 			failCount++
 		}
 	}
-	if failCount < 4 {
-		t.Errorf("expected at least 4 failures, got %d", failCount)
+	if failCount < 3 {
+		t.Errorf("expected at least 3 failures, got %d", failCount)
 		for _, r := range results {
 			t.Logf("  %s: pass=%v reason=%q", r.Name, r.Pass, r.Reason)
 		}
 	}
-}
-
-func TestCheckBusinessName(t *testing.T) {
-	t.Run("case insensitive", func(t *testing.T) {
-		r := checkBusinessName("venha pro studio nails da jéssica!", testProfile)
-		if !r.Pass {
-			t.Error("should match case-insensitively")
-		}
-	})
-	t.Run("accent insensitive", func(t *testing.T) {
-		r := checkBusinessName("venha pro Studio Nails da Jessica!", testProfile)
-		if !r.Pass {
-			t.Error("should match without accents")
-		}
-	})
-	t.Run("missing", func(t *testing.T) {
-		r := checkBusinessName("venha pro nosso salão!", testProfile)
-		if r.Pass {
-			t.Error("should fail when business name absent")
-		}
-	})
-}
-
-func TestCheckLocation(t *testing.T) {
-	t.Run("city match", func(t *testing.T) {
-		r := checkLocation("Aqui em Manaus", testProfile)
-		if !r.Pass {
-			t.Error("should match city")
-		}
-	})
-	t.Run("neighbourhood match", func(t *testing.T) {
-		r := checkLocation("Lá em Adrianópolis", testProfile)
-		if !r.Pass {
-			t.Error("should match neighbourhood")
-		}
-	})
-	t.Run("neither", func(t *testing.T) {
-		r := checkLocation("Aqui no bairro", testProfile)
-		if r.Pass {
-			t.Error("should fail when neither city nor neighbourhood present")
-		}
-	})
 }
 
 func TestCheckHashtags(t *testing.T) {

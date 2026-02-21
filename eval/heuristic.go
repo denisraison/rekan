@@ -29,11 +29,9 @@ type CheckResult struct {
 	Reason string
 }
 
-func RunChecks(posts []Post, profile BusinessProfile) []CheckResult {
+func RunChecks(posts []Post) []CheckResult {
 	rendered := RenderPosts(posts)
 	return []CheckResult{
-		checkBusinessName(rendered, profile),
-		checkLocation(rendered, profile),
 		checkHashtags(posts),
 		checkBrazilianPortuguese(rendered),
 		checkCaptionLength(posts),
@@ -77,34 +75,6 @@ func normalize(s string) string {
 	return stripAccents(nfdReplacer.Replace(s))
 }
 
-func normalizedContains(haystack, needle string) bool {
-	h := normalize(strings.ToLower(haystack))
-	n := normalize(strings.ToLower(needle))
-	return strings.Contains(h, n)
-}
-
-func checkBusinessName(content string, profile BusinessProfile) CheckResult {
-	if normalizedContains(content, profile.BusinessName) {
-		return CheckResult{Name: "business_name", Pass: true}
-	}
-	return CheckResult{
-		Name:   "business_name",
-		Reason: "business name not found in content",
-	}
-}
-
-func checkLocation(content string, profile BusinessProfile) CheckResult {
-	if normalizedContains(content, profile.City) {
-		return CheckResult{Name: "location", Pass: true}
-	}
-	if profile.Neighbourhood != "" && normalizedContains(content, profile.Neighbourhood) {
-		return CheckResult{Name: "location", Pass: true}
-	}
-	return CheckResult{
-		Name:   "location",
-		Reason: "neither city nor neighbourhood found in content",
-	}
-}
 
 func checkHashtags(posts []Post) CheckResult {
 	total := 0

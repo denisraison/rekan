@@ -68,14 +68,14 @@ func TestChainGenerationProducesDifferentHooks(t *testing.T) {
 
 	// Both batches should pass heuristics.
 	for i, posts := range [][]Post{posts1, posts2} {
-		checks := RunChecks(posts, profile)
+		checks := RunChecks(posts)
 		passed := 0
 		for _, c := range checks {
 			if c.Pass {
 				passed++
 			}
 		}
-		if passed < 5 {
+		if passed < 3 {
 			t.Errorf("batch %d: only %d/%d checks passed", i+1, passed, len(checks))
 			for _, c := range checks {
 				if !c.Pass {

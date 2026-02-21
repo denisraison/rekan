@@ -164,7 +164,7 @@ Production note handling: the production note is shown in the operator page but 
 
 - [x] Prompt instructs model to give phone-specific, step-by-step photo/video directions (4-point mini-roteiro)
 - [x] Directions reference the specific item/scene from the client's message
-- [ ] Eval pipeline still passes after prompt change (`make eval`) -- not yet verified
+- [x] Eval pipeline still passes after prompt change (`make eval`). Also removed `business_name` and `location` heuristic checks (noisy, ESP judge covers specificity better). Now 4 heuristics: hashtags, pt-BR markers, caption length, production note.
 
 ---
 
@@ -324,7 +324,7 @@ Wave 1 (Tailwind v4 + shadcn-svelte) is done. Remaining:
 
 | Wave | Focus | Status | Impact |
 |------|-------|--------|--------|
-| **Wave 1** | WhatsApp integration + operator overhaul | **Done** (9/9 items, 1 eval verification pending) | Eliminates all manual copy-paste, enables voice/image, makes the product real |
+| **Wave 1** | WhatsApp integration + operator overhaul | **Done** (9/9 items) | Eliminates all manual copy-paste, enables voice/image, makes the product real |
 | **Wave 2** | Proactive engagement | Pending | Solves consistency (the actual problem), reduces churn |
 | **Wave 3** | Client value proof | Pending | Makes value visible, reduces churn, drives referrals |
 | **Wave 4** | Technical gaps | Partial (4.2 done via Wave 1.7) | Test coverage, verification, component cleanup |

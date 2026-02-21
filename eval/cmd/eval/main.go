@@ -354,7 +354,7 @@ func evaluateResults(ctx context.Context, results []result, withJudges, verbose 
 
 	// Run heuristics (instant, no need for goroutines).
 	for i := range results {
-		results[i].checks = eval.RunChecks(results[i].posts, results[i].profile)
+		results[i].checks = eval.RunChecks(results[i].posts)
 	}
 
 	if !withJudges {

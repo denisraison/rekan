@@ -29,7 +29,7 @@ go run ./cmd/eval --rekan --judges --verbose               # Rekan-specific prom
 
 1. Loads 12 business profiles from `testdata/*.json`
 2. Generates Instagram content for each profile via `baml_src/content.baml`
-3. Runs 6 heuristic checks (business name, location, hashtags, pt-BR markers, caption length, production note)
+3. Runs 4 heuristic checks (hashtags, pt-BR markers, caption length, production note)
 4. Optionally runs 5 LLM judges (naturalidade, especificidade, acionavel, variedade, engajamento) on a 2-model panel (Gemini 3 Flash + Claude Haiku 4.5); verdict requires unanimity
 5. Prints summary table, saves full results to `runs/`
 
@@ -56,7 +56,7 @@ For judge prompt changes, use `--from-run` to re-judge existing content without 
 
 ```
 cmd/eval/main.go     CLI entrypoint
-heuristic.go         6 deterministic checks
+heuristic.go         4 deterministic checks
 judge.go             5 LLM judge runner (parallel)
 generate.go          Content generation wrapper
 baml_src/
