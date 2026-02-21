@@ -1,6 +1,6 @@
 # PEP-005: Backend MVP
 
-**Status:** In Progress (Wave 1 done, Wave 2 done, Wave 3 done)
+**Status:** In Progress (Wave 1 done, Wave 2 done, Wave 3 done, Wave 4 done, Wave 5 done)
 **Date:** 2026-02-20
 
 ## Context
@@ -549,9 +549,9 @@ pb.collection('posts').delete(postId)
 
 ### Acceptance criteria
 
-- List, edit, delete work via PocketBase SDK
-- API rules enforced (no access to other users' posts)
-- Edited flag tracked correctly
+- [x] List, edit, delete work via PocketBase SDK (`routes/(app)/dashboard/+page.svelte`)
+- [x] API rules enforced (no access to other users' posts)
+- [x] Edited flag tracked correctly
 
 ## Wave 5: Billing (Asaas Integration)
 
@@ -597,10 +597,12 @@ POST /api/webhooks/asaas
 
 ### Acceptance criteria
 
-- User can subscribe via PIX, boleto, or card
-- Webhook correctly updates subscription status
-- Generation blocked for expired trials without active subscription
-- Subscription status visible to frontend via PocketBase SDK (read-only)
+- [x] User can subscribe via PIX, boleto, or card (`handlers/subscribe.go`)
+- [x] Webhook correctly updates subscription status (`handlers/webhooks.go`)
+- [x] Generation blocked for expired trials without active subscription (wave 3, unchanged)
+- [x] Subscription status visible to frontend via PocketBase SDK (dashboard reads from authStore)
+- [x] Trial status bar shown on dashboard with remaining generations count
+- [x] Paywall UI shown when trial exhausted (402 from generate endpoint)
 
 ## Summary: Custom endpoints vs PocketBase SDK
 

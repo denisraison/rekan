@@ -1,3 +1,12 @@
+export interface User {
+	id: string;
+	name: string;
+	email: string;
+	subscription_status: 'trial' | 'active' | 'past_due' | 'cancelled';
+	subscription_id: string;
+	generations_used: number;
+}
+
 export interface Service {
 	name: string;
 	price_brl: number;
@@ -16,4 +25,17 @@ export interface Business {
 	brand_vibe: string;
 	quirks: string;
 	onboarding_step: number;
+}
+
+export interface Post {
+	id: string;
+	business: string;
+	caption: string;
+	hashtags: string[];
+	production_note: string;
+	role: string;
+	hook: string;
+	batch_id: string;
+	edited: boolean;
+	created: string;
 }
