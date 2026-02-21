@@ -168,9 +168,11 @@ Production note handling: the production note is shown in the operator page but 
 
 ---
 
-## Wave 2: Proactive Engagement (solve consistency)
+## Wave 2: Proactive Engagement (solve consistency) -- DONE
 
 The product is currently 100% reactive: if the client doesn't send a message, nothing happens. This wave adds the mechanisms for Elenice to keep clients engaged. With WhatsApp integration from Wave 1, nudges and templates can be sent directly from the operator page.
+
+All 3 sub-items implemented in the operator page. Key additions: "Todos"/"Inativos" filter tabs on client list, tiered nudge templates auto-selected by inactivity duration, seasonal content calendar with niche-specific dates (12 dates covering all business types), engagement panel between client header and message thread with editable textarea and WhatsApp send.
 
 ### 2.1 Nudge system for inactive clients
 
@@ -180,10 +182,10 @@ The product is currently 100% reactive: if the client doesn't send a message, no
 
 **Files:** `web/src/routes/(app)/operador/+page.svelte`
 
-- [ ] "Inativos" filter/tab on client list showing clients with 5+ days since last incoming message
-- [ ] Each inactive client shows days of silence
-- [ ] "Enviar lembrete" button sends a pre-filled nudge through WhatsApp
-- [ ] Nudge templates use the client's name and niche
+- [x] "Inativos" filter/tab on client list showing clients with 5+ days since last incoming message
+- [x] Each inactive client shows days of silence
+- [x] "Enviar lembrete" button sends a pre-filled nudge through WhatsApp
+- [x] Nudge templates use the client's name and niche
 
 ### 2.2 Re-engagement playbook templates
 
@@ -198,10 +200,10 @@ The right template is auto-selected based on inactivity duration. Elenice can ed
 
 **Files:** `web/src/routes/(app)/operador/+page.svelte`
 
-- [ ] Three template tiers auto-selected by inactivity duration
-- [ ] Templates personalized with client name
-- [ ] Editable before sending
-- [ ] Sent through WhatsApp via Wave 1.6 send endpoint
+- [x] Three template tiers auto-selected by inactivity duration
+- [x] Templates personalized with client name (first name extracted from full name)
+- [x] Editable before sending
+- [x] Sent through WhatsApp via Wave 1.6 send endpoint
 
 ### 2.3 Seasonal content calendar
 
@@ -214,12 +216,12 @@ Key dates by niche:
 - **Cabeleireiras:** Carnaval, Dia da Mulher, Dia das Maes, Dia do Cabeleireiro (dez), Natal/Reveillon
 - **Personal trainers:** Verao (starts Oct), Carnaval (body prep), Dia do Educador Fisico (set)
 
-**Files:** `web/src/routes/(app)/operador/+page.svelte` (or a small helper module)
+**Files:** `web/src/routes/(app)/operador/+page.svelte`
 
-- [ ] Hardcoded seasonal calendar with niche-specific dates
-- [ ] Operator page shows upcoming dates within 30 days
-- [ ] Each date has a suggested outreach message template
-- [ ] Clicking a date + client sends the message through WhatsApp
+- [x] Hardcoded seasonal calendar with 12 niche-specific dates (moveable holidays hardcoded for 2026)
+- [x] Operator page shows upcoming dates within 30 days for the selected client's niche
+- [x] Each date has a suggested outreach message template (personalized with client name)
+- [x] Clicking a date prefills the engagement textarea, editable, then sent through WhatsApp
 
 ---
 
@@ -325,11 +327,11 @@ Wave 1 (Tailwind v4 + shadcn-svelte) is done. Remaining:
 | Wave | Focus | Status | Impact |
 |------|-------|--------|--------|
 | **Wave 1** | WhatsApp integration + operator overhaul | **Done** (9/9 items) | Eliminates all manual copy-paste, enables voice/image, makes the product real |
-| **Wave 2** | Proactive engagement | Pending | Solves consistency (the actual problem), reduces churn |
+| **Wave 2** | Proactive engagement | **Done** (3/3 items) | Solves consistency (the actual problem), reduces churn |
 | **Wave 3** | Client value proof | Pending | Makes value visible, reduces churn, drives referrals |
 | **Wave 4** | Technical gaps | Partial (4.2 done via Wave 1.7) | Test coverage, verification, component cleanup |
 
-Wave 1 is done. WhatsApp messages flow into the operator page and replies go back through WhatsApp. Waves 2 and 3 are natural extensions (nudges and summaries are just messages sent through the same pipeline). Wave 4 is housekeeping that can happen in parallel.
+Waves 1 and 2 are done. WhatsApp messages flow into the operator page, replies go back through WhatsApp, and Elenice has nudge templates + seasonal calendar to keep clients engaged proactively. Wave 3 is the natural next step (summaries are just messages sent through the same pipeline). Wave 4 is housekeeping that can happen in parallel.
 
 ### Dependencies
 

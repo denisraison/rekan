@@ -26,6 +26,29 @@
 		'RJ', 'RN', 'RS', 'RO', 'RR', 'SC', 'SP', 'SE', 'TO'
 	];
 
+	const NUDGE_TEMPLATES = [
+		{ minDays: 5, maxDays: 7, template: 'Oi {name}, como foi a semana? Tem algo legal pra gente postar?' },
+		{ minDays: 8, maxDays: 14, template: '{name}, tudo bem? Faz um tempinho que a gente nao posta. Bora preparar algo novo?' },
+		{ minDays: 15, maxDays: Infinity, template: '{name}, vi que faz um tempo! Quer retomar? Posso te mandar ideias de conteudo pra essa semana.' },
+	];
+
+	type SeasonalDate = { month: number; day: number; label: string; niches: string[]; template: string };
+	// Moveable holidays (Carnaval, Páscoa, Dia das Mães) hardcoded for 2026
+	const SEASONAL_DATES: SeasonalDate[] = [
+		{ month: 2, day: 14, label: 'Carnaval', niches: ['Salão de Beleza', 'Barbearia', 'Personal Trainer', 'Nail Designer'], template: '{name}, Carnaval ta chegando! Vamos preparar posts especiais?' },
+		{ month: 3, day: 8, label: 'Dia da Mulher', niches: ['Salão de Beleza', 'Nail Designer', 'Confeitaria', 'Loja de Roupas'], template: '{name}, Dia da Mulher vem ai! Que tal um post com promo especial?' },
+		{ month: 4, day: 5, label: 'Páscoa', niches: ['Confeitaria', 'Restaurante', 'Hamburgueria', 'Loja de Açaí'], template: '{name}, Pascoa ta chegando! Vamos montar os posts das encomendas?' },
+		{ month: 5, day: 10, label: 'Dia das Mães', niches: ['Salão de Beleza', 'Confeitaria', 'Nail Designer', 'Loja de Roupas', 'Restaurante'], template: '{name}, Dia das Maes daqui a pouco! Bora preparar posts de presente e promo?' },
+		{ month: 6, day: 12, label: 'Dia dos Namorados', niches: ['Confeitaria', 'Restaurante', 'Hamburgueria', 'Salão de Beleza', 'Loja de Roupas'], template: '{name}, Dia dos Namorados vem ai! Vamos criar posts romanticos pro seu negocio?' },
+		{ month: 6, day: 13, label: 'Festas Juninas', niches: ['Confeitaria', 'Restaurante', 'Hamburgueria', 'Banda Musical'], template: '{name}, Junho ta ai! Vamos postar algo com tema junino?' },
+		{ month: 9, day: 1, label: 'Dia do Educador Físico', niches: ['Personal Trainer'], template: '{name}, vem ai o Dia do Educador Fisico! Bora fazer um post especial?' },
+		{ month: 10, day: 1, label: 'Início do Verão', niches: ['Personal Trainer', 'Loja de Açaí'], template: '{name}, verao chegando! Momento perfeito pra postar sobre preparacao e resultados.' },
+		{ month: 10, day: 12, label: 'Dia das Crianças', niches: ['Confeitaria', 'Pet Shop', 'Loja de Roupas'], template: '{name}, Dia das Criancas ta perto! Vamos criar posts com ofertas kids?' },
+		{ month: 12, day: 19, label: 'Dia do Cabeleireiro', niches: ['Salão de Beleza', 'Barbearia'], template: '{name}, Dia do Cabeleireiro chegando! Que tal um post especial celebrando a profissao?' },
+		{ month: 12, day: 25, label: 'Natal', niches: [], template: '{name}, Natal chegando! Vamos preparar posts com ofertas e mensagem de final de ano?' },
+		{ month: 12, day: 31, label: 'Réveillon', niches: ['Salão de Beleza', 'Barbearia', 'Nail Designer', 'Personal Trainer', 'Loja de Roupas'], template: '{name}, Reveillon vem ai! Bora postar sobre agendamento e preparacao?' },
+	];
+
 	let clients = $state<Business[]>([]);
 	let selectedId = $state<string | null>(null);
 	let loading = $state(true);
@@ -63,6 +86,12 @@
 	let copied = $state<string | null>(null);
 	let sending = $state(false);
 	let sendError = $state('');
+
+	// Nudge / engagement
+	let clientFilter = $state<'todos' | 'inativos'>('todos');
+	let nudgeText = $state('');
+	let sendingNudge = $state(false);
+	let sendNudgeError = $state('');
 
 	// Posts (for health indicators)
 	let posts = $state<Post[]>([]);
@@ -150,6 +179,50 @@
 		})
 	);
 
+	let inactiveCount = $derived(
+		clients.filter((c) => {
+			const h = clientHealth[c.id];
+			return h && h.daysSinceMsg >= 5;
+		}).length
+	);
+
+	let filteredClients = $derived(
+		clientFilter === 'inativos'
+			? sortedClients.filter((c) => {
+					const h = clientHealth[c.id];
+					return h && h.daysSinceMsg >= 5;
+				})
+			: sortedClients
+	);
+
+	let nudgeTier = $derived.by(() => {
+		if (!selected) return null;
+		const h = clientHealth[selected.id];
+		if (!h || h.daysSinceMsg < 5) return null;
+		return NUDGE_TEMPLATES.find(
+			(t) => h.daysSinceMsg >= t.minDays && h.daysSinceMsg <= t.maxDays
+		) ?? NUDGE_TEMPLATES[NUDGE_TEMPLATES.length - 1];
+	});
+
+	let upcomingDates = $derived.by(() => {
+		if (!selected) return [];
+		const now = new Date();
+		const limit = new Date(now.getTime() + 30 * 86400000);
+		const year = now.getFullYear();
+
+		return SEASONAL_DATES.filter((d) => {
+			if (d.niches.length > 0 && !d.niches.includes(selected!.type)) return false;
+			const date = new Date(year, d.month - 1, d.day);
+			if (date < now) date.setFullYear(year + 1);
+			return date >= now && date <= limit;
+		}).map((d) => {
+			const date = new Date(year, d.month - 1, d.day);
+			if (date < now) date.setFullYear(year + 1);
+			const daysUntil = Math.ceil((date.getTime() - now.getTime()) / 86400000);
+			return { ...d, daysUntil };
+		}).sort((a, b) => a.daysUntil - b.daysUntil);
+	});
+
 	onMount(async () => {
 		// Load clients and check WhatsApp in parallel
 		const [clientsRes] = await Promise.all([
@@ -232,8 +305,20 @@
 		selectedId = id;
 		result = null;
 		generateError = '';
+		sendNudgeError = '';
 		// Mark as seen
 		lastSeen = { ...lastSeen, [id]: new Date().toISOString() };
+		// Auto-populate nudge text for inactive clients
+		const client = clients.find((c) => c.id === id);
+		const health = clientHealth[id];
+		if (client && health && health.daysSinceMsg >= 5) {
+			const tier = NUDGE_TEMPLATES.find(
+				(t) => health.daysSinceMsg >= t.minDays && health.daysSinceMsg <= t.maxDays
+			) ?? NUDGE_TEMPLATES[NUDGE_TEMPLATES.length - 1];
+			nudgeText = tier.template.replace('{name}', client.name.split(' ')[0]);
+		} else {
+			nudgeText = '';
+		}
 	}
 
 	function prefillGenerate() {
@@ -384,6 +469,33 @@
 		}
 	}
 
+	async function sendNudge() {
+		if (!selectedId || !nudgeText.trim()) return;
+		sendingNudge = true;
+		sendNudgeError = '';
+		try {
+			await pb.send('/api/messages:send', {
+				method: 'POST',
+				body: JSON.stringify({
+					business_id: selectedId,
+					caption: nudgeText.trim(),
+					hashtags: '',
+					production_note: ''
+				})
+			});
+			nudgeText = '';
+		} catch {
+			sendNudgeError = 'Erro ao enviar lembrete. Tente novamente.';
+		} finally {
+			sendingNudge = false;
+		}
+	}
+
+	function prefillSeasonalMessage(template: string) {
+		if (!selected) return;
+		nudgeText = template.replace('{name}', selected.name.split(' ')[0]);
+	}
+
 	async function copyText(text: string, label: string) {
 		await navigator.clipboard.writeText(text);
 		copied = label;
@@ -432,7 +544,22 @@
 			<!-- Left: Client list -->
 			<div class="w-72 border-r flex flex-col shrink-0" style="border-color: var(--border); background: var(--surface)">
 				<div class="flex items-center justify-between p-4 border-b" style="border-color: var(--border)">
-					<h2 class="text-sm font-semibold" style="color: var(--text)">Clientes</h2>
+					<div class="flex gap-1">
+						<button
+							onclick={() => { clientFilter = 'todos'; }}
+							class="text-xs font-medium px-2.5 py-1 rounded-full transition-colors"
+							style="background: {clientFilter === 'todos' ? 'var(--coral)' : 'transparent'}; color: {clientFilter === 'todos' ? '#fff' : 'var(--text-secondary)'}"
+						>
+							Todos
+						</button>
+						<button
+							onclick={() => { clientFilter = 'inativos'; }}
+							class="text-xs font-medium px-2.5 py-1 rounded-full transition-colors"
+							style="background: {clientFilter === 'inativos' ? 'var(--coral)' : 'transparent'}; color: {clientFilter === 'inativos' ? '#fff' : 'var(--text-secondary)'}"
+						>
+							Inativos{inactiveCount > 0 ? ` (${inactiveCount})` : ''}
+						</button>
+					</div>
 					<button
 						onclick={openNewForm}
 						class="text-xs font-medium px-2.5 py-1 rounded-full"
@@ -446,7 +573,7 @@
 					{#if clients.length === 0}
 						<p class="text-sm p-4" style="color: var(--text-muted)">Nenhum cliente cadastrado.</p>
 					{:else}
-						{#each sortedClients as client (client.id)}
+						{#each filteredClients as client (client.id)}
 							{@const unread = unreadCounts[client.id] || 0}
 							{@const health = clientHealth[client.id]}
 							<button
@@ -585,6 +712,62 @@
 						</div>
 						<button onclick={() => openEditForm(selected!)} class="text-xs px-3 py-1.5 rounded-full border" style="border-color: var(--border-strong); color: var(--text-secondary)">Editar</button>
 					</div>
+
+					<!-- Engagement panel (nudge + seasonal) -->
+					{#if nudgeTier || upcomingDates.length > 0 || nudgeText}
+						<div class="shrink-0 px-6 py-3 border-b" style="border-color: var(--border); background: var(--bg)">
+							{#if nudgeTier || nudgeText}
+								<div class="mb-2">
+									<span class="text-xs font-medium uppercase tracking-widest" style="color: var(--text-muted)">
+										{#if nudgeTier}
+											Lembrete · {clientHealth[selected!.id]?.daysSinceMsg} dias sem mensagem
+										{:else}
+											Mensagem
+										{/if}
+									</span>
+									<textarea
+										bind:value={nudgeText}
+										rows={2}
+										class="w-full mt-1.5 px-3 py-2 rounded-xl text-sm outline-none border resize-none"
+										style="border-color: var(--border-strong); background: var(--surface); color: var(--text)"
+									></textarea>
+									<div class="flex items-center gap-2 mt-1.5">
+										<button
+											onclick={sendNudge}
+											disabled={sendingNudge || !nudgeText.trim() || !waConnected || !selected?.phone}
+											class="px-3 py-1.5 rounded-full text-xs font-medium transition-opacity"
+											style="background: #25D366; color: #fff; opacity: {sendingNudge || !nudgeText.trim() || !waConnected || !selected?.phone ? '0.6' : '1'}; cursor: {sendingNudge || !nudgeText.trim() || !waConnected || !selected?.phone ? 'not-allowed' : 'pointer'}"
+										>
+											{sendingNudge ? 'Enviando...' : 'Enviar lembrete'}
+										</button>
+										{#if sendNudgeError}
+											<span class="text-xs" style="color: var(--destructive)">{sendNudgeError}</span>
+										{/if}
+									</div>
+								</div>
+							{/if}
+
+							{#if upcomingDates.length > 0}
+								<div class={nudgeTier || nudgeText ? 'pt-2 border-t' : ''} style="border-color: var(--border)">
+									<span class="text-xs font-medium uppercase tracking-widest" style="color: var(--text-muted)">
+										Datas próximas
+									</span>
+									<div class="flex flex-wrap gap-1.5 mt-1.5">
+										{#each upcomingDates as sd}
+											<button
+												onclick={() => prefillSeasonalMessage(sd.template)}
+												class="text-xs px-2.5 py-1 rounded-full border transition-colors hover:bg-[var(--coral-pale)]"
+												style="border-color: var(--border-strong); color: var(--text-secondary)"
+												title={sd.template.replace('{name}', selected!.name.split(' ')[0])}
+											>
+												{sd.label} · {sd.daysUntil}d
+											</button>
+										{/each}
+									</div>
+								</div>
+							{/if}
+						</div>
+					{/if}
 
 					<!-- Message thread -->
 					<div class="flex-1 overflow-y-auto px-6 py-4 flex flex-col gap-3">
