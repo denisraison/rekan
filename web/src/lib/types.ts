@@ -24,6 +24,7 @@ export interface Business {
 	target_audience: string;
 	brand_vibe: string;
 	quirks: string;
+	phone: string;
 	onboarding_step: number;
 }
 
@@ -31,6 +32,20 @@ export interface GeneratedPost {
 	caption: string;
 	hashtags: string[];
 	production_note: string;
+}
+
+export interface Message {
+	id: string;
+	business: string;
+	phone: string;
+	type: 'text' | 'audio' | 'image';
+	content: string;
+	media: string;
+	direction: 'incoming' | 'outgoing';
+	wa_timestamp: string;
+	wa_message_id: string;
+	created: string;
+	collectionId: string;
 }
 
 export interface Post {

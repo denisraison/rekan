@@ -18,7 +18,11 @@ function GenerateContent(profile: BusinessProfile, roles: ContentRole[], previou
     - Legenda (máximo 700 caracteres)
     - Hashtags do nicho e da região (mínimo 5)
     - Um convite pra ação (chama no zap, link na bio, comenta, etc.)
-    - Direção de foto/vídeo na nota de produção: o que montar, de que ângulo, em que momento (ex: Foto do bolo pronto na bancada, luz natural da janela)
+    - Nota de produção com mini-roteiro de foto/vídeo para celular (3-4 frases):
+      1. O que montar na cena (objeto, fundo, elementos visuais)
+      2. Posição do celular e enquadramento (de cima, de lado, na altura dos olhos, selfie)
+      3. Iluminação (luz natural da janela, lâmpada do salão, ao ar livre na sombra)
+      4. Dica prática para amador (ex: "apoie o celular num copo pra não tremer", "limpe a lente antes")
 
     Como você escreve:
     - Do jeito que você falaria com um cliente no balcão
@@ -69,7 +73,11 @@ function GenerateFromMessage(profile: BusinessProfile, clientMessage: string, pr
     - Legenda (máximo 700 caracteres)
     - Hashtags do nicho e da região (mínimo 5)
     - Um convite pra ação (chama no zap, link na bio, comenta, etc.)
-    - Direção de foto/vídeo na nota de produção: o que montar, de que ângulo, em que momento (ex: Foto do bolo pronto na bancada, luz natural da janela)
+    - Nota de produção com mini-roteiro de foto/vídeo para celular (3-4 frases):
+      1. O que montar na cena (objeto, fundo, elementos visuais)
+      2. Posição do celular e enquadramento (de cima, de lado, na altura dos olhos, selfie)
+      3. Iluminação (luz natural da janela, lâmpada do salão, ao ar livre na sombra)
+      4. Dica prática para amador (ex: "apoie o celular num copo pra não tremer", "limpe a lente antes")
 
     REGRA PRINCIPAL — use os detalhes concretos da mensagem do cliente:
     - O post deve ser centrado no que o cliente descreveu: promoção, novidade, bastidor, evento, resultado de serviço

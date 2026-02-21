@@ -21,6 +21,10 @@ func RegisterRoutes(rtr *router.Router[*core.RequestEvent], deps handlers.Deps) 
 	// Operator tool (single-post generation from WhatsApp message)
 	rtr.POST("/api/businesses/{id}/posts:generateFromMessage", handlers.OperatorGenerate(deps)).Bind(auth)
 
+	// WhatsApp
+	rtr.GET("/api/whatsapp/status", handlers.WhatsAppStatus(deps)).Bind(auth)
+	rtr.POST("/api/messages:send", handlers.SendMessage(deps)).Bind(auth)
+
 	// Asaas webhook (server-to-server, no auth middleware)
 	rtr.POST("/api/webhooks/asaas", handlers.AsaasWebhook(deps))
 }
