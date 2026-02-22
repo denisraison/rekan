@@ -59,9 +59,17 @@ func AsaasWebhook(deps Deps) func(*core.RequestEvent) error {
 		}
 
 		user := users[0]
+		oldStatus := user.GetString("subscription_status")
 		user.Set("subscription_status", newStatus)
 		if err := e.App.Save(user); err != nil {
 			return e.JSON(http.StatusInternalServerError, map[string]string{"message": "erro interno"})
+		}
+
+		// First payment: upgrade subscription from R$19 to R$69.90
+		if oldStatus == "trial" && newStatus == "active" && deps.Asaas != nil {
+			if err := deps.Asaas.UpdateSubscription(e.Request.Context(), subscriptionID, monthlyPriceBRL); err != nil {
+				e.App.Logger().Error("asaas update subscription price", "subscription", subscriptionID, "error", err)
+			}
 		}
 
 		return e.JSON(http.StatusOK, map[string]string{"message": "ok"})

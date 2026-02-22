@@ -1,7 +1,7 @@
 <script lang="ts">
-	import { pb } from '$lib/pb';
-	import { goto } from '$app/navigation';
 	import { onMount } from 'svelte';
+	import { goto } from '$app/navigation';
+	import { pb } from '$lib/pb';
 
 	let { children } = $props();
 

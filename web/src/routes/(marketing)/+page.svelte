@@ -2,7 +2,7 @@
 	import LogoCombo from '$lib/components/LogoCombo.svelte';
 	import LogoMark from '$lib/components/LogoMark.svelte';
 
-	function reveal(node: HTMLElement) {
+	function _reveal(node: HTMLElement) {
 		const observer = new IntersectionObserver(
 			(entries) => {
 				for (const entry of entries) {
@@ -92,7 +92,7 @@
 			</p>
 			<p class="hero-tags">Padarias · Salões · Studios · Barbearias · Lojas · Academias</p>
 			<div class="hero-cta">
-				<a href="/entrar" class="btn btn-primary">Experimente grátis</a>
+				<a href="/entrar" class="btn btn-primary">Comece por R$ 19</a>
 				<a href="#como-funciona" class="btn btn-ghost">Como funciona</a>
 			</div>
 		</div>
@@ -218,7 +218,7 @@
 		<div class="price-card">
 			<div class="price-amount">
 				<span class="price-currency">R$</span>
-				<span class="price-value">29</span>
+				<span class="price-value">69,90</span>
 				<span class="price-period">/mês</span>
 			</div>
 			<ul class="price-list">
@@ -236,7 +236,7 @@
 <section class="final-cta">
 	<div class="final-cta-inner">
 		<h2>Bora <em>postar?</em></h2>
-		<a href="/entrar" class="btn btn-white">Comece grátis</a>
+		<a href="/entrar" class="btn btn-white">Comece por R$ 19</a>
 	</div>
 </section>
 

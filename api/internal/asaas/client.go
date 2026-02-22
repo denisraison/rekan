@@ -62,12 +62,48 @@ func (c *Client) CreateSubscription(ctx context.Context, req CreateSubscriptionR
 	return out, nil
 }
 
+func (c *Client) UpdateSubscription(ctx context.Context, id string, value float64) error {
+	var out map[string]any
+	return c.put(ctx, "/subscriptions/"+id, map[string]float64{"value": value}, &out)
+}
+
 func (c *Client) post(ctx context.Context, path string, body, out any) error {
 	b, err := json.Marshal(body)
 	if err != nil {
 		return fmt.Errorf("marshal: %w", err)
 	}
 	req, err := http.NewRequestWithContext(ctx, http.MethodPost, c.baseURL+path, bytes.NewReader(b))
+	if err != nil {
+		return fmt.Errorf("new request: %w", err)
+	}
+	req.Header.Set("Content-Type", "application/json")
+	req.Header.Set("access_token", c.apiKey)
+	resp, err := c.http.Do(req)
+	if err != nil {
+		return fmt.Errorf("http: %w", err)
+	}
+	defer resp.Body.Close()
+	if resp.StatusCode >= 400 {
+		var errResp struct {
+			Errors []struct {
+				Description string `json:"description"`
+			} `json:"errors"`
+		}
+		_ = json.NewDecoder(resp.Body).Decode(&errResp)
+		if len(errResp.Errors) > 0 {
+			return fmt.Errorf("asaas %s: %s", resp.Status, errResp.Errors[0].Description)
+		}
+		return fmt.Errorf("asaas %s", resp.Status)
+	}
+	return json.NewDecoder(resp.Body).Decode(out)
+}
+
+func (c *Client) put(ctx context.Context, path string, body, out any) error {
+	b, err := json.Marshal(body)
+	if err != nil {
+		return fmt.Errorf("marshal: %w", err)
+	}
+	req, err := http.NewRequestWithContext(ctx, http.MethodPut, c.baseURL+path, bytes.NewReader(b))
 	if err != nil {
 		return fmt.Errorf("new request: %w", err)
 	}

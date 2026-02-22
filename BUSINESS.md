@@ -39,7 +39,7 @@ There's a massive gap in the Brazilian market that nobody is serving well:
 | Tier | Price Range | What You Get |
 |---|---|---|
 | DIY AI tools (GalilAI, Canva, ChatGPT) | R$0 to R$99/month | Self serve. You still do the work. |
-| **Rekan sits here** | **R$69 to R$99/month** | **Done for you via WhatsApp. Zero friction.** |
+| **Rekan sits here** | **R$69.90/month** | **Done for you via WhatsApp. Zero friction.** |
 | Junior social media manager | R$590 to R$1,500/month | Human creates and posts content for you. |
 | Agency | R$2,000 to R$5,000+/month | Full service marketing. |
 
@@ -112,19 +112,15 @@ Phase 2 (later): The whatsmeow bot automates the intake and response. Elenice on
 
 ## Pricing
 
-Pricing is still being finalised but the range is R$49 to R$99/month. This positions Rekan:
+**R$69.90/month** with a **R$19 first month** to lower the barrier. This positions Rekan:
 
 - Above DIY tools (justifiable because we do the work for you)
 - Far below human social media managers (10x cheaper)
 - Affordable for any MEI
 
-| Price Point | Clients Needed for R$2,000 | Elenice's Monthly Hours |
-|---|---|---|
-| R$49/month | ~41 clients | ~15 hours (maintenance) + acquisition time |
-| R$79/month | ~26 clients | ~15 hours (maintenance) + acquisition time |
-| R$99/month | ~21 clients | ~15 hours (maintenance) + acquisition time |
+At R$69.90/month, Elenice needs ~29 clients to hit R$2,000/month net (after overhead). Each client requires roughly 15 to 20 minutes per month of Elenice's time once onboarded (Phase 1 will be more since she's doing manual processing).
 
-Each client requires roughly 15 to 20 minutes per month of Elenice's time once onboarded (Phase 1 will be more since she's doing manual processing).
+The R$19 first month replaces the 7-day free trial. Rationale: 7 days is too short to show consistency results, "free" signals low quality in Brazil, R$19 filters for serious prospects, and 30 days allows 12+ posts so the client feels the difference.
 
 ### Monthly Cost Structure
 
@@ -177,7 +173,7 @@ The combination of human relationship + AI speed + content direction delivered t
 
 The tech works. The market exists. But finding and converting those first 20 to 30 clients requires Elenice to consistently prospect. If she gets discouraged after 5 "no"s, the business stalls. Denis needs to be the support system here.
 
-**Mitigation:** Start with businesses Elenice already knows. Use the "semana de prova" (7 day free trial) to reduce risk for new clients.
+**Mitigation:** Start with businesses Elenice already knows. Use the R$19 first month to reduce risk for new clients.
 
 ### Proving ROI
 
@@ -227,8 +223,8 @@ This is the step by step plan for getting started. No automation needed. Elenice
 >
 > Você manda uma mensagem sobre o que fez hoje no trabalho. A gente devolve o post pronto: legenda, hashtags, dica de foto e ideia de reels. Tudo pelo WhatsApp.
 >
-> Plano mensal: R$XX/mês
-> Teste grátis por 7 dias
+> Plano mensal: R$69,90/mês
+> Primeiro mês por R$19
 >
 > Quer experimentar? Me manda uma mensagem!
 
@@ -238,7 +234,7 @@ This is the step by step plan for getting started. No automation needed. Elenice
 
 ### Week 2 to 4: First Clients (Free Trials)
 
-**Goal: Get 5 businesses to try the 7 day free trial ("semana de prova").**
+**Goal: Get 5 businesses to try the R$19 first month.**
 
 How to find them:
 - Businesses Elenice already knows personally
@@ -266,7 +262,7 @@ How to find them:
 
 **Goal: Convert 5 to 10 trial clients into paying subscribers.**
 
-**Consider introductory pricing** for the first 3 months (e.g. R$49 instead of R$79) to build the initial base and get testimonials.
+**The R$19 first month** handles introductory pricing automatically. Focus on converting these into R$69.90/month subscribers.
 
 **Establish a weekly rhythm:**
 - Monday: Receive messages from clients about their week ahead / recent work

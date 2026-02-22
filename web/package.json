@@ -9,9 +9,12 @@
 		"preview": "vite preview",
 		"prepare": "svelte-kit sync || echo ''",
 		"check": "svelte-kit sync && svelte-check --tsconfig ./tsconfig.json",
-		"check:watch": "svelte-kit sync && svelte-check --tsconfig ./tsconfig.json --watch"
+		"check:watch": "svelte-kit sync && svelte-check --tsconfig ./tsconfig.json --watch",
+		"lint": "biome check ./src",
+		"lint:fix": "biome check --write --unsafe ./src"
 	},
 	"devDependencies": {
+		"@biomejs/biome": "^2.4.4",
 		"@internationalized/date": "^3.11.0",
 		"@playwright/test": "1.57.0",
 		"@sveltejs/adapter-auto": "^7.0.0",

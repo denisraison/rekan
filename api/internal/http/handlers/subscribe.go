@@ -9,8 +9,10 @@ import (
 	"github.com/pocketbase/pocketbase/core"
 )
 
-// monthlyPriceBRL is the subscription price. Set this before launch.
-const monthlyPriceBRL = 89.90
+const (
+	monthlyPriceBRL    = 69.90
+	firstMonthPriceBRL = 19.00
+)
 
 func CreateSubscription(deps Deps) func(*core.RequestEvent) error {
 	return func(e *core.RequestEvent) error {
@@ -48,10 +50,10 @@ func CreateSubscription(deps Deps) func(*core.RequestEvent) error {
 		sub, err := deps.Asaas.CreateSubscription(e.Request.Context(), asaasclient.CreateSubscriptionReq{
 			Customer:    customer.ID,
 			BillingType: body.BillingType,
-			Value:       monthlyPriceBRL,
+			Value:       firstMonthPriceBRL,
 			NextDueDate: time.Now().Format("2006-01-02"),
 			Cycle:       "MONTHLY",
-			Description: "Rekan - Plano Mensal",
+			Description: "Rekan - Primeiro Mês",
 		})
 		if err != nil {
 			e.App.Logger().Error("asaas create subscription", "error", err)

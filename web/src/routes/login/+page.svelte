@@ -1,12 +1,12 @@
 <script lang="ts">
-	import { pb } from '$lib/pb';
 	import { goto } from '$app/navigation';
 	import LogoCombo from '$lib/components/LogoCombo.svelte';
+	import { pb } from '$lib/pb';
 
 	let loading = $state(false);
 	let error = $state('');
 
-	async function loginWithGoogle() {
+	async function _loginWithGoogle() {
 		loading = true;
 		error = '';
 		try {
@@ -18,7 +18,7 @@
 			} else {
 				goto('/dashboard');
 			}
-		} catch (e) {
+		} catch (_e) {
 			error = 'Não foi possível entrar. Tente novamente.';
 		} finally {
 			loading = false;

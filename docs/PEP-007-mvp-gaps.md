@@ -225,9 +225,11 @@ Key dates by niche:
 
 ---
 
-## Wave 3: Client Value Proof (reduce churn)
+## Wave 3: Client Value Proof (reduce churn) -- DONE
 
 Churn happens when clients can't see value. This wave makes the value tangible and shareable.
+
+All 3 sub-items implemented. Key changes: consistent R$69.90/month pricing across all files, R$19 first month via Asaas subscription update on first payment, monthly client summary in operator page with WhatsApp send.
 
 ### 3.1 Monthly client summary
 
@@ -235,40 +237,40 @@ Churn happens when clients can't see value. This wave makes the value tangible a
 
 **Change:** Generate a monthly WhatsApp-ready summary per client. Based on data from the `posts` collection: posts delivered this month vs last month. Elenice sends it directly through WhatsApp from the operator page.
 
-Example: "*Maria, resumo de fevereiro:* a gente criou *11 posts* pro seu Instagram (contra 3 em janeiro). O post sobre o bolo de casamento foi o destaque! Mes que vem vamos manter esse ritmo."
+Example: "*Maria, resumo de fevereiro:* a gente criou *11 posts* pro seu Instagram (contra 3 em janeiro). Mes que vem vamos manter esse ritmo!"
 
 The summary uses WhatsApp bold formatting and is designed to be screenshot-worthy (clients share it in professional groups, driving organic referrals).
 
 **Files:** `web/src/routes/(app)/operador/+page.svelte` (summary component), query against `posts` collection
 
-- [ ] Per-client monthly summary view on operator page
-- [ ] Shows: posts this month, posts last month, delta
-- [ ] "Enviar resumo" button sends formatted summary through WhatsApp
-- [ ] Summary uses WhatsApp formatting (*bold*, _italic_) for visual impact
+- [x] Per-client monthly summary view on operator page
+- [x] Shows: posts this month, posts last month, delta
+- [x] "Enviar resumo" button sends formatted summary through WhatsApp
+- [x] Summary uses WhatsApp formatting (*bold*, _italic_) for visual impact
 
 ### 3.2 Trial restructuring
 
 **Current state:** BUSINESS.md proposes a 7-day free trial delivering 2-3 posts.
 
-**Change:** R$19 first month instead of free 7-day trial. Rationale:
-- 7 days is too short to show Instagram consistency results
-- "Free" signals low quality or scam in Brazil
-- R$19 filters for serious prospects and creates commitment
-- 30 days allows 12+ posts, enough for the client to feel the difference
+**Change:** R$19 first month instead of free 7-day trial. Code-managed: subscription created at R$19, webhook upgrades to R$69.90 on first PAYMENT_CONFIRMED.
 
-**Files:** BUSINESS.md, `handlers/subscribe.go` (if implementing promotional pricing)
+**Files:** `api/internal/asaas/client.go` (UpdateSubscription + put method), `api/internal/http/handlers/subscribe.go` (firstMonthPriceBRL), `api/internal/http/handlers/webhooks.go` (upgrade on first payment), BUSINESS.md
 
-- [ ] BUSINESS.md updated with R$19 first month model
-- [ ] Decide whether promotional pricing is code-managed or Elenice-managed (coupon vs manual)
+- [x] BUSINESS.md updated with R$19 first month model
+- [x] Promotional pricing is code-managed: subscription created at R$19, upgraded to R$69.90 on first payment via Asaas API
+- [x] Asaas client: `UpdateSubscription` method + `put` HTTP helper
+- [x] Subscribe handler: creates subscription at R$19 with "Rekan - Primeiro Mês" description
+- [x] Webhook handler: on PAYMENT_CONFIRMED with trial->active transition, calls UpdateSubscription to set R$69.90
 
 ### 3.3 Consistent pricing across codebase
 
 **Current state:** `subscribe.go` has R$89.90, dashboard UI shows R$49.90, BUSINESS.md says R$49-99 range.
 
-- [ ] Agree on launch price
-- [ ] Update `monthlyPriceBRL` in `subscribe.go`
-- [ ] Update any hardcoded prices in frontend
-- [ ] Update BUSINESS.md
+- [x] Launch price: R$69.90/month, R$19 first month
+- [x] `monthlyPriceBRL = 69.90` and `firstMonthPriceBRL = 19.00` in `subscribe.go`
+- [x] Dashboard CTA: "Assinar — R$ 19 no primeiro mês"
+- [x] Marketing page: price card shows R$69,90/mês, CTAs say "Comece por R$ 19"
+- [x] BUSINESS.md updated with R$69.90/month and R$19 first month
 
 ---
 
@@ -328,10 +330,10 @@ Wave 1 (Tailwind v4 + shadcn-svelte) is done. Remaining:
 |------|-------|--------|--------|
 | **Wave 1** | WhatsApp integration + operator overhaul | **Done** (9/9 items) | Eliminates all manual copy-paste, enables voice/image, makes the product real |
 | **Wave 2** | Proactive engagement | **Done** (3/3 items) | Solves consistency (the actual problem), reduces churn |
-| **Wave 3** | Client value proof | Pending | Makes value visible, reduces churn, drives referrals |
+| **Wave 3** | Client value proof | **Done** (3/3 items) | Makes value visible, reduces churn, drives referrals |
 | **Wave 4** | Technical gaps | Partial (4.2 done via Wave 1.7) | Test coverage, verification, component cleanup |
 
-Waves 1 and 2 are done. WhatsApp messages flow into the operator page, replies go back through WhatsApp, and Elenice has nudge templates + seasonal calendar to keep clients engaged proactively. Wave 3 is the natural next step (summaries are just messages sent through the same pipeline). Wave 4 is housekeeping that can happen in parallel.
+Waves 1, 2, and 3 are done. WhatsApp messages flow into the operator page, replies go back through WhatsApp, Elenice has nudge templates + seasonal calendar + monthly summaries to keep clients engaged proactively, and pricing is consistent at R$69.90/month with R$19 first month. Wave 4 is housekeeping that can happen in parallel.
 
 ### Dependencies
 
