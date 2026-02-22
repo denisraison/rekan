@@ -1,6 +1,6 @@
 <script lang="ts">
 	import LogoCombo from '$lib/components/LogoCombo.svelte';
-	import LogoMark from '$lib/components/LogoMark.svelte';
+	import { SectionLabel, PhoneFrame, IgPost } from '$lib/components/marketing';
 
 	function _reveal(node: HTMLElement) {
 		const observer = new IntersectionObserver(
@@ -26,7 +26,7 @@
 			postBg: 'linear-gradient(145deg, #F97368, #f9a088)',
 			postLine1: 'Bolo do dia',
 			postLine2: '',
-			postEmoji: '\ud83c\udf82',
+			postEmoji: '🎂',
 			caption: 'Bolo de cenoura com cobertura de chocolate saindo do forno agora. Quem garante o último pedaço? Passa aqui: Rua das Flores, 123',
 			hashtags: '#padaria #bolodecenoura #donaelza #feitocomamor',
 			likes: '87',
@@ -50,7 +50,7 @@
 			postBg: 'linear-gradient(145deg, #d4827f, #F97368)',
 			postLine1: 'Agenda aberta',
 			postLine2: 'essa semana',
-			postEmoji: '\ud83d\udc85',
+			postEmoji: '💅',
 			caption: 'Francesinha nunca sai de moda. Essa aqui ficou um arraso na @carol.santos ontem. Agenda de quinta tem horário. Chama no whats!',
 			hashtags: '#manicure #francesinha #nailart #lunails',
 			likes: '56',
@@ -83,7 +83,7 @@
 	<div class="hero-mesh hero-mesh-2" aria-hidden="true"></div>
 	<div class="hero-content">
 		<div class="hero-text">
-			<span class="hero-label">PARA MICRO-EMPREENDEDORES</span>
+			<SectionLabel pill>PARA MICRO-EMPREENDEDORES</SectionLabel>
 			<h1 class="hero-title">
 				Post pronto.<br/>Você só <em>cola.</em>
 			</h1>
@@ -99,38 +99,26 @@
 		<div class="hero-visual">
 			<div class="hero-glow" aria-hidden="true"></div>
 			<div class="hero-phone">
-				<div class="phone-frame">
-					<div class="phone-notch"></div>
-					<div class="ig-head">
-						<div class="ig-avatar" style="background: #F97368">D</div>
-						<span class="ig-name">padaria.donaelza</span>
-						<span class="ig-dots">···</span>
-					</div>
-					<div class="ig-post" style="background: linear-gradient(145deg, #F97368, #f9a088)">
-						<LogoMark size={28} />
-						<span class="ig-post-title">Bolo do dia</span>
-						<span class="ig-post-emoji">🎂</span>
-					</div>
-					<div class="ig-actions">
-						<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/></svg>
-						<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
-						<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/></svg>
-						<span class="ig-spacer"></span>
-						<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M19 21l-7-5-7 5V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2z"/></svg>
-					</div>
-					<div class="ig-body">
-						<p class="ig-likes">87 curtidas</p>
-						<p class="ig-caption"><strong>padaria.donaelza</strong> Bolo de cenoura com cobertura de chocolate saindo do forno agora. Quem garante o último pedaço? Passa aqui: Rua das Flores, 123</p>
-						<p class="ig-hashtags">#padaria #bolodecenoura #donaelza #feitocomamor</p>
-					</div>
-				</div>
+				<PhoneFrame width="300px">
+					<IgPost
+						username="padaria.donaelza"
+						initial="D"
+						avatarBg="#F97368"
+						postBg="linear-gradient(145deg, #F97368, #f9a088)"
+						postLine1="Bolo do dia"
+						postEmoji="🎂"
+						caption="Bolo de cenoura com cobertura de chocolate saindo do forno agora. Quem garante o último pedaço? Passa aqui: Rua das Flores, 123"
+						hashtags="#padaria #bolodecenoura #donaelza #feitocomamor"
+						likes="87"
+					/>
+				</PhoneFrame>
 			</div>
 		</div>
 	</div>
 </section>
 
 <!-- Empathy -->
-<section class="empathy" use:reveal>
+<section class="empathy" use:_reveal>
 	<div class="empathy-inner">
 		<p class="empathy-line">Ninguém abriu um negócio pra ficar pensando em legenda.</p>
 		<p class="empathy-line">Você faz bolo, corta cabelo, dá aula.</p>
@@ -141,9 +129,9 @@
 </section>
 
 <!-- How it works -->
-<section class="steps-section" id="como-funciona" use:reveal>
+<section class="steps-section" id="como-funciona" use:_reveal>
 	<div class="steps-inner">
-		<span class="section-label">COMO FUNCIONA</span>
+		<SectionLabel>COMO FUNCIONA</SectionLabel>
 		<h2 class="steps-heading">Três passos.<br/>Dois minutos.</h2>
 		<div class="steps">
 			<div class="step-card">
@@ -169,40 +157,29 @@
 </section>
 
 <!-- Content Showcase -->
-<section class="showcase" id="exemplos" use:reveal>
+<section class="showcase" id="exemplos" use:_reveal>
 	<div class="showcase-inner">
-		<span class="section-label">EXEMPLOS REAIS</span>
+		<SectionLabel>EXEMPLOS REAIS</SectionLabel>
 		<h2 class="showcase-heading">Veja na prática.</h2>
 		<p class="showcase-sub">Conteúdo gerado pelo Rekan. Nada genérico, tudo com a cara do negócio.</p>
 
 		<div class="phones">
 			{#each examples as ex, i}
 				<div class="phone-slot" style="--i: {i}">
-					<div class="phone-frame">
-						<div class="phone-notch"></div>
-						<div class="ig-head">
-							<div class="ig-avatar" style="background: {ex.avatarBg}">{ex.initial}</div>
-							<span class="ig-name">{ex.username}</span>
-							<span class="ig-dots">···</span>
-						</div>
-						<div class="ig-post" style="background: {ex.postBg}">
-							<LogoMark size={28} />
-							<span class="ig-post-title">{ex.postLine1}{#if ex.postLine2}<br/>{ex.postLine2}{/if}</span>
-							{#if ex.postEmoji}<span class="ig-post-emoji">{ex.postEmoji}</span>{/if}
-						</div>
-						<div class="ig-actions">
-							<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/></svg>
-							<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
-							<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/></svg>
-							<span class="ig-spacer"></span>
-							<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M19 21l-7-5-7 5V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2z"/></svg>
-						</div>
-						<div class="ig-body">
-							<p class="ig-likes">{ex.likes} curtidas</p>
-							<p class="ig-caption"><strong>{ex.username}</strong> {ex.caption}</p>
-							<p class="ig-hashtags">{ex.hashtags}</p>
-						</div>
-					</div>
+					<PhoneFrame>
+						<IgPost
+							username={ex.username}
+							initial={ex.initial}
+							avatarBg={ex.avatarBg}
+							postBg={ex.postBg}
+							postLine1={ex.postLine1}
+							postLine2={ex.postLine2}
+							postEmoji={ex.postEmoji}
+							caption={ex.caption}
+							hashtags={ex.hashtags}
+							likes={ex.likes}
+						/>
+					</PhoneFrame>
 				</div>
 			{/each}
 		</div>
@@ -210,9 +187,9 @@
 </section>
 
 <!-- Pricing -->
-<section class="pricing" id="preco" use:reveal>
+<section class="pricing" id="preco" use:_reveal>
 	<div class="pricing-inner">
-		<span class="section-label">PREÇO</span>
+		<SectionLabel>PREÇO</SectionLabel>
 		<h2 class="pricing-heading">Um plano. Sem pegadinha.</h2>
 		<p class="pricing-sub">Um preço. Sem letras miúdas.</p>
 		<div class="price-card">
@@ -334,17 +311,6 @@
 	.btn-sm { padding: 8px 20px; font-size: 0.8rem; }
 	.btn-block { display: block; width: 100%; text-align: center; }
 
-	/* ============ SECTION LABEL ============ */
-	.section-label {
-		display: block;
-		font-size: 0.68rem;
-		font-weight: 600;
-		letter-spacing: 0.14em;
-		color: var(--coral);
-		margin-bottom: 16px;
-		text-align: center;
-	}
-
 	/* ============ HERO ============ */
 	.hero {
 		position: relative;
@@ -397,17 +363,6 @@
 	}
 	.hero-text {
 		animation: fadeUp 0.6s ease both;
-	}
-	.hero-label {
-		display: inline-block;
-		font-size: 0.68rem;
-		font-weight: 600;
-		letter-spacing: 0.14em;
-		color: var(--coral);
-		margin-bottom: 20px;
-		padding: 6px 14px;
-		background: var(--coral-pale);
-		border-radius: var(--radius-full);
 	}
 	.hero-title {
 		font-size: clamp(2.6rem, 5.5vw, 4.2rem);
@@ -470,8 +425,7 @@
 		z-index: 1;
 		transform: rotate(2deg);
 	}
-	.hero-phone .phone-frame {
-		width: 300px;
+	.hero-phone :global(.phone-frame) {
 		box-shadow: 0 24px 64px rgba(17, 17, 22, 0.14), 0 4px 12px rgba(17, 17, 22, 0.06);
 	}
 
@@ -650,117 +604,8 @@
 		z-index: 1;
 		margin-left: -16px;
 	}
-	.phone-frame {
-		width: 268px;
-		background: white;
-		border-radius: 36px;
-		border: 3px solid var(--dark);
-		overflow: hidden;
-		box-shadow: var(--shadow-lg);
-		transition: box-shadow 300ms ease;
-	}
-	.phone-slot:hover .phone-frame {
+	.phone-slot:hover :global(.phone-frame) {
 		box-shadow: 0 20px 60px rgba(17, 17, 22, 0.16);
-	}
-	.phone-notch {
-		width: 80px;
-		height: 20px;
-		background: var(--dark);
-		border-radius: 0 0 12px 12px;
-		margin: 0 auto;
-	}
-	.ig-head {
-		display: flex;
-		align-items: center;
-		gap: 7px;
-		padding: 10px 12px 8px;
-	}
-	.ig-avatar {
-		width: 24px;
-		height: 24px;
-		border-radius: 50%;
-		display: flex;
-		align-items: center;
-		justify-content: center;
-		color: white;
-		font-size: 10px;
-		font-weight: 700;
-		flex-shrink: 0;
-	}
-	.ig-name {
-		font-size: 11px;
-		font-weight: 700;
-		color: var(--text);
-	}
-	.ig-dots {
-		margin-left: auto;
-		font-weight: 700;
-		color: var(--text);
-		font-size: 14px;
-		letter-spacing: 2px;
-	}
-	.ig-post {
-		width: 100%;
-		aspect-ratio: 1;
-		display: flex;
-		flex-direction: column;
-		align-items: center;
-		justify-content: center;
-		padding: 24px;
-		position: relative;
-	}
-	.ig-post :global(.logo-mark) {
-		opacity: 0.2;
-		margin-bottom: 12px;
-	}
-	.ig-post-title {
-		font-family: var(--font-primary);
-		font-size: 1.3rem;
-		font-weight: 300;
-		color: white;
-		text-align: center;
-		line-height: 1.25;
-		text-shadow: 0 1px 8px rgba(0, 0, 0, 0.1);
-	}
-	.ig-post-emoji {
-		font-size: 1.6rem;
-		margin-top: 10px;
-	}
-	.ig-actions {
-		display: flex;
-		align-items: center;
-		gap: 12px;
-		padding: 10px 12px 4px;
-		color: var(--text);
-	}
-	.ig-actions svg {
-		width: 18px;
-		height: 18px;
-	}
-	.ig-spacer { flex: 1; }
-	.ig-body {
-		padding: 0 12px 14px;
-	}
-	.ig-likes {
-		font-size: 10px;
-		font-weight: 700;
-		margin-bottom: 4px;
-	}
-	.ig-caption {
-		font-size: 10px;
-		line-height: 1.5;
-		color: var(--text);
-		margin-bottom: 4px;
-		display: -webkit-box;
-		line-clamp: 4;
-		-webkit-line-clamp: 4;
-		-webkit-box-orient: vertical;
-		overflow: hidden;
-	}
-	.ig-caption strong { font-weight: 700; }
-	.ig-hashtags {
-		font-size: 9px;
-		color: #00376b;
 	}
 
 	/* ============ PRICING ============ */
@@ -927,8 +772,7 @@
 		}
 		.showcase { padding: 72px 0; }
 		.showcase-heading,
-		.showcase-sub,
-		.section-label { padding: 0 24px; }
+		.showcase-sub { padding: 0 24px; }
 		.phones {
 			justify-content: flex-start;
 			overflow-x: auto;
@@ -947,7 +791,7 @@
 			transform: none;
 			margin: 0;
 		}
-		.phone-frame { width: 256px; }
+		.phone-slot :global(.phone-frame) { width: 256px; }
 		.pricing { padding: 72px 24px; }
 		.price-card { padding: 36px 24px; }
 		.final-cta { padding: 64px 24px; }

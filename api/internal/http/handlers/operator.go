@@ -41,7 +41,7 @@ func OperatorGenerate(deps Deps) func(*core.RequestEvent) error {
 			return fmt.Errorf("load previous hooks: %w", err)
 		}
 
-		post, err := eval.GenerateFromMessage(e.Request.Context(), profile, body.Message, previousHooks)
+		post, err := deps.GenerateFromMessage(e.Request.Context(), profile, body.Message, previousHooks)
 		if err != nil {
 			return e.JSON(http.StatusBadGateway, map[string]string{
 				"message": "Erro ao gerar conteúdo. Tente novamente.",

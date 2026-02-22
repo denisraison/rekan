@@ -68,15 +68,15 @@
   let brand_vibe = $state("");
   let quirks = $state("");
 
-  function _addService() {
+  function addService() {
     services = [...services, { name: "", price_brl: 0 }];
   }
 
-  function _removeService(i: number) {
+  function removeService(i: number) {
     services = services.filter((_: Service, idx: number) => idx !== i);
   }
 
-  async function _submitStep1() {
+  async function submitStep1() {
     if (!name.trim() || !type || !city.trim() || !uf) {
       error = "Preencha todos os campos.";
       return;
@@ -101,7 +101,7 @@
     }
   }
 
-  async function _submitStep2() {
+  async function submitStep2() {
     const valid = services.every(
       (s: Service) => s.name.trim() && s.price_brl > 0,
     );
@@ -124,7 +124,7 @@
     }
   }
 
-  async function _submitStep3(skip = false) {
+  async function submitStep3(skip = false) {
     error = "";
     loading = true;
     try {

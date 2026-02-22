@@ -64,7 +64,7 @@
     posts = result.items;
   }
 
-  async function _generate() {
+  async function generate() {
     if (!business) return;
     generating = true;
     generateError = "";
@@ -89,7 +89,7 @@
     }
   }
 
-  async function _subscribe() {
+  async function subscribe() {
     subscribing = true;
     try {
       const res = await pb.send("/api/subscriptions", {
@@ -106,18 +106,18 @@
     }
   }
 
-  function _startEdit(post: Post) {
+  function startEdit(post: Post) {
     editStates[post.id] = {
       caption: post.caption,
       hashtags: post.hashtags.join(" "),
     };
   }
 
-  function _cancelEdit(postId: string) {
+  function cancelEdit(postId: string) {
     delete editStates[postId];
   }
 
-  async function _saveEdit(post: Post) {
+  async function saveEdit(post: Post) {
     const state = editStates[post.id];
     if (!state) return;
     const hashtags = state.hashtags.split(/\s+/).filter(Boolean);
@@ -135,13 +135,13 @@
     delete editStates[post.id];
   }
 
-  async function _deletePost(postId: string) {
+  async function deletePost(postId: string) {
     if (!confirm("Excluir este post?")) return;
     await pb.collection("posts").delete(postId);
     posts = posts.filter((p) => p.id !== postId);
   }
 
-  async function _logout() {
+  async function logout() {
     pb.authStore.clear();
     window.location.href = "/login";
   }

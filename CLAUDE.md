@@ -11,6 +11,10 @@ Brazil-only product. Everything user-facing is in Brazilian Portuguese (pt-BR): 
 - **Prompts**: BAML (BoundaryML) for prompt definitions and structured LLM output
 - **Dev environment**: Nix flake + direnv
 
+### Nix Dev Environment
+
+The project uses a Nix flake (`flake.nix`) for reproducible tooling. Playwright browsers are provided by Nix via `playwright-driver.browsers`, NOT downloaded by npm. When updating `@playwright/test` in `web/package.json`, the npm version **must match** the Playwright version in `flake.lock`'s nixpkgs pin. If they drift apart, browser binaries won't be found and e2e tests will fail. To align them: update `flake.lock` with `nix flake lock --update-input nixpkgs`, check the new Playwright version with `nix eval`, then pin the same version in `package.json`.
+
 ## Commands
 
 ```bash

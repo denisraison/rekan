@@ -27,6 +27,11 @@ func NewClient(apiKey string, sandbox bool) *Client {
 	return &Client{baseURL: base, apiKey: apiKey, http: &http.Client{}}
 }
 
+// NewTestClient creates a client pointing at a custom base URL (e.g. httptest.NewServer).
+func NewTestClient(baseURL, apiKey string) *Client {
+	return &Client{baseURL: baseURL, apiKey: apiKey, http: &http.Client{}}
+}
+
 type Customer struct {
 	ID string `json:"id"`
 }

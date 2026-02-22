@@ -15,6 +15,7 @@ import (
 	"github.com/denisraison/rekan/api/internal/http/handlers"
 	"github.com/denisraison/rekan/api/internal/transcribe"
 	"github.com/denisraison/rekan/api/internal/whatsapp"
+	"github.com/denisraison/rekan/eval"
 	_ "github.com/denisraison/rekan/api/migrations"
 )
 
@@ -70,10 +71,12 @@ func run(getenv func(string) string) error {
 		}
 
 		apphttp.RegisterRoutes(se.Router, handlers.Deps{
-			App:          app,
-			Asaas:        asaasClient,
-			WhatsApp:     waClient,
-			WebhookToken: getenv("ASAAS_WEBHOOK_TOKEN"),
+			App:                 app,
+			Asaas:               asaasClient,
+			WhatsApp:            waClient,
+			WebhookToken:        getenv("ASAAS_WEBHOOK_TOKEN"),
+			Generate:            eval.Generate,
+			GenerateFromMessage: eval.GenerateFromMessage,
 		})
 		return se.Next()
 	})

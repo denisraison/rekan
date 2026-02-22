@@ -17,6 +17,9 @@ type Post struct {
 // GenerateFunc is the signature for content generation functions.
 type GenerateFunc func(ctx context.Context, profile BusinessProfile, roles []Role, previousHooks []string) ([]Post, error)
 
+// GenerateFromMessageFunc is the signature for single-post generation from a WhatsApp message.
+type GenerateFromMessageFunc func(ctx context.Context, profile BusinessProfile, message string, previousHooks []string) (Post, error)
+
 func Generate(ctx context.Context, profile BusinessProfile, roles []Role, previousHooks []string) ([]Post, error) {
 	bamlPosts, err := baml.GenerateContent(ctx, toBamlProfile(profile), toBamlRoles(roles), previousHooks)
 	if err != nil {

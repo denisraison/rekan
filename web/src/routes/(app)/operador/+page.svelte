@@ -489,7 +489,7 @@
     }
   }
 
-  function _selectClient(id: string) {
+  function selectClient(id: string) {
     selectedId = id;
     result = null;
     generateError = "";
@@ -536,11 +536,11 @@
     summaryText = text;
   }
 
-  function _prefillGenerate() {
+  function prefillGenerate() {
     message = latestIncomingText;
   }
 
-  function _mediaUrl(msg: Message): string {
+  function mediaUrl(msg: Message): string {
     return pb.files.getURL(
       { id: msg.id, collectionId: msg.collectionId },
       msg.media,
@@ -563,12 +563,12 @@
     editingId = null;
   }
 
-  function _openNewForm() {
+  function openNewForm() {
     resetForm();
     showForm = true;
   }
 
-  function _openEditForm(biz: Business) {
+  function openEditForm(biz: Business) {
     editingId = biz.id;
     formName = biz.name;
     formType = biz.type;
@@ -591,15 +591,15 @@
     resetForm();
   }
 
-  function _addService() {
+  function addService() {
     formServices = [...formServices, { name: "", price_brl: 0 }];
   }
 
-  function _removeService(i: number) {
+  function removeService(i: number) {
     formServices = formServices.filter((_: Service, idx: number) => idx !== i);
   }
 
-  async function _saveClient() {
+  async function saveClient() {
     if (!formName.trim() || !formType || !formCity.trim() || !formState) {
       formError = "Preencha nome, tipo, cidade e estado.";
       return;
@@ -650,7 +650,7 @@
     }
   }
 
-  async function _generate() {
+  async function generate() {
     if (!selectedId || !message.trim()) return;
     generating = true;
     generateError = "";
@@ -677,7 +677,7 @@
     }
   }
 
-  async function _sendViaWhatsApp() {
+  async function sendViaWhatsApp() {
     if (!selectedId || !result) return;
     sending = true;
     sendError = "";
@@ -700,7 +700,7 @@
     }
   }
 
-  async function _sendNudge() {
+  async function sendNudge() {
     if (!selectedId || !nudgeText.trim()) return;
     sendingNudge = true;
     sendNudgeError = "";
@@ -722,7 +722,7 @@
     }
   }
 
-  async function _sendSummary() {
+  async function sendSummary() {
     if (!selectedId || !summaryText.trim()) return;
     sendingSummary = true;
     sendSummaryError = "";
@@ -744,12 +744,12 @@
     }
   }
 
-  function _prefillSeasonalMessage(template: string) {
+  function prefillSeasonalMessage(template: string) {
     if (!selected) return;
     nudgeText = template.replace("{name}", selected.name.split(" ")[0]);
   }
 
-  async function _copyText(text: string, label: string) {
+  async function copyText(text: string, label: string) {
     await navigator.clipboard.writeText(text);
     copied = label;
     setTimeout(() => {

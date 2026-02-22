@@ -6,7 +6,7 @@
 	let loading = $state(false);
 	let error = $state('');
 
-	async function _loginWithGoogle() {
+	async function loginWithGoogle() {
 		loading = true;
 		error = '';
 		try {
