@@ -232,12 +232,19 @@
   let formCity = $state("");
   let formState = $state("");
   let formPhone = $state("");
+  let formClientName = $state("");
+  let formClientEmail = $state("");
   let formServices: Service[] = $state([{ name: "", price_brl: 0 }]);
   let formTargetAudience = $state("");
   let formBrandVibe = $state("");
   let formQuirks = $state("");
   let formError = $state("");
   let formSaving = $state(false);
+
+  // Invite
+  let inviteUrl = $state("");
+  let inviteCopied = $state(false);
+  let cancelling = $state(false);
 
   // Generation
   let message = $state("");
@@ -555,11 +562,14 @@
     formCity = "";
     formState = "";
     formPhone = "";
+    formClientName = "";
+    formClientEmail = "";
     formServices = [{ name: "", price_brl: 0 }];
     formTargetAudience = "";
     formBrandVibe = "";
     formQuirks = "";
     formError = "";
+    inviteUrl = "";
     editingId = null;
   }
 
@@ -575,6 +585,8 @@
     formCity = biz.city;
     formState = biz.state;
     formPhone = biz.phone || "";
+    formClientName = biz.client_name || "";
+    formClientEmail = biz.client_email || "";
     formServices =
       biz.services.length > 0
         ? [...biz.services]
@@ -583,6 +595,7 @@
     formBrandVibe = biz.brand_vibe || "";
     formQuirks = biz.quirks || "";
     formError = "";
+    inviteUrl = "";
     showForm = true;
   }
 
@@ -599,54 +612,121 @@
     formServices = formServices.filter((_: Service, idx: number) => idx !== i);
   }
 
-  async function saveClient() {
+  function validateForm(requireInviteFields: boolean): string | null {
     if (!formName.trim() || !formType || !formCity.trim() || !formState) {
-      formError = "Preencha nome, tipo, cidade e estado.";
-      return;
+      return "Preencha nome, tipo, cidade e estado.";
+    }
+    if (requireInviteFields) {
+      if (!formClientName.trim()) return "Preencha o nome do cliente para enviar convite.";
+      if (!formClientEmail.trim() || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(formClientEmail.trim())) {
+        return "Preencha um email válido para enviar convite.";
+      }
+    } else {
+      if (formClientName.trim() && !formClientEmail.trim()) return "Preencha o email do cliente.";
+      if (formClientEmail.trim() && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(formClientEmail.trim())) {
+        return "Email inválido.";
+      }
     }
     const validServices = formServices.filter((s: Service) => s.name.trim());
-    if (validServices.length === 0) {
-      formError = "Adicione pelo menos um serviço.";
-      return;
-    }
+    if (validServices.length === 0) return "Adicione pelo menos um serviço.";
+    return null;
+  }
 
-    formError = "";
-    formSaving = true;
-    const data = {
+  function buildFormData() {
+    return {
       user: pb.authStore.record!.id,
       name: formName.trim(),
       type: formType,
       city: formCity.trim(),
       state: formState,
       phone: formPhone.trim(),
-      services: validServices,
+      client_name: formClientName.trim(),
+      client_email: formClientEmail.trim(),
+      services: formServices.filter((s: Service) => s.name.trim()),
       target_audience: formTargetAudience.trim(),
       brand_vibe: formBrandVibe.trim(),
       quirks: formQuirks.trim(),
-      onboarding_step: 3,
     };
+  }
 
+  async function saveBusiness(): Promise<string | null> {
+    const data = buildFormData();
+    if (editingId) {
+      const { user: _, ...updateData } = data;
+      const updated = await pb
+        .collection("businesses")
+        .update<Business>(editingId, updateData);
+      clients = clients.map((c) => (c.id === editingId ? updated : c));
+      return editingId;
+    }
+    const created = await pb
+      .collection("businesses")
+      .create<Business>(data);
+    clients = [...clients, created].sort((a, b) =>
+      a.name.localeCompare(b.name),
+    );
+    selectedId = created.id;
+    return created.id;
+  }
+
+  async function saveClient() {
+    const error = validateForm(false);
+    if (error) { formError = error; return; }
+    formError = "";
+    formSaving = true;
     try {
-      if (editingId) {
-        const { user: _, ...updateData } = data;
-        const updated = await pb
-          .collection("businesses")
-          .update<Business>(editingId, updateData);
-        clients = clients.map((c) => (c.id === editingId ? updated : c));
-      } else {
-        const created = await pb
-          .collection("businesses")
-          .create<Business>(data);
-        clients = [...clients, created].sort((a, b) =>
-          a.name.localeCompare(b.name),
-        );
-        selectedId = created.id;
-      }
+      await saveBusiness();
       closeForm();
     } catch {
       formError = "Erro ao salvar. Tente novamente.";
     } finally {
       formSaving = false;
+    }
+  }
+
+  async function saveAndInvite() {
+    const error = validateForm(true);
+    if (error) { formError = error; return; }
+    formError = "";
+    formSaving = true;
+    try {
+      const bizId = await saveBusiness();
+      editingId = bizId;
+
+      const res = await pb.send(`/api/businesses/${bizId}/invites:send`, {
+        method: "POST",
+      });
+      inviteUrl = res.invite_url || "";
+
+      const refreshed = await pb.collection("businesses").getOne<Business>(bizId!);
+      clients = clients.map((c) => (c.id === bizId ? refreshed : c));
+    } catch {
+      formError = "Erro ao enviar convite. Tente novamente.";
+    } finally {
+      formSaving = false;
+    }
+  }
+
+  async function copyInviteUrl() {
+    await navigator.clipboard.writeText(inviteUrl);
+    inviteCopied = true;
+    setTimeout(() => { inviteCopied = false; }, 2000);
+  }
+
+  async function cancelSubscription() {
+    if (!selected) return;
+    if (!confirm(`Cancelar assinatura de ${selected.name}? Essa ação não pode ser desfeita.`)) return;
+    cancelling = true;
+    try {
+      await pb.send(`/api/businesses/${selected.id}/subscription:cancel`, {
+        method: "POST",
+      });
+      const refreshed = await pb.collection("businesses").getOne<Business>(selected.id);
+      clients = clients.map((c) => (c.id === selected!.id ? refreshed : c));
+    } catch {
+      alert("Erro ao cancelar assinatura. Tente novamente.");
+    } finally {
+      cancelling = false;
     }
   }
 
@@ -894,6 +974,29 @@
                     <span class="font-medium text-sm truncate"
                       >{client.name}</span
                     >
+                    {#if client.invite_status && client.invite_status !== 'draft'}
+                      <span
+                        class="text-xs px-1.5 py-0.5 rounded-full shrink-0"
+                        style={
+                          client.invite_status === 'invited' ? 'background: #FEF3C7; color: #92400E' :
+                          client.invite_status === 'accepted' ? 'background: #DBEAFE; color: #1E40AF' :
+                          client.invite_status === 'active' ? 'background: #DEF7EC; color: #03543F' :
+                          client.invite_status === 'payment_failed' ? 'background: #FEE2E2; color: #991B1B' :
+                          client.invite_status === 'cancelled' ? 'background: #FEE2E2; color: #991B1B; text-decoration: line-through' :
+                          'background: var(--border); color: var(--text-muted)'
+                        }
+                      >
+                        {client.invite_status === 'invited' ? 'convite' :
+                         client.invite_status === 'accepted' ? 'aceito' :
+                         client.invite_status === 'active' ? 'ativo' :
+                         client.invite_status === 'payment_failed' ? 'falhou' :
+                         client.invite_status === 'cancelled' ? 'cancelado' :
+                         client.invite_status}
+                      </span>
+                      {#if client.invite_status === 'accepted' && client.invite_sent_at && (Date.now() - new Date(client.invite_sent_at).getTime()) > 48 * 3600000}
+                        <span class="text-xs shrink-0" title="Aceito há mais de 48h sem pagamento">&#9888;</span>
+                      {/if}
+                    {/if}
                   </div>
                   {#if unread > 0}
                     <span
@@ -948,7 +1051,32 @@
               <div class="flex flex-col gap-4">
                 <label class="flex flex-col gap-1.5">
                   <span class="text-sm font-medium" style="color: var(--text)"
-                    >Nome</span
+                    >Nome do cliente</span
+                  >
+                  <input
+                    bind:value={formClientName}
+                    placeholder="Ex: Ana Silva"
+                    class="px-3 py-2.5 rounded-xl text-sm outline-none border"
+                    style="border-color: var(--border-strong); background: var(--surface); color: var(--text)"
+                  />
+                </label>
+
+                <label class="flex flex-col gap-1.5">
+                  <span class="text-sm font-medium" style="color: var(--text)"
+                    >Email do cliente</span
+                  >
+                  <input
+                    bind:value={formClientEmail}
+                    type="email"
+                    placeholder="ana@email.com"
+                    class="px-3 py-2.5 rounded-xl text-sm outline-none border"
+                    style="border-color: var(--border-strong); background: var(--surface); color: var(--text)"
+                  />
+                </label>
+
+                <label class="flex flex-col gap-1.5">
+                  <span class="text-sm font-medium" style="color: var(--text)"
+                    >Nome do negócio</span
                   >
                   <input
                     bind:value={formName}
@@ -1118,6 +1246,27 @@
                 </label>
               </div>
 
+              {#if inviteUrl}
+                <div class="mt-4 rounded-xl p-4" style="background: var(--sage-pale); border: 1px solid var(--border)">
+                  <p class="text-sm font-medium mb-2" style="color: var(--text)">Convite enviado!</p>
+                  <div class="flex items-center gap-2">
+                    <input
+                      readonly
+                      value={inviteUrl}
+                      class="flex-1 px-3 py-2 rounded-lg text-xs outline-none border"
+                      style="border-color: var(--border-strong); background: var(--surface); color: var(--text)"
+                    />
+                    <button
+                      onclick={copyInviteUrl}
+                      class="px-3 py-2 rounded-lg text-xs font-medium"
+                      style="background: var(--coral); color: #fff"
+                    >
+                      {inviteCopied ? "Copiado!" : "Copiar"}
+                    </button>
+                  </div>
+                </div>
+              {/if}
+
               <div class="flex gap-3 mt-6">
                 <button
                   onclick={closeForm}
@@ -1134,6 +1283,16 @@
                     : '1'}; cursor: {formSaving ? 'not-allowed' : 'pointer'}"
                 >
                   {formSaving ? "Salvando..." : "Salvar"}
+                </button>
+                <button
+                  onclick={saveAndInvite}
+                  disabled={formSaving}
+                  class="px-5 py-2.5 rounded-full text-sm font-medium transition-opacity"
+                  style="background: #25D366; color: #fff; opacity: {formSaving
+                    ? '0.6'
+                    : '1'}; cursor: {formSaving ? 'not-allowed' : 'pointer'}"
+                >
+                  {formSaving ? "Salvando..." : "Salvar e Enviar Convite"}
                 </button>
               </div>
             </div>
@@ -1152,12 +1311,24 @@
                 {selected.type} — {selected.city}/{selected.state}
               </p>
             </div>
-            <button
-              onclick={() => openEditForm(selected!)}
-              class="text-xs px-3 py-1.5 rounded-full border"
-              style="border-color: var(--border-strong); color: var(--text-secondary)"
-              >Editar</button
-            >
+            <div class="flex items-center gap-2">
+              {#if selected.invite_status === 'active'}
+                <button
+                  onclick={cancelSubscription}
+                  disabled={cancelling}
+                  class="text-xs px-3 py-1.5 rounded-full border transition-opacity"
+                  style="border-color: #EF4444; color: #EF4444; opacity: {cancelling ? '0.6' : '1'}"
+                >
+                  {cancelling ? "Cancelando..." : "Cancelar assinatura"}
+                </button>
+              {/if}
+              <button
+                onclick={() => openEditForm(selected!)}
+                class="text-xs px-3 py-1.5 rounded-full border"
+                style="border-color: var(--border-strong); color: var(--text-secondary)"
+                >Editar</button
+              >
+            </div>
           </div>
 
           <!-- Engagement panel (nudge + seasonal) -->

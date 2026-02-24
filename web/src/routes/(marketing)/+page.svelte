@@ -61,6 +61,11 @@
 <svelte:head>
 	<title>Rekan — Conteúdo pro Instagram do seu negócio</title>
 	<meta name="description" content="Legendas, hashtags e stories criados por IA, personalizados pro seu negócio. Feito para micro-empreendedores brasileiros." />
+	<meta property="og:title" content="Rekan — Conteúdo pro Instagram do seu negócio" />
+	<meta property="og:description" content="Legendas, hashtags e stories criados por IA, personalizados pro seu negócio. Feito para micro-empreendedores brasileiros." />
+	<meta property="og:image" content="https://rekan.com.br/og-image.png" />
+	<meta property="og:type" content="website" />
+	<meta property="og:url" content="https://rekan.com.br" />
 </svelte:head>
 
 <!-- Nav -->
@@ -71,7 +76,8 @@
 			<a href="#como-funciona">Como funciona</a>
 			<a href="#exemplos">Exemplos</a>
 			<a href="#preco">Preço</a>
-			<a href="/entrar" class="btn btn-primary btn-sm">Começar</a>
+			<!-- TODO: replace phone number -->
+			<a href="https://wa.me/5500000000000?text=Oi,%20quero%20saber%20mais%20sobre%20o%20Rekan" target="_blank" rel="noopener" class="btn btn-primary btn-sm">Começar</a>
 		</div>
 	</div>
 </nav>
@@ -92,7 +98,8 @@
 			</p>
 			<p class="hero-tags">Padarias · Salões · Studios · Barbearias · Lojas · Academias</p>
 			<div class="hero-cta">
-				<a href="/entrar" class="btn btn-primary">Comece por R$ 19</a>
+				<!-- TODO: replace phone number -->
+				<a href="https://wa.me/5500000000000?text=Oi,%20quero%20saber%20mais%20sobre%20o%20Rekan" target="_blank" rel="noopener" class="btn btn-primary">Comece por R$ 19</a>
 				<a href="#como-funciona" class="btn btn-ghost">Como funciona</a>
 			</div>
 		</div>
@@ -195,16 +202,18 @@
 		<div class="price-card">
 			<div class="price-amount">
 				<span class="price-currency">R$</span>
-				<span class="price-value">69,90</span>
-				<span class="price-period">/mês</span>
+				<span class="price-value">19</span>
+				<span class="price-period">no primeiro mês</span>
 			</div>
+			<p class="price-then">Depois R$ 108,90/mês</p>
 			<ul class="price-list">
 				<li>30 legendas por mês</li>
 				<li>10 textos pra stories</li>
 				<li>Tom personalizado pro seu negócio</li>
 				<li>Sem contrato, cancele quando quiser</li>
 			</ul>
-			<a href="/entrar" class="btn btn-primary btn-block">Começar agora</a>
+			<!-- TODO: replace phone number -->
+			<a href="https://wa.me/5500000000000?text=Oi,%20quero%20saber%20mais%20sobre%20o%20Rekan" target="_blank" rel="noopener" class="btn btn-primary btn-block">Começar agora</a>
 		</div>
 	</div>
 </section>
@@ -213,7 +222,8 @@
 <section class="final-cta">
 	<div class="final-cta-inner">
 		<h2>Bora <em>postar?</em></h2>
-		<a href="/entrar" class="btn btn-white">Comece por R$ 19</a>
+		<!-- TODO: replace phone number -->
+		<a href="https://wa.me/5500000000000?text=Oi,%20quero%20saber%20mais%20sobre%20o%20Rekan" target="_blank" rel="noopener" class="btn btn-white">Comece por R$ 19</a>
 	</div>
 </section>
 
@@ -669,6 +679,11 @@
 		font-size: 0.9rem;
 		font-weight: 400;
 		color: var(--text-muted);
+	}
+	.price-then {
+		font-size: 0.9rem;
+		color: var(--text-secondary);
+		margin-bottom: 36px;
 	}
 	.price-list {
 		list-style: none;

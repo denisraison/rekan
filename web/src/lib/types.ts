@@ -12,6 +12,8 @@ export interface Service {
 	price_brl: number;
 }
 
+export type InviteStatus = 'draft' | 'invited' | 'accepted' | 'active' | 'payment_failed' | 'cancelled';
+
 export interface Business {
 	id: string;
 	user: string;
@@ -26,6 +28,13 @@ export interface Business {
 	quirks: string;
 	phone: string;
 	onboarding_step: number;
+	client_name: string;
+	client_email: string;
+	invite_token: string;
+	invite_status: InviteStatus;
+	invite_sent_at: string;
+	subscription_id: string;
+	terms_accepted_at: string;
 }
 
 export interface GeneratedPost {

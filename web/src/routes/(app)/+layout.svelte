@@ -7,7 +7,7 @@
 
 	onMount(() => {
 		if (!pb.authStore.isValid) {
-			goto('/login');
+			goto('/entrar');
 		}
 	});
 </script>

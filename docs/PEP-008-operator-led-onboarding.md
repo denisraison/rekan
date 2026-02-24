@@ -1,6 +1,6 @@
 # PEP-008: Operator-Led Onboarding
 
-**Status:** In Progress (Wave 1 done, Wave 2 pending)
+**Status:** In Progress (Wave 1 done, Wave 2 in progress)
 **Date:** 2026-02-24
 **Updated:** 2026-02-24
 
@@ -32,7 +32,7 @@ This is a pre-launch change. There is no production data, no existing subscripti
 - Self-serve dashboard (`/dashboard`)
 - Client-facing login page (`/login`)
 - Client-facing onboarding form (`/onboarding`)
-- Google OAuth for clients (keep it for Elenice only)
+- Google OAuth entirely (replaced with email/password for operator login)
 - Trial generation limit logic (clients pay upfront, no free tier)
 - `generations_used` field on users (stop reading/writing, keep the column to avoid a destructive migration)
 - `POST /api/subscriptions` and `GET /api/subscriptions/current` endpoints (subscription created via invite flow now)
@@ -332,9 +332,32 @@ This gives Elenice a cancel button in the operator tool. The Asaas webhook for `
 
 ---
 
-## Wave 2: Frontend (Operator Flow + Invite Pages)
+## Wave 2: Frontend (Operator Flow + Invite Pages) -- IN PROGRESS
 
 Remove self-serve routes, enhance operator client creation with invite flow, add public invite pages. After this wave, the full onboarding cycle works from browser.
+
+**Implemented items:**
+- Deleted `/dashboard`, `/onboarding`, `/login` routes
+- Created `/entrar` with email/password login (replaces Google OAuth)
+- `(app)/+layout.svelte` redirects to `/entrar` when unauthenticated
+- Marketing page CTAs point to WhatsApp (placeholder number, marked TODO)
+- Marketing pricing updated: R$19 first month, then R$108,90/month
+- OG meta tags added to marketing page, `og-image.png` generated
+- Operator form: added `client_name`, `client_email` fields, validation, "Salvar e Enviar Convite" button with invite URL copy
+- Operator sidebar: invite status badges (color-coded by status, 48h warning for accepted)
+- Operator client header: "Cancelar assinatura" button for active clients
+- Created `web/src/lib/cpf-cnpj.ts` (mask + mod-11 validation for CPF/CNPJ)
+- Added `InviteStatus` type and invite fields to `Business` interface
+- Public invite page `/convite/[token]`: T&Cs form, CPF/CNPJ input, status routing
+- Confirmation page `/convite/[token]/confirmacao`: payment polling, timeout fallback
+- Typecheck and production build both pass (0 errors)
+
+**Deviation from plan:** Switched from Google OAuth to email/password auth. Google OAuth auto-creates user records for anyone with a Google account, which conflicts with the operator-only model. New migration (`1740000011_password_auth_only.go`) enables password auth, disables OAuth2, and sets `CreateRule = nil` to block self-registration. Operator accounts are created manually via PocketBase admin. The `/entrar` page uses `authWithPassword` instead of `authWithOAuth2`.
+
+**Remaining:**
+- Replace placeholder WhatsApp phone number (TODO markers in marketing page, invite pages, confirmation page)
+- Playwright tests for invite flow
+- Manual end-to-end testing
 
 ### 2.1 Remove self-serve routes
 
