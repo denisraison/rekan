@@ -24,13 +24,13 @@ test('examples section has 3 phone frames', async ({ page }) => {
 	await expect(phones).toHaveCount(3);
 });
 
-test('pricing shows R$ 69,90', async ({ page }) => {
+test('pricing shows R$ 19', async ({ page }) => {
 	await page.goto('/');
-	await expect(page.locator('#preco')).toContainText('69,90');
+	await expect(page.locator('#preco')).toContainText('19');
 });
 
-test('CTA links to /entrar', async ({ page }) => {
+test('CTA links to WhatsApp', async ({ page }) => {
 	await page.goto('/');
 	const cta = page.locator('.hero-cta a.btn-primary');
-	await expect(cta).toHaveAttribute('href', '/entrar');
+	await expect(cta).toHaveAttribute('href', /wa\.me/);
 });
