@@ -34,8 +34,6 @@ func run(getenv func(string) string) error {
 		Automigrate: true,
 	})
 
-	apphttp.RegisterHooks(app)
-
 	var asaasClient *asaas.Client
 	if key := getenv("ASAAS_API_KEY"); key != "" {
 		asaasClient = asaas.NewClient(key, isDev)
@@ -75,6 +73,7 @@ func run(getenv func(string) string) error {
 			Asaas:               asaasClient,
 			WhatsApp:            waClient,
 			WebhookToken:        getenv("ASAAS_WEBHOOK_TOKEN"),
+			AppURL:              getenv("APP_URL"),
 			Generate:            eval.Generate,
 			GenerateFromMessage: eval.GenerateFromMessage,
 		})

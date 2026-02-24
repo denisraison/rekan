@@ -46,28 +46,29 @@ func AsaasWebhook(deps Deps) func(*core.RequestEvent) error {
 		case "PAYMENT_CONFIRMED":
 			newStatus = "active"
 		case "PAYMENT_OVERDUE":
-			newStatus = "past_due"
+			// No-op: don't change status on overdue
+			return e.JSON(http.StatusOK, map[string]string{"message": "ok"})
 		case "SUBSCRIPTION_DELETED":
 			newStatus = "cancelled"
 		default:
 			return e.JSON(http.StatusOK, map[string]string{"message": "ok"})
 		}
 
-		users, err := e.App.FindAllRecords("users", dbx.HashExp{"subscription_id": subscriptionID})
-		if err != nil || len(users) == 0 {
+		businesses, err := e.App.FindAllRecords("businesses", dbx.HashExp{"subscription_id": subscriptionID})
+		if err != nil || len(businesses) == 0 {
 			return e.JSON(http.StatusOK, map[string]string{"message": "ok"})
 		}
 
-		user := users[0]
-		oldStatus := user.GetString("subscription_status")
-		user.Set("subscription_status", newStatus)
-		if err := e.App.Save(user); err != nil {
+		business := businesses[0]
+		oldStatus := business.GetString("invite_status")
+		business.Set("invite_status", newStatus)
+		if err := e.App.Save(business); err != nil {
 			return e.JSON(http.StatusInternalServerError, map[string]string{"message": "erro interno"})
 		}
 
-		// First payment: upgrade subscription from R$19 to R$69.90
-		if oldStatus == "trial" && newStatus == "active" && deps.Asaas != nil {
-			if err := deps.Asaas.UpdateSubscription(e.Request.Context(), subscriptionID, monthlyPriceBRL); err != nil {
+		// First payment: upgrade subscription from first-month price to monthly price
+		if oldStatus == "accepted" && newStatus == "active" && deps.Asaas != nil {
+			if err := deps.Asaas.UpdateSubscription(e.Request.Context(), subscriptionID, PriceMonthly); err != nil {
 				e.App.Logger().Error("asaas update subscription price", "subscription", subscriptionID, "error", err)
 			}
 		}

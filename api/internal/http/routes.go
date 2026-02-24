@@ -14,9 +14,13 @@ func RegisterRoutes(rtr *router.Router[*core.RequestEvent], deps handlers.Deps) 
 	// Custom method on the business resource (Google API style: :verb suffix)
 	rtr.POST("/api/businesses/{id}/posts:generate", handlers.GeneratePosts(deps)).Bind(auth)
 
-	// Subscription resource
-	rtr.POST("/api/subscriptions", handlers.CreateSubscription(deps)).Bind(auth)
-	rtr.GET("/api/subscriptions/current", handlers.GetSubscription(deps)).Bind(auth)
+	// Invite flow (public, no auth)
+	rtr.GET("/api/invites/{token}", handlers.InviteGet(deps))
+	rtr.POST("/api/invites/{token}/accept", handlers.InviteAccept(deps))
+
+	// Invite management (auth required)
+	rtr.POST("/api/businesses/{id}/invites:send", handlers.InviteSend(deps)).Bind(auth)
+	rtr.POST("/api/businesses/{id}/subscription:cancel", handlers.SubscriptionCancel(deps)).Bind(auth)
 
 	// Operator tool (single-post generation from WhatsApp message)
 	rtr.POST("/api/businesses/{id}/posts:generateFromMessage", handlers.OperatorGenerate(deps)).Bind(auth)

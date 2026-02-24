@@ -46,7 +46,6 @@ func TestOperatorForbidden(t *testing.T) {
 	other := core.NewRecord(users)
 	other.SetEmail("operator-other@rekan.com.br")
 	other.SetPassword(testUserPassword)
-	other.Set("subscription_status", "trial")
 	if err := app.Save(other); err != nil {
 		t.Fatalf("save other user: %v", err)
 	}

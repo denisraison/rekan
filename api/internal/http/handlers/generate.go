@@ -12,9 +12,6 @@ import (
 	"github.com/pocketbase/pocketbase/core"
 )
 
-// trialGenerationLimit is the number of free generations before a subscription is required.
-const trialGenerationLimit = 3
-
 // storedService matches the shape the frontend writes to PocketBase (snake_case).
 type storedService struct {
 	Name     string  `json:"name"`
@@ -32,20 +29,6 @@ func GeneratePosts(deps Deps) func(*core.RequestEvent) error {
 
 		if business.GetString("user") != e.Auth.Id {
 			return e.JSON(http.StatusForbidden, map[string]string{"message": "acesso negado"})
-		}
-
-		status := e.Auth.GetString("subscription_status")
-		generationsUsed := e.Auth.GetInt("generations_used")
-
-		switch {
-		case status == "trial" && generationsUsed >= trialGenerationLimit:
-			return e.JSON(http.StatusPaymentRequired, map[string]string{
-				"message": "período de teste encerrado. Assine para continuar gerando conteúdo.",
-			})
-		case status != "trial" && status != "active":
-			return e.JSON(http.StatusPaymentRequired, map[string]string{
-				"message": "assinatura inativa.",
-			})
 		}
 
 		profile, err := businessToProfile(business)
@@ -118,13 +101,6 @@ func GeneratePosts(deps Deps) func(*core.RequestEvent) error {
 				Role:           roleName,
 				Hook:           hook,
 			})
-		}
-
-		if status == "trial" {
-			e.Auth.Set("generations_used", generationsUsed+1)
-			if err := e.App.Save(e.Auth); err != nil {
-				e.App.Logger().Error("failed to increment generations_used", "error", err)
-			}
 		}
 
 		return e.JSON(http.StatusOK, map[string]any{

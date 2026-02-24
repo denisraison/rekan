@@ -114,11 +114,6 @@ func (c *Client) Download(ctx context.Context, msg whatsmeow.DownloadableMessage
 	return c.wac.Download(ctx, msg)
 }
 
-// IsConnected returns whether the client is currently connected.
-func (c *Client) IsConnected() bool {
-	return c.wac.IsConnected()
-}
-
 func (c *Client) handleQR(ch <-chan whatsmeow.QRChannelItem) {
 	for evt := range ch {
 		c.mu.Lock()

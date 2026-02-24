@@ -12,6 +12,7 @@ type Deps struct {
 	Asaas               *asaas.Client    // nil when ASAAS_API_KEY is not set
 	WhatsApp            *whatsapp.Client // nil when WhatsApp is not connected
 	WebhookToken        string
+	AppURL              string
 	Generate            eval.GenerateFunc
 	GenerateFromMessage eval.GenerateFromMessageFunc
 }

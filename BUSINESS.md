@@ -39,7 +39,7 @@ There's a massive gap in the Brazilian market that nobody is serving well:
 | Tier | Price Range | What You Get |
 |---|---|---|
 | DIY AI tools (GalilAI, Canva, ChatGPT) | R$0 to R$99/month | Self serve. You still do the work. |
-| **Rekan sits here** | **R$69.90/month** | **Done for you via WhatsApp. Zero friction.** |
+| **Rekan sits here** | **R$108.90/month (R$19.90 first month)** | **Done for you via WhatsApp. Zero friction.** |
 | Junior social media manager | R$590 to R$1,500/month | Human creates and posts content for you. |
 | Agency | R$2,000 to R$5,000+/month | Full service marketing. |
 
@@ -112,13 +112,13 @@ Phase 2 (later): The whatsmeow bot automates the intake and response. Elenice on
 
 ## Pricing
 
-**R$69.90/month** with a **R$19 first month** to lower the barrier. This positions Rekan:
+**R$108.90/month** with a **R$19 first month** to lower the barrier. This positions Rekan:
 
 - Above DIY tools (justifiable because we do the work for you)
 - Far below human social media managers (10x cheaper)
 - Affordable for any MEI
 
-At R$69.90/month, Elenice needs ~29 clients to hit R$2,000/month net (after overhead). Each client requires roughly 15 to 20 minutes per month of Elenice's time once onboarded (Phase 1 will be more since she's doing manual processing).
+At R$108.90/month, Elenice needs ~21 clients to hit R$2,000/month net (after overhead). Each client requires roughly 15 to 20 minutes per month of Elenice's time once onboarded (Phase 1 will be more since she's doing manual processing).
 
 The R$19 first month replaces the 7-day free trial. Rationale: 7 days is too short to show consistency results, "free" signals low quality in Brazil, R$19 filters for serious prospects, and 30 days allows 12+ posts so the client feels the difference.
 
@@ -223,7 +223,7 @@ This is the step by step plan for getting started. No automation needed. Elenice
 >
 > Você manda uma mensagem sobre o que fez hoje no trabalho. A gente devolve o post pronto: legenda, hashtags, dica de foto e ideia de reels. Tudo pelo WhatsApp.
 >
-> Plano mensal: R$69,90/mês
+> Plano mensal: R$108,90/mês
 > Primeiro mês por R$19
 >
 > Quer experimentar? Me manda uma mensagem!
@@ -245,7 +245,9 @@ How to find them:
 
 **The pitch (WhatsApp or in person):**
 
-> "Oi [nome], tudo bem? Eu tô começando um serviço de conteúdo pro Instagram focado em [confeiteiras/etc]. Funciona assim: você me manda uma foto ou conta o que fez hoje, e eu devolvo o post prontinho, com legenda, hashtags, e até ideia de reels. Tudo pelo WhatsApp. Quero te oferecer uma semana grátis pra você testar. Sem compromisso nenhum. Quer experimentar?"
+See `docs/guia-de-vendas.md` for the full conversation script in pt-BR. The short version:
+
+> "Oi [nome], tudo bem? Eu vi seu trabalho no Instagram e achei lindo. Você consegue postar com a frequência que gostaria, ou é daquelas coisas que sempre fica pra depois? [...] O primeiro mês custa R$19,90 pra você testar sem compromisso. Quer experimentar?"
 
 **During the trial:**
 1. Client sends a message about their work (photo, voice note, or text)
@@ -254,15 +256,17 @@ How to find them:
 4. Sends back the complete content package via WhatsApp
 5. Deliver 2 to 3 posts during the 7 day trial
 
-**End of trial conversion:**
+**Renewal (day 20 of first month):**
 
-> "E aí [nome], gostou dos posts essa semana? Vi que o post de [X] teve bastante engajamento. Se quiser continuar, o plano é R$XX por mês. Posso te mandar conteúdo toda semana."
+> "Oi [nome]! Esse mês você postou [X] vezes no Instagram. Mês que vem o plano renova por R$108,90. Isso dá menos de R$4 por dia pra nunca mais ficar sem post. Quer continuar?"
+
+See `docs/guia-de-vendas.md` for the full script including objection handling, check-ins, and referral asks.
 
 ### Month 2 to 3: First Paying Clients
 
 **Goal: Convert 5 to 10 trial clients into paying subscribers.**
 
-**The R$19 first month** handles introductory pricing automatically. Focus on converting these into R$69.90/month subscribers.
+**The R$19 first month** handles introductory pricing automatically. Focus on converting these into R$108.90/month subscribers.
 
 **Establish a weekly rhythm:**
 - Monday: Receive messages from clients about their week ahead / recent work
@@ -297,9 +301,9 @@ How to find them:
 |---|---|---|
 | WhatsApp Business set up, samples ready | Week 2 | Done |
 | First 5 free trials running | Week 4 | 5 businesses trying the service |
-| First paying clients | Month 2 | 3 to 5 paying R$49 to R$79/month |
-| Sustainable income | Month 4 to 6 | 15 to 25 clients, R$1,500+/month |
-| Target income reached | Month 6 to 9 | 25 to 40 clients, R$2,000+/month net |
+| First paying clients | Month 2 | 3 to 5 paying R$108.90/month |
+| Sustainable income | Month 4 to 6 | 15 to 20 clients, R$1,500+/month |
+| Target income reached | Month 6 to 9 | 20 to 25 clients, R$2,000+/month net |
 
 ---
 

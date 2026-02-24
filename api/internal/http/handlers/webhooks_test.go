@@ -1,54 +1,59 @@
 package handlers_test
 
 import (
+	"encoding/json"
 	"fmt"
 	"net/http"
+	"net/http/httptest"
 	"strings"
 	"testing"
 
-	"github.com/pocketbase/pocketbase/core"
-	"github.com/pocketbase/pocketbase/tests"
-
+	"github.com/denisraison/rekan/api/internal/asaas"
 	apphttp "github.com/denisraison/rekan/api/internal/http"
 	"github.com/denisraison/rekan/api/internal/http/handlers"
+	"github.com/pocketbase/pocketbase/core"
+	"github.com/pocketbase/pocketbase/tests"
 )
 
 const testWebhookToken = "test-webhook-token"
 const testSubscriptionID = "sub_test_webhook_123"
 
-// newWebhookApp creates a test PocketBase app with the users collection extended
-// to include our subscription fields, and a pre-created test user.
+// newWebhookApp creates a test PocketBase app with a businesses collection
+// (including invite fields) and a pre-created test business with subscription_id.
 func newWebhookApp(t testing.TB) *tests.TestApp {
 	app, err := tests.NewTestApp()
 	if err != nil {
 		t.Fatalf("new test app: %v", err)
 	}
 
-	users, err := app.FindCollectionByNameOrId("users")
-	if err != nil {
-		t.Fatalf("find users collection: %v", err)
-	}
-	users.Fields.Add(
+	businesses := core.NewBaseCollection("businesses")
+	businesses.Fields.Add(
+		&core.TextField{Name: "name"},
+		&core.TextField{Name: "user"},
+		&core.TextField{Name: "phone"},
+		&core.TextField{Name: "client_name"},
+		&core.TextField{Name: "client_email"},
+		&core.TextField{Name: "invite_token"},
 		&core.SelectField{
-			Name:      "subscription_status",
-			Values:    []string{"trial", "active", "past_due", "cancelled"},
+			Name:      "invite_status",
+			Values:    []string{"draft", "invited", "accepted", "active", "payment_failed", "cancelled"},
 			MaxSelect: 1,
 		},
+		&core.DateField{Name: "invite_sent_at"},
 		&core.TextField{Name: "subscription_id"},
-		&core.NumberField{Name: "generations_used"},
+		&core.DateField{Name: "terms_accepted_at"},
 	)
-	if err := app.Save(users); err != nil {
-		t.Fatalf("save users collection: %v", err)
+	if err := app.Save(businesses); err != nil {
+		t.Fatalf("save businesses collection: %v", err)
 	}
 
-	// Create a test user with a known subscription_id.
-	testUser := core.NewRecord(users)
-	testUser.SetEmail("webhook-test@rekan.com.br")
-	testUser.SetPassword("testpassword123!")
-	testUser.Set("subscription_id", testSubscriptionID)
-	testUser.Set("subscription_status", "trial")
-	if err := app.Save(testUser); err != nil {
-		t.Fatalf("save test user: %v", err)
+	// Create a test business with a known subscription_id
+	biz := core.NewRecord(businesses)
+	biz.Set("name", "Webhook Test Biz")
+	biz.Set("subscription_id", testSubscriptionID)
+	biz.Set("invite_status", "accepted")
+	if err := app.Save(biz); err != nil {
+		t.Fatalf("save test business: %v", err)
 	}
 
 	return app
@@ -63,23 +68,23 @@ func webhookBody(event, subscriptionID string, viaSubscription bool) string {
 	return fmt.Sprintf(`{"event":%q,"payment":{"subscription":%q}}`, event, subscriptionID)
 }
 
-// assertUserStatus finds the test user by subscription_id and verifies their status.
-func assertUserStatus(t testing.TB, app *tests.TestApp, want string) {
+// assertBusinessStatus finds the test business by subscription_id and verifies its invite_status.
+func assertBusinessStatus(t testing.TB, app *tests.TestApp, want string) {
 	t.Helper()
-	records, err := app.FindAllRecords("users", nil)
+	records, err := app.FindAllRecords("businesses", nil)
 	if err != nil {
-		t.Fatalf("find users: %v", err)
+		t.Fatalf("find businesses: %v", err)
 	}
 	for _, r := range records {
 		if r.GetString("subscription_id") == testSubscriptionID {
-			got := r.GetString("subscription_status")
+			got := r.GetString("invite_status")
 			if got != want {
-				t.Errorf("subscription_status: got %q, want %q", got, want)
+				t.Errorf("invite_status: got %q, want %q", got, want)
 			}
 			return
 		}
 	}
-	t.Errorf("test user with subscription_id %q not found", testSubscriptionID)
+	t.Errorf("test business with subscription_id %q not found", testSubscriptionID)
 }
 
 func registerRoutes(app *tests.TestApp, e *core.ServeEvent) {
@@ -111,7 +116,6 @@ func TestWebhookInvalidToken(t *testing.T) {
 }
 
 func TestWebhookNoTokenValidation(t *testing.T) {
-	// When WebhookToken is empty string, the handler skips validation entirely.
 	s := &tests.ApiScenario{
 		Method: http.MethodPost,
 		URL:    "/api/webhooks/asaas",
@@ -173,7 +177,7 @@ func TestWebhookPaymentConfirmed(t *testing.T) {
 			registerRoutes(a, e)
 		},
 		AfterTestFunc: func(t testing.TB, _ *tests.TestApp, _ *http.Response) {
-			assertUserStatus(t, app, "active")
+			assertBusinessStatus(t, app, "active")
 		},
 		DisableTestAppCleanup: true,
 		ExpectedStatus:        http.StatusOK,
@@ -203,7 +207,8 @@ func TestWebhookPaymentOverdue(t *testing.T) {
 			registerRoutes(a, e)
 		},
 		AfterTestFunc: func(t testing.TB, _ *tests.TestApp, _ *http.Response) {
-			assertUserStatus(t, app, "past_due")
+			// PAYMENT_OVERDUE is now a no-op, status should stay as "accepted"
+			assertBusinessStatus(t, app, "accepted")
 		},
 		DisableTestAppCleanup: true,
 		ExpectedStatus:        http.StatusOK,
@@ -220,8 +225,7 @@ func TestWebhookSubscriptionDeleted(t *testing.T) {
 	s := &tests.ApiScenario{
 		Method: http.MethodPost,
 		URL:    "/api/webhooks/asaas",
-		// SUBSCRIPTION_DELETED uses the "subscription" key, not "payment"
-		Body: strings.NewReader(webhookBody("SUBSCRIPTION_DELETED", testSubscriptionID, true)),
+		Body:   strings.NewReader(webhookBody("SUBSCRIPTION_DELETED", testSubscriptionID, true)),
 		Headers: map[string]string{
 			"Content-Type":       "application/json",
 			"asaas-access-token": testWebhookToken,
@@ -234,7 +238,7 @@ func TestWebhookSubscriptionDeleted(t *testing.T) {
 			registerRoutes(a, e)
 		},
 		AfterTestFunc: func(t testing.TB, _ *tests.TestApp, _ *http.Response) {
-			assertUserStatus(t, app, "cancelled")
+			assertBusinessStatus(t, app, "cancelled")
 		},
 		DisableTestAppCleanup: true,
 		ExpectedStatus:        http.StatusOK,
@@ -265,4 +269,58 @@ func TestWebhookUnknownSubscriptionID(t *testing.T) {
 		ExpectedContent: []string{`"message":"ok"`},
 	}
 	s.Test(t)
+}
+
+func TestWebhookFirstPaymentUpgrade(t *testing.T) {
+	var updatedPath string
+	var updatedValue float64
+	mockAsaas := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if r.Method == http.MethodPut && strings.HasPrefix(r.URL.Path, "/subscriptions/") {
+			updatedPath = r.URL.Path
+			var body map[string]float64
+			json.NewDecoder(r.Body).Decode(&body)
+			updatedValue = body["value"]
+		}
+		w.Header().Set("Content-Type", "application/json")
+		json.NewEncoder(w).Encode(map[string]string{"id": testSubscriptionID})
+	}))
+	defer mockAsaas.Close()
+
+	var app *tests.TestApp
+	s := &tests.ApiScenario{
+		Method: http.MethodPost,
+		URL:    "/api/webhooks/asaas",
+		Body:   strings.NewReader(webhookBody("PAYMENT_CONFIRMED", testSubscriptionID, false)),
+		Headers: map[string]string{
+			"Content-Type":       "application/json",
+			"asaas-access-token": testWebhookToken,
+		},
+		TestAppFactory: func(tb testing.TB) *tests.TestApp {
+			app = newWebhookApp(tb)
+			return app
+		},
+		BeforeTestFunc: func(t testing.TB, a *tests.TestApp, e *core.ServeEvent) {
+			apphttp.RegisterRoutes(e.Router, handlers.Deps{
+				App:          a,
+				WebhookToken: testWebhookToken,
+				Asaas:        asaas.NewTestClient(mockAsaas.URL, "test-key"),
+			})
+		},
+		AfterTestFunc: func(t testing.TB, _ *tests.TestApp, _ *http.Response) {
+			assertBusinessStatus(t, app, "active")
+			if updatedPath != "/subscriptions/"+testSubscriptionID {
+				t.Errorf("expected PUT to /subscriptions/%s, got %s", testSubscriptionID, updatedPath)
+			}
+			if updatedValue != 108.90 {
+				t.Errorf("expected updated value 108.90, got %f", updatedValue)
+			}
+		},
+		DisableTestAppCleanup: true,
+		ExpectedStatus:        http.StatusOK,
+		ExpectedContent:       []string{`"message":"ok"`},
+	}
+	s.Test(t)
+	if app != nil {
+		app.Cleanup()
+	}
 }

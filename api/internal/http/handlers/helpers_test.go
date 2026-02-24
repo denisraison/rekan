@@ -37,31 +37,13 @@ func stubGenerateFromMessage(_ context.Context, _ eval.BusinessProfile, _ string
 	}, nil
 }
 
-// newHandlerApp creates a test PocketBase app with users (subscription fields),
-// businesses, and posts collections, plus a test user and business.
+// newHandlerApp creates a test PocketBase app with users,
+// businesses (including invite fields), and posts collections, plus a test user and business.
 func newHandlerApp(t testing.TB) (*tests.TestApp, string, string) {
 	t.Helper()
 	app, err := tests.NewTestApp()
 	if err != nil {
 		t.Fatalf("new test app: %v", err)
-	}
-
-	// Extend users collection with subscription fields
-	users, err := app.FindCollectionByNameOrId("users")
-	if err != nil {
-		t.Fatalf("find users collection: %v", err)
-	}
-	users.Fields.Add(
-		&core.SelectField{
-			Name:      "subscription_status",
-			Values:    []string{"trial", "active", "past_due", "cancelled"},
-			MaxSelect: 1,
-		},
-		&core.TextField{Name: "subscription_id"},
-		&core.NumberField{Name: "generations_used"},
-	)
-	if err := app.Save(users); err != nil {
-		t.Fatalf("save users collection: %v", err)
 	}
 
 	// Create businesses collection
@@ -75,6 +57,18 @@ func newHandlerApp(t testing.TB) (*tests.TestApp, string, string) {
 		&core.TextField{Name: "quirks"},
 		&core.JSONField{Name: "services"},
 		&core.TextField{Name: "user"},
+		&core.TextField{Name: "phone"},
+		&core.TextField{Name: "client_name"},
+		&core.TextField{Name: "client_email"},
+		&core.TextField{Name: "invite_token"},
+		&core.SelectField{
+			Name:      "invite_status",
+			Values:    []string{"draft", "invited", "accepted", "active", "payment_failed", "cancelled"},
+			MaxSelect: 1,
+		},
+		&core.DateField{Name: "invite_sent_at"},
+		&core.TextField{Name: "subscription_id"},
+		&core.DateField{Name: "terms_accepted_at"},
 	)
 	if err := app.Save(businesses); err != nil {
 		t.Fatalf("save businesses collection: %v", err)
@@ -99,11 +93,13 @@ func newHandlerApp(t testing.TB) (*tests.TestApp, string, string) {
 	}
 
 	// Create test user
+	users, err := app.FindCollectionByNameOrId("users")
+	if err != nil {
+		t.Fatalf("find users collection: %v", err)
+	}
 	testUser := core.NewRecord(users)
 	testUser.SetEmail(testUserEmail)
 	testUser.SetPassword(testUserPassword)
-	testUser.Set("subscription_status", "trial")
-	testUser.Set("generations_used", 0)
 	if err := app.Save(testUser); err != nil {
 		t.Fatalf("save test user: %v", err)
 	}
