@@ -39,7 +39,7 @@ There's a massive gap in the Brazilian market that nobody is serving well:
 | Tier | Price Range | What You Get |
 |---|---|---|
 | DIY AI tools (GalilAI, Canva, ChatGPT) | R$0 to R$99/month | Self serve. You still do the work. |
-| **Rekan sits here** | **R$108.90/month (R$19.90 first month)** | **Done for you via WhatsApp. Zero friction.** |
+| **Rekan sits here** | **R$69.90 to R$249.90/month** | **Done for you via WhatsApp. Zero friction. 30-day guarantee.** |
 | Junior social media manager | R$590 to R$1,500/month | Human creates and posts content for you. |
 | Agency | R$2,000 to R$5,000+/month | Full service marketing. |
 
@@ -112,15 +112,26 @@ Phase 2 (later): The whatsmeow bot automates the intake and response. Elenice on
 
 ## Pricing
 
-**R$108.90/month** with a **R$19 first month** to lower the barrier. This positions Rekan:
+Three tiers with a 30-day money-back guarantee. Full pricing strategy in `docs/PEP-010-pricing-strategy.md`.
+
+| Plano | Preço/mês | O que inclui |
+|---|---|---|
+| Basico | R$69,90 | 8 posts/mês, legendas + hashtags |
+| **Parceiro** | **~~R$149,90~~ R$108,90** (preço de lançamento) | 12 posts/mês, legendas + hashtags + direção de foto/vídeo + roteiros de reels + melhor horário |
+| Profissional | R$249,90 | 20 posts/mês, tudo do Parceiro + chamada mensal + calendário de stories + resposta prioritária |
+
+This positions Rekan:
 
 - Above DIY tools (justifiable because we do the work for you)
 - Far below human social media managers (10x cheaper)
 - Affordable for any MEI
+- Three tiers so R$108.90 feels like the obvious middle choice, not an isolated number
 
-At R$108.90/month, Elenice needs ~21 clients to hit R$2,000/month net (after overhead). Each client requires roughly 15 to 20 minutes per month of Elenice's time once onboarded (Phase 1 will be more since she's doing manual processing).
+The 30-day money-back guarantee replaces the R$19.90 first month. Charge full price from day 1, refund via Pix if the client isn't satisfied within 30 days. This avoids the 5.5x price shock at month 2 (R$19.90 → R$108.90) and collects 5.5x more cash on day 1. Elenice's personal WhatsApp relationship provides the trust; the guarantee removes the remaining risk.
 
-The R$19 first month replaces the 7-day free trial. Rationale: 7 days is too short to show consistency results, "free" signals low quality in Brazil, R$19 filters for serious prospects, and 30 days allows 12+ posts so the client feels the difference.
+At R$108.90/month (Parceiro), Elenice needs ~21 clients to hit R$2,000/month net (after overhead). With a mix of tiers (some Profissional at R$249.90), the number drops. Each client requires roughly 15 to 20 minutes per month of Elenice's time once onboarded.
+
+Commitment plans (trimestral/semestral) are introduced after Wave 1 validation. See PEP-010 Wave 2.
 
 ### Monthly Cost Structure
 
@@ -173,7 +184,7 @@ The combination of human relationship + AI speed + content direction delivered t
 
 The tech works. The market exists. But finding and converting those first 20 to 30 clients requires Elenice to consistently prospect. If she gets discouraged after 5 "no"s, the business stalls. Denis needs to be the support system here.
 
-**Mitigation:** Start with businesses Elenice already knows. Use the R$19 first month to reduce risk for new clients.
+**Mitigation:** Start with businesses Elenice already knows. The 30-day money-back guarantee reduces risk for new clients.
 
 ### Proving ROI
 
@@ -217,16 +228,7 @@ This is the step by step plan for getting started. No automation needed. Elenice
 
 **Set up the Rekan WhatsApp Business number.** This is the business line, separate from personal. Use WhatsApp Business app (free). Set up the profile with Rekan logo, description, and business hours.
 
-**Create the "cardápio" (menu of services).** A simple WhatsApp message she can forward to prospects:
-
-> *Rekan: Seu parceiro de conteúdo no Instagram*
->
-> Você manda uma mensagem sobre o que fez hoje no trabalho. A gente devolve o post pronto: legenda, hashtags, dica de foto e ideia de reels. Tudo pelo WhatsApp.
->
-> Plano mensal: R$108,90/mês
-> Primeiro mês por R$19
->
-> Quer experimentar? Me manda uma mensagem!
+**Create the "cardápio" (menu of services).** Three WhatsApp messages she can forward to prospects. Full text in `docs/guia-de-vendas.md` under "Cardápio (mensagem pro WhatsApp)". Summary: anchor against R$590/month social media managers, three tiers (Básico R$69,90 / Parceiro R$108,90 / Profissional R$249,90), 30-day money-back guarantee, soft close.
 
 **Choose the starting niche.** Elenice picks the vertical she knows best and feels most comfortable selling to.
 
@@ -234,7 +236,7 @@ This is the step by step plan for getting started. No automation needed. Elenice
 
 ### Week 2 to 4: First Clients (Free Trials)
 
-**Goal: Get 5 businesses to try the R$19 first month.**
+**Goal: Get 5 businesses to sign up with the 30-day money-back guarantee.**
 
 How to find them:
 - Businesses Elenice already knows personally
@@ -247,26 +249,26 @@ How to find them:
 
 See `docs/guia-de-vendas.md` for the full conversation script in pt-BR. The short version:
 
-> "Oi [nome], tudo bem? Eu vi seu trabalho no Instagram e achei lindo. Você consegue postar com a frequência que gostaria, ou é daquelas coisas que sempre fica pra depois? [...] O primeiro mês custa R$19,90 pra você testar sem compromisso. Quer experimentar?"
+> "Oi [nome], tudo bem? Eu vi seu trabalho no Instagram e achei lindo. Você consegue postar com a frequência que gostaria, ou é daquelas coisas que sempre fica pra depois? [...] O Parceiro custa R$108,90 por mês, menos de R$4 por dia. E se em 30 dias você não sentir a diferença, devolvo tudo pelo Pix. Quer experimentar?"
 
 **During the trial:**
 1. Client sends a message about their work (photo, voice note, or text)
 2. Elenice runs it through the AI pipeline
 3. Elenice reviews the output, adjusts if needed
 4. Sends back the complete content package via WhatsApp
-5. Deliver 2 to 3 posts during the 7 day trial
+5. Deliver 2 to 3 posts during the first week
 
-**Renewal (day 20 of first month):**
+**Check-in (day 20 of first month):**
 
-> "Oi [nome]! Esse mês você postou [X] vezes no Instagram. Mês que vem o plano renova por R$108,90. Isso dá menos de R$4 por dia pra nunca mais ficar sem post. Quer continuar?"
+> "Oi [nome]! Esse mês você postou [X] vezes no Instagram. Olha como seu perfil tá ficando consistente. Sabia que no plano trimestral o preço cai pra R$99,90/mês? Se quiser garantir, é só me falar."
 
 See `docs/guia-de-vendas.md` for the full script including objection handling, check-ins, and referral asks.
 
-### Month 2 to 3: First Paying Clients
+### Month 2 to 3: Growing the Client Base
 
-**Goal: Convert 5 to 10 trial clients into paying subscribers.**
+**Goal: Reach 10 to 15 paying clients.**
 
-**The R$19 first month** handles introductory pricing automatically. Focus on converting these into R$108.90/month subscribers.
+All clients are paying full price from day 1 (with 30-day money-back guarantee). Focus on retaining month-1 clients and adding new ones.
 
 **Establish a weekly rhythm:**
 - Monday: Receive messages from clients about their week ahead / recent work
@@ -285,7 +287,7 @@ See `docs/guia-de-vendas.md` for the full script including objection handling, c
 
 **Continue prospecting.** Never stop. Even with 10 clients, keep the pipeline active because churn will happen.
 
-**Ask for referrals.** "Você conhece alguma [confeiteira/cabeleireira] que também precisa de ajuda com Instagram? Se indicar alguém, dou 1 semana grátis pra vocês duas."
+**Ask for referrals.** "Você conhece alguma [confeiteira/cabeleireira] que também precisa de ajuda com Instagram? Se indicar alguém e ela assinar, você ganha 1 mês grátis."
 
 **Increase prices gradually** as demand grows. First clients at introductory price, new clients at full price.
 

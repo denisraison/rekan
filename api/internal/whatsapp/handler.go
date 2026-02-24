@@ -42,6 +42,9 @@ func handleMessage(deps HandlerDeps, evt *events.Message) {
 		return
 	}
 
+	ctx, cancel := context.WithTimeout(context.Background(), 60*time.Second)
+	defer cancel()
+
 	phone := evt.Info.Sender.User // phone number without @s.whatsapp.net
 	waMessageID := string(evt.Info.ID)
 	waTimestamp := evt.Info.Timestamp
@@ -58,13 +61,13 @@ func handleMessage(deps HandlerDeps, evt *events.Message) {
 		content = msg.GetExtendedTextMessage().GetText()
 	case msg.GetAudioMessage() != nil:
 		msgType = "audio"
-		content = transcribeAudio(deps, evt)
+		content = transcribeAudio(ctx, deps, evt)
 	case msg.GetImageMessage() != nil:
 		msgType = "image"
 		if msg.GetImageMessage().GetCaption() != "" {
 			content = msg.GetImageMessage().GetCaption()
 		}
-		mediaFile = downloadImage(deps, evt)
+		mediaFile = downloadImage(ctx, deps, evt)
 	default:
 		return
 	}
@@ -108,7 +111,7 @@ func handleMessage(deps HandlerDeps, evt *events.Message) {
 	}
 }
 
-func transcribeAudio(deps HandlerDeps, evt *events.Message) string {
+func transcribeAudio(ctx context.Context, deps HandlerDeps, evt *events.Message) string {
 	if deps.Transcribe == nil {
 		log.Printf("whatsapp: audio received but no transcription client configured")
 		return ""
@@ -119,13 +122,13 @@ func transcribeAudio(deps HandlerDeps, evt *events.Message) string {
 		return ""
 	}
 
-	data, err := deps.Client.Download(context.Background(), audio)
+	data, err := deps.Client.Download(ctx, audio)
 	if err != nil {
 		log.Printf("whatsapp: failed to download audio: %v", err)
 		return ""
 	}
 
-	text, err := deps.Transcribe.Transcribe(data)
+	text, err := deps.Transcribe.Transcribe(ctx, data)
 	if err != nil {
 		log.Printf("whatsapp: transcription failed: %v", err)
 		return ""
@@ -134,13 +137,13 @@ func transcribeAudio(deps HandlerDeps, evt *events.Message) string {
 	return text
 }
 
-func downloadImage(deps HandlerDeps, evt *events.Message) *filesystem.File {
+func downloadImage(ctx context.Context, deps HandlerDeps, evt *events.Message) *filesystem.File {
 	img := evt.Message.GetImageMessage()
 	if img == nil {
 		return nil
 	}
 
-	data, err := deps.Client.Download(context.Background(), img)
+	data, err := deps.Client.Download(ctx, img)
 	if err != nil {
 		log.Printf("whatsapp: failed to download image: %v", err)
 		return nil

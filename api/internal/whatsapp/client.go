@@ -33,7 +33,7 @@ type Status struct {
 // New creates a whatsmeow client backed by a SQLite session store.
 // The client is not connected yet; call Connect to start.
 func New(ctx context.Context, dbPath string) (*Client, error) {
-	dsn := fmt.Sprintf("file:%s?_foreign_keys=on&_pragma=journal_mode(WAL)", dbPath)
+	dsn := fmt.Sprintf("file:%s?_pragma=foreign_keys(1)&_pragma=journal_mode(WAL)", dbPath)
 	container, err := sqlstore.New(ctx, "sqlite", dsn, nil)
 	if err != nil {
 		return nil, fmt.Errorf("whatsapp store: %w", err)

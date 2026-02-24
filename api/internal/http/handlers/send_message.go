@@ -11,6 +11,7 @@ import (
 	"go.mau.fi/whatsmeow/proto/waE2E"
 	"go.mau.fi/whatsmeow/types"
 
+	"github.com/denisraison/rekan/api/internal/postingtime"
 	"github.com/pocketbase/pocketbase/core"
 )
 
@@ -114,6 +115,13 @@ func SendMessage(deps Deps) func(*core.RequestEvent) error {
 				}
 			}
 		}
+
+		// Send posting time tip
+		time.Sleep(time.Duration(500+rand.IntN(1000)) * time.Millisecond)
+		tipText := postingtime.Tip(business.GetString("type"))
+		deps.WhatsApp.SendMessage(ctx, jid, &waE2E.Message{
+			Conversation: &tipText,
+		})
 
 		// Clear typing indicator
 		deps.WhatsApp.SendChatPresence(ctx, jid, types.ChatPresencePaused, "")

@@ -20,12 +20,13 @@ import (
 )
 
 func main() {
-	if err := run(os.Getenv); err != nil {
+	ctx := context.Background()
+	if err := run(ctx, os.Getenv); err != nil {
 		log.Fatal(err)
 	}
 }
 
-func run(getenv func(string) string) error {
+func run(ctx context.Context, getenv func(string) string) error {
 	app := pocketbase.New()
 	isDev := getenv("DEV_MODE") == "true"
 
@@ -39,6 +40,8 @@ func run(getenv func(string) string) error {
 		asaasClient = asaas.NewClient(key, isDev)
 	}
 
+	ctx, cancel := context.WithCancel(ctx)
+
 	// WhatsApp client (optional, skipped if no data dir available)
 	var waClient *whatsapp.Client
 	app.OnServe().BindFunc(func(se *core.ServeEvent) error {
@@ -48,7 +51,7 @@ func run(getenv func(string) string) error {
 
 		// Start WhatsApp client, store session alongside PocketBase data
 		dbPath := filepath.Join(app.DataDir(), "whatsapp.db")
-		wac, err := whatsapp.New(context.Background(), dbPath)
+		wac, err := whatsapp.New(ctx, dbPath)
 		if err != nil {
 			log.Printf("warning: whatsapp client failed to init: %v", err)
 		} else {
@@ -61,7 +64,7 @@ func run(getenv func(string) string) error {
 				App:        app,
 				Transcribe: whisperClient,
 			})
-			if err := wac.Connect(context.Background()); err != nil {
+			if err := wac.Connect(ctx); err != nil {
 				log.Printf("warning: whatsapp connect failed: %v", err)
 			} else {
 				waClient = wac
@@ -81,6 +84,7 @@ func run(getenv func(string) string) error {
 	})
 
 	app.OnTerminate().BindFunc(func(te *core.TerminateEvent) error {
+		cancel()
 		if waClient != nil {
 			waClient.Disconnect()
 		}

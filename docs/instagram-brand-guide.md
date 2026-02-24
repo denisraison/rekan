@@ -12,7 +12,7 @@ Decisions made during the initial brand and content strategy session (Feb 2026).
   rekan | seu parceiro de conteúdo
   Sem tempo pra pensar em legenda?
   Chama no WhatsApp, manda o que fez hoje.
-  Primeiro mês R$19,90 👇
+  A partir de R$69,90/mês 👇
   ```
 
 ## Positioning
@@ -70,11 +70,15 @@ GRAPHIC    RAW        GRAPHIC
 
 ## Pricing in Content
 
-- First month: R$19,90 (the hook, always lead with this)
-- Regular: R$108,90/mês
-- Always mention "sem contrato" or "cancela quando quiser"
-- Frame the price in MEI terms: "menos que um lanche no iFood", "menos que um almoço executivo"
+Three tiers: Basico (R$69,90), Parceiro (R$108,90, founder discount from R$149,90), Profissional (R$249,90).
+
+- Lead with "a partir de R$69,90" or "Parceiro por R$108,90/mês"
+- Always mention "garantia de 30 dias" and "sem contrato"
+- Anchor against social media managers: "10x mais barato que um social media"
+- Frame in daily terms: "menos de R$4 por dia"
+- Frame in MEI terms: "menos que um lanche no iFood", "menos que um almoço executivo"
 - Never say "free trial" (there isn't one, and "free" signals low quality in Brazil)
+- The 30-day money-back guarantee is the trust mechanism, not a discounted first month
 
 ## Content Pillars
 
@@ -101,8 +105,8 @@ GRAPHIC    RAW        GRAPHIC
 Numbers that work for MEIs (concrete, felt, need no dashboard):
 - Output: "2 posts por semana sem voce pensar em nada"
 - Time: "Em 2 minutos voce tem o post pronto"
-- Price: "R$19,90 no primeiro mes", "menos que um almoco executivo por semana"
-- Anchor: "10x mais barato que um social media"
+- Price: "R$108,90/mes", "menos de R$4 por dia", "menos que um almoco executivo por semana"
+- Anchor: "10x mais barato que um social media", "garantia de 30 dias"
 
 Numbers that do NOT work (require a baseline, feel like marketing jargon):
 - "Aumente seu engajamento em 40%"

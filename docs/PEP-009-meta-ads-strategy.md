@@ -5,7 +5,7 @@
 
 ## Context
 
-Rekan is a boutique content partner for Brazilian MEIs, delivered via WhatsApp at R$108.90/month (R$19.90 first month). Organic growth through Elenice's network will get the first 5-10 clients, but paid acquisition through Meta Ads is the scalable channel.
+Rekan is a boutique content partner for Brazilian MEIs, delivered via WhatsApp. Three tiers: Basico R$69.90, Parceiro R$108.90 (founder discount from R$149.90), Profissional R$249.90. All plans include a 30-day money-back guarantee. For ad-sourced leads, the R$19.90 first month survives as a coupon on trimestral plans only (see PEP-010). Organic growth through Elenice's network will get the first 5-10 clients, but paid acquisition through Meta Ads is the scalable channel.
 
 The opportunity: Meta's click-to-WhatsApp ad objective sends people directly into a WhatsApp conversation with Elenice. No landing page, no funnel, no friction. The ad IS the top of funnel, WhatsApp IS the sales floor.
 

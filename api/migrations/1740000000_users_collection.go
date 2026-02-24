@@ -1,8 +1,6 @@
 package migrations
 
 import (
-	"os"
-
 	"github.com/pocketbase/pocketbase/core"
 	m "github.com/pocketbase/pocketbase/migrations"
 )
@@ -14,16 +12,8 @@ func init() {
 			return nil
 		}
 
-		// Google OAuth only, no password auth
-		collection.PasswordAuth.Enabled = false
-		collection.OAuth2.Enabled = true
-		collection.OAuth2.Providers = []core.OAuth2ProviderConfig{
-			{
-				Name:         "google",
-				ClientId:     os.Getenv("GOOGLE_CLIENT_ID"),
-				ClientSecret: os.Getenv("GOOGLE_CLIENT_SECRET"),
-			},
-		}
+		// Password auth (OAuth2 was removed in migration 1740000011)
+		collection.PasswordAuth.Enabled = true
 
 		// Server-managed fields (client cannot write these)
 		collection.Fields.Add(

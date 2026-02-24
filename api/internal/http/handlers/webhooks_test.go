@@ -1,14 +1,11 @@
 package handlers_test
 
 import (
-	"encoding/json"
 	"fmt"
 	"net/http"
-	"net/http/httptest"
 	"strings"
 	"testing"
 
-	"github.com/denisraison/rekan/api/internal/asaas"
 	apphttp "github.com/denisraison/rekan/api/internal/http"
 	"github.com/denisraison/rekan/api/internal/http/handlers"
 	"github.com/pocketbase/pocketbase/core"
@@ -271,56 +268,3 @@ func TestWebhookUnknownSubscriptionID(t *testing.T) {
 	s.Test(t)
 }
 
-func TestWebhookFirstPaymentUpgrade(t *testing.T) {
-	var updatedPath string
-	var updatedValue float64
-	mockAsaas := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		if r.Method == http.MethodPut && strings.HasPrefix(r.URL.Path, "/subscriptions/") {
-			updatedPath = r.URL.Path
-			var body map[string]float64
-			json.NewDecoder(r.Body).Decode(&body)
-			updatedValue = body["value"]
-		}
-		w.Header().Set("Content-Type", "application/json")
-		json.NewEncoder(w).Encode(map[string]string{"id": testSubscriptionID})
-	}))
-	defer mockAsaas.Close()
-
-	var app *tests.TestApp
-	s := &tests.ApiScenario{
-		Method: http.MethodPost,
-		URL:    "/api/webhooks/asaas",
-		Body:   strings.NewReader(webhookBody("PAYMENT_CONFIRMED", testSubscriptionID, false)),
-		Headers: map[string]string{
-			"Content-Type":       "application/json",
-			"asaas-access-token": testWebhookToken,
-		},
-		TestAppFactory: func(tb testing.TB) *tests.TestApp {
-			app = newWebhookApp(tb)
-			return app
-		},
-		BeforeTestFunc: func(t testing.TB, a *tests.TestApp, e *core.ServeEvent) {
-			apphttp.RegisterRoutes(e.Router, handlers.Deps{
-				App:          a,
-				WebhookToken: testWebhookToken,
-				Asaas:        asaas.NewTestClient(mockAsaas.URL, "test-key"),
-			})
-		},
-		AfterTestFunc: func(t testing.TB, _ *tests.TestApp, _ *http.Response) {
-			assertBusinessStatus(t, app, "active")
-			if updatedPath != "/subscriptions/"+testSubscriptionID {
-				t.Errorf("expected PUT to /subscriptions/%s, got %s", testSubscriptionID, updatedPath)
-			}
-			if updatedValue != 108.90 {
-				t.Errorf("expected updated value 108.90, got %f", updatedValue)
-			}
-		},
-		DisableTestAppCleanup: true,
-		ExpectedStatus:        http.StatusOK,
-		ExpectedContent:       []string{`"message":"ok"`},
-	}
-	s.Test(t)
-	if app != nil {
-		app.Cleanup()
-	}
-}

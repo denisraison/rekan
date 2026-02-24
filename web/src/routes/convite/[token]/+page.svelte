@@ -10,7 +10,6 @@
 		business_name: string;
 		client_name: string;
 		status: string;
-		price_first_month: number;
 		price_monthly: number;
 	};
 
@@ -169,8 +168,7 @@
 				</h1>
 				<p class="text-sm mb-6" style="color: var(--text-secondary)">
 					O Rekan vai cuidar do conteúdo do Instagram de <strong>{invite.business_name}</strong>.
-					Primeiro mês por <strong>R$ {invite.price_first_month}</strong>, depois
-					<strong>R$ {invite.price_monthly.toFixed(2).replace('.', ',')}/mês</strong>.
+					<strong>R$ {invite.price_monthly.toFixed(2).replace('.', ',')}/mês</strong>. Se em 30 dias você não sentir a diferença, devolvemos tudo pelo Pix.
 				</p>
 
 				{#if submitError}
@@ -215,7 +213,7 @@
 
 								<p class="mb-2"><strong>1. Descrição do Serviço.</strong> O Rekan é um serviço de geração de conteúdo para Instagram destinado a micro-empreendedores brasileiros. O serviço inclui a criação de legendas, hashtags e textos para stories personalizados para o seu negócio.</p>
 
-								<p class="mb-2"><strong>2. Preços e Pagamento.</strong> O primeiro mês custa R$ {invite.price_first_month},00. A partir do segundo mês, o valor é de R$ {invite.price_monthly.toFixed(2).replace('.', ',')}/mês. O pagamento é realizado via PIX. A assinatura é renovada automaticamente a cada mês.</p>
+								<p class="mb-2"><strong>2. Preços e Pagamento.</strong> O valor do plano Parceiro é R$ {invite.price_monthly.toFixed(2).replace('.', ',')}/mês. O pagamento é realizado via PIX. A assinatura é renovada automaticamente a cada mês. Você tem uma garantia de 30 dias: se não estiver satisfeito, devolvemos o valor integral via Pix.</p>
 
 								<p class="mb-2"><strong>3. Cancelamento.</strong> Conforme o Art. 49 do Código de Defesa do Consumidor, você pode cancelar o serviço em até 7 dias após a contratação, com reembolso integral. Após esse prazo, o cancelamento pode ser solicitado a qualquer momento e será efetivado ao final do período já pago. Não há multa por cancelamento.</p>
 

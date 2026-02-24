@@ -24,9 +24,17 @@ test('examples section has 3 phone frames', async ({ page }) => {
 	await expect(phones).toHaveCount(3);
 });
 
-test('pricing shows R$ 19', async ({ page }) => {
+test('pricing shows all three tiers', async ({ page }) => {
 	await page.goto('/');
-	await expect(page.locator('#preco')).toContainText('19');
+	const pricing = page.locator('#preco');
+	await expect(pricing).toContainText('69,90');
+	await expect(pricing).toContainText('108,90');
+	await expect(pricing).toContainText('249,90');
+});
+
+test('pricing shows social media manager anchor', async ({ page }) => {
+	await page.goto('/');
+	await expect(page.locator('#preco')).toContainText('R$590');
 });
 
 test('CTA links to WhatsApp', async ({ page }) => {

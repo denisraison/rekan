@@ -99,7 +99,7 @@
 			<p class="hero-tags">Padarias · Salões · Studios · Barbearias · Lojas · Academias</p>
 			<div class="hero-cta">
 				<!-- TODO: replace phone number -->
-				<a href="https://wa.me/5500000000000?text=Oi,%20quero%20saber%20mais%20sobre%20o%20Rekan" target="_blank" rel="noopener" class="btn btn-primary">Comece por R$ 19</a>
+				<a href="https://wa.me/5500000000000?text=Oi,%20quero%20saber%20mais%20sobre%20o%20Rekan" target="_blank" rel="noopener" class="btn btn-primary">Comece por R$ 69,90</a>
 				<a href="#como-funciona" class="btn btn-ghost">Como funciona</a>
 			</div>
 		</div>
@@ -197,23 +197,60 @@
 <section class="pricing" id="preco" use:_reveal>
 	<div class="pricing-inner">
 		<SectionLabel>PREÇO</SectionLabel>
-		<h2 class="pricing-heading">Um plano. Sem pegadinha.</h2>
-		<p class="pricing-sub">Um preço. Sem letras miúdas.</p>
-		<div class="price-card">
-			<div class="price-amount">
-				<span class="price-currency">R$</span>
-				<span class="price-value">19</span>
-				<span class="price-period">no primeiro mês</span>
+		<h2 class="pricing-heading">Três planos. Sem pegadinha.</h2>
+		<p class="pricing-sub">Um social media manager cobra a partir de R$590/mês.</p>
+		<p class="pricing-guarantee">Garantia de 30 dias. Sem contrato.</p>
+		<div class="pricing-grid">
+			<div class="tier-card">
+				<h3 class="tier-name">Básico</h3>
+				<div class="tier-price">
+					<span class="tier-currency">R$</span>
+					<span class="tier-value">69,90</span>
+					<span class="tier-period">/mês</span>
+				</div>
+				<ul class="tier-features">
+					<li>8 posts por mês</li>
+					<li>Legendas + hashtags</li>
+				</ul>
+				<!-- TODO: replace phone number -->
+				<a href="https://wa.me/5500000000000?text=Oi,%20quero%20o%20plano%20Básico" target="_blank" rel="noopener" class="btn btn-ghost btn-block">Começar</a>
 			</div>
-			<p class="price-then">Depois R$ 108,90/mês</p>
-			<ul class="price-list">
-				<li>30 legendas por mês</li>
-				<li>10 textos pra stories</li>
-				<li>Tom personalizado pro seu negócio</li>
-				<li>Sem contrato, cancele quando quiser</li>
-			</ul>
-			<!-- TODO: replace phone number -->
-			<a href="https://wa.me/5500000000000?text=Oi,%20quero%20saber%20mais%20sobre%20o%20Rekan" target="_blank" rel="noopener" class="btn btn-primary btn-block">Começar agora</a>
+			<div class="tier-card tier-card--featured">
+				<span class="tier-badge">Mais popular</span>
+				<h3 class="tier-name">Parceiro</h3>
+				<div class="tier-price">
+					<span class="tier-currency">R$</span>
+					<span class="tier-value">108,90</span>
+					<span class="tier-period">/mês</span>
+				</div>
+				<p class="tier-original">de <s>R$149,90</s></p>
+				<ul class="tier-features">
+					<li>12 posts por mês</li>
+					<li>Legendas + hashtags</li>
+					<li>Direção de foto e roteiro de reels</li>
+					<li>Melhor horário pra postar</li>
+				</ul>
+				<!-- TODO: replace phone number -->
+				<a href="https://wa.me/5500000000000?text=Oi,%20quero%20o%20plano%20Parceiro" target="_blank" rel="noopener" class="btn btn-primary btn-block">Começar agora</a>
+				<p class="tier-daily">Menos de R$4 por dia</p>
+			</div>
+			<div class="tier-card">
+				<h3 class="tier-name">Profissional</h3>
+				<div class="tier-price">
+					<span class="tier-currency">R$</span>
+					<span class="tier-value">249,90</span>
+					<span class="tier-period">/mês</span>
+				</div>
+				<ul class="tier-features">
+					<li>20 posts por mês</li>
+					<li>Tudo do Parceiro</li>
+					<li>Chamada mensal de estratégia</li>
+					<li>Calendário de stories</li>
+					<li>Resposta prioritária</li>
+				</ul>
+				<!-- TODO: replace phone number -->
+				<a href="https://wa.me/5500000000000?text=Oi,%20quero%20o%20plano%20Profissional" target="_blank" rel="noopener" class="btn btn-ghost btn-block">Começar</a>
+			</div>
 		</div>
 	</div>
 </section>
@@ -223,7 +260,7 @@
 	<div class="final-cta-inner">
 		<h2>Bora <em>postar?</em></h2>
 		<!-- TODO: replace phone number -->
-		<a href="https://wa.me/5500000000000?text=Oi,%20quero%20saber%20mais%20sobre%20o%20Rekan" target="_blank" rel="noopener" class="btn btn-white">Comece por R$ 19</a>
+		<a href="https://wa.me/5500000000000?text=Oi,%20quero%20saber%20mais%20sobre%20o%20Rekan" target="_blank" rel="noopener" class="btn btn-white">Comece agora</a>
 	</div>
 </section>
 
@@ -641,71 +678,123 @@
 	}
 	.pricing-sub {
 		color: var(--text-secondary);
-		margin-bottom: 48px;
+		margin-bottom: 8px;
 		font-size: 0.95rem;
 	}
-	.price-card {
-		position: relative;
-		max-width: 380px;
+	.pricing-guarantee {
+		color: var(--text-muted);
+		margin-bottom: 48px;
+		font-size: 0.88rem;
+	}
+	.pricing-grid {
+		display: grid;
+		grid-template-columns: repeat(3, 1fr);
+		gap: 20px;
+		max-width: 960px;
 		margin: 0 auto;
+	}
+	.tier-card {
+		position: relative;
 		background: white;
 		border-radius: var(--radius-lg);
-		padding: 48px 36px;
+		padding: 36px 28px;
 		text-align: center;
-		box-shadow: var(--shadow-lg);
+		border: 1px solid var(--border);
+		display: flex;
+		flex-direction: column;
 	}
-	.price-amount {
+	.tier-card--featured {
+		border: 2px solid var(--coral);
+		box-shadow: var(--shadow-lg);
+		padding-top: 44px;
+	}
+	.tier-badge {
+		position: absolute;
+		top: -13px;
+		left: 50%;
+		transform: translateX(-50%);
+		background: var(--coral);
+		color: white;
+		font-size: 0.72rem;
+		font-weight: 600;
+		padding: 4px 16px;
+		border-radius: var(--radius-full);
+		letter-spacing: 0.03em;
+		white-space: nowrap;
+	}
+	.tier-name {
+		font-size: 1.05rem;
+		font-weight: 600;
+		margin-bottom: 16px;
+		color: var(--text);
+	}
+	.tier-price {
 		display: flex;
 		align-items: baseline;
 		justify-content: center;
-		gap: 4px;
-		margin-bottom: 36px;
+		gap: 3px;
+		margin-bottom: 8px;
 	}
-	.price-currency {
-		font-size: 1.2rem;
+	.tier-currency {
+		font-size: 1rem;
 		font-weight: 300;
 		color: var(--text-secondary);
 		align-self: flex-start;
-		margin-top: 14px;
+		margin-top: 10px;
 	}
-	.price-value {
-		font-size: 4.5rem;
+	.tier-value {
+		font-size: 3rem;
 		font-weight: 300;
 		line-height: 1;
-		letter-spacing: -0.04em;
+		letter-spacing: -0.03em;
 		color: var(--text);
 	}
-	.price-period {
-		font-size: 0.9rem;
+	.tier-card--featured .tier-value {
+		font-size: 3.5rem;
+	}
+	.tier-period {
+		font-size: 0.85rem;
 		font-weight: 400;
 		color: var(--text-muted);
 	}
-	.price-then {
-		font-size: 0.9rem;
-		color: var(--text-secondary);
-		margin-bottom: 36px;
+	.tier-original {
+		font-size: 0.82rem;
+		color: var(--text-muted);
+		margin-bottom: 8px;
 	}
-	.price-list {
+	.tier-original s {
+		color: var(--text-secondary);
+	}
+	.tier-features {
 		list-style: none;
 		text-align: left;
-		margin-bottom: 36px;
+		margin-bottom: 28px;
+		flex: 1;
 	}
-	.price-list li {
-		padding: 12px 0;
+	.tier-features li {
+		padding: 10px 0;
 		border-bottom: 1px solid var(--border);
-		font-size: 0.9rem;
+		font-size: 0.85rem;
 		color: var(--text-secondary);
 		display: flex;
 		align-items: center;
 		gap: 10px;
 	}
-	.price-list li::before {
+	.tier-features li::before {
 		content: '';
 		width: 6px;
 		height: 6px;
 		border-radius: 50%;
 		background: var(--sage);
 		flex-shrink: 0;
+	}
+	.tier-card--featured .tier-features li::before {
+		background: var(--coral);
+	}
+	.tier-daily {
+		font-size: 0.8rem;
+		color: var(--text-muted);
+		margin-top: 12px;
 	}
 
 	/* ============ FINAL CTA ============ */
@@ -808,7 +897,11 @@
 		}
 		.phone-slot :global(.phone-frame) { width: 256px; }
 		.pricing { padding: 72px 24px; }
-		.price-card { padding: 36px 24px; }
+		.pricing-grid {
+			grid-template-columns: 1fr;
+			max-width: 380px;
+		}
+		.tier-card--featured { order: -1; }
 		.final-cta { padding: 64px 24px; }
 	}
 </style>

@@ -221,7 +221,7 @@ func TestInviteGetSuccess(t *testing.T) {
 			apphttp.RegisterRoutes(e.Router, handlers.Deps{App: app})
 		},
 		ExpectedStatus:  http.StatusOK,
-		ExpectedContent: []string{`"business_name"`, `"client_name"`, `"price_first_month"`, `"price_monthly"`},
+		ExpectedContent: []string{`"business_name"`, `"client_name"`, `"price_monthly"`},
 	}
 	s.Test(t)
 }

@@ -2,6 +2,7 @@ package transcribe
 
 import (
 	"bytes"
+	"context"
 	"encoding/json"
 	"fmt"
 	"io"
@@ -26,7 +27,7 @@ func NewClient(apiKey string) *Client {
 
 // Transcribe sends audio bytes to the Whisper API and returns the transcript.
 // The audio should be in OGG/Opus format (WhatsApp voice notes).
-func (c *Client) Transcribe(audio []byte) (string, error) {
+func (c *Client) Transcribe(ctx context.Context, audio []byte) (string, error) {
 	var body bytes.Buffer
 	w := multipart.NewWriter(&body)
 
@@ -42,7 +43,7 @@ func (c *Client) Transcribe(audio []byte) (string, error) {
 	w.WriteField("language", "pt")
 	w.Close()
 
-	req, err := http.NewRequest("POST", "https://api.openai.com/v1/audio/transcriptions", &body)
+	req, err := http.NewRequestWithContext(ctx, "POST", "https://api.openai.com/v1/audio/transcriptions", &body)
 	if err != nil {
 		return "", fmt.Errorf("create request: %w", err)
 	}

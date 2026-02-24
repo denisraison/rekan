@@ -12,9 +12,14 @@ func init() {
 			return err
 		}
 
+		messages, err2 := app.FindCollectionByNameOrId("messages")
+		if err2 != nil {
+			return err2
+		}
+
 		collection.Fields.Add(
-			&core.TextField{Name: "source"},                                                           // "dashboard" or "operator"
-			&core.RelationField{Name: "message", CollectionId: "messages", MaxSelect: 1}, // source message for operator posts
+			&core.TextField{Name: "source"},                                              // "dashboard" or "operator"
+			&core.RelationField{Name: "message", CollectionId: messages.Id, MaxSelect: 1}, // source message for operator posts
 		)
 
 		return app.Save(collection)

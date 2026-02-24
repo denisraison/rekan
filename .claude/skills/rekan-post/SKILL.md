@@ -14,7 +14,7 @@ Generate Instagram posts for Rekan (@chamaorekan): content from the BAML pipelin
 - **Logo font:** Urbanist, weight 300, letter-spacing 0.05em, all lowercase
 - **Colors:** coral #F97368 / rgb(249,115,104), sage green #87AA8C / rgb(135,170,140), dark charcoal #44444A, off-white #F5F2ED
 - **Logo:** `web/static/brand/logo-mark.svg` (coral + sage green leaf/flame shapes)
-- **Pricing:** R$19,90 first month, R$108,90/month after. No free trial.
+- **Pricing:** Three tiers: Basico R$69,90, Parceiro ~~R$149,90~~ R$108,90 (founder discount), Profissional R$249,90. 30-day money-back guarantee. No free trial.
 - **Voice:** founder-led, empathetic, direct. Speaks to MEIs as a partner, not a brand selling a product.
 
 ## Prerequisites
@@ -74,7 +74,7 @@ Avoid: "authentic feel", "natural", "casual" as generic modifiers. These don't w
 - Text: all lowercase for brand name, Urbanist Light style (describe as "thin weight, wide letter-spacing, modern geometric sans-serif")
 - Background: off-white with paper texture OR sage green solid
 - Always mention WhatsApp in CTAs, never "app" or "tool"
-- Pricing: "Primeiro mes por R$19,90" (trial), "R$108,90/mes" (regular)
+- Pricing: "A partir de R$69,90/mes" (Basico), "Parceiro por R$108,90/mes" (founder discount), "Profissional R$249,90/mes". "Garantia de 30 dias."
 
 Generate 4 prompt variations per post, present to user before generating.
 
@@ -165,6 +165,6 @@ Default 4:5 (Instagram feed portrait). Ask user if not specified.
 - [ ] Logo converted to PNG at /tmp/rekan-logo.png
 - [ ] Brand name in lowercase ("rekan" not "Rekan")
 - [ ] WhatsApp mentioned in CTAs (not "link na bio", not "app")
-- [ ] Pricing correct (R$19,90 first month, R$108,90/month)
+- [ ] Pricing correct (Basico R$69,90, Parceiro R$108,90, Profissional R$249,90, garantia 30 dias)
 - [ ] No English text anywhere
 - [ ] "parceiro" language, not "tool" or "app" language

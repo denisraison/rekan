@@ -13,10 +13,7 @@ import (
 	"go.mau.fi/whatsmeow/types"
 )
 
-const (
-	PriceFirstMonth = 19.00
-	PriceMonthly    = 108.90
-)
+const PriceParceiro = 108.90
 
 func InviteSend(deps Deps) func(*core.RequestEvent) error {
 	return func(e *core.RequestEvent) error {
@@ -109,11 +106,10 @@ func InviteGet(deps Deps) func(*core.RequestEvent) error {
 		}
 
 		return e.JSON(http.StatusOK, map[string]any{
-			"business_name":     business.GetString("name"),
-			"client_name":       business.GetString("client_name"),
-			"invite_status":     business.GetString("invite_status"),
-			"price_first_month": PriceFirstMonth,
-			"price_monthly":     PriceMonthly,
+			"business_name": business.GetString("name"),
+			"client_name":   business.GetString("client_name"),
+			"invite_status": business.GetString("invite_status"),
+			"price_monthly":  PriceParceiro,
 		})
 	}
 }
@@ -183,10 +179,10 @@ func InviteAccept(deps Deps) func(*core.RequestEvent) error {
 		sub, err := deps.Asaas.CreateSubscription(e.Request.Context(), asaasclient.CreateSubscriptionReq{
 			Customer:          customer.ID,
 			BillingType:       "PIX",
-			Value:             PriceFirstMonth,
+			Value:             PriceParceiro,
 			NextDueDate:       time.Now().Format("2006-01-02"),
 			Cycle:             "MONTHLY",
-			Description:       "Rekan - Primeiro Mês",
+			Description:       "Rekan - Parceiro",
 			ExternalReference: business.Id,
 			Callback: &asaasclient.Callback{
 				SuccessURL:   deps.AppURL + "/convite/" + token + "/confirmacao",

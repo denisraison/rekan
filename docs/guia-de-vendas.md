@@ -45,21 +45,24 @@ O Rekan resolve o problema de consistência, não o problema de criação. Qualq
 
 ## Os números que você precisa saber
 
-### Preços
+### Planos
 
-| O que | Quanto |
-|---|---|
-| Primeiro mês do Rekan | R$19,90 |
-| Meses seguintes | R$108,90/mês |
-| Por dia | Menos de R$4 |
-| Sem contrato | Cancela quando quiser |
+| Plano | Preço/mês | O que inclui |
+|---|---|---|
+| Basico | R$69,90 | 8 posts/mês, legendas + hashtags |
+| **Parceiro** | **~~R$149,90~~ R$108,90** (preço de lançamento) | **12 posts/mês, legendas + hashtags + direção de foto/vídeo + roteiros de reels + melhor horário pra postar** |
+| Profissional | R$249,90 | 20 posts/mês, tudo do Parceiro + chamada mensal de estratégia + calendário de stories + resposta prioritária |
+
+Todos os planos têm **garantia de 30 dias**: se não gostar, devolve tudo pelo Pix. Sem contrato, cancela quando quiser.
+
+O plano Parceiro é o que a maioria das clientes escolhe. O preço de R$108,90 é um preço de lançamento (preço normal R$149,90).
 
 ### Comparação com o mercado
 
 | Opção | Preço | O que a MEI faz |
 |---|---|---|
 | Fazer sozinha (ChatGPT, Canva) | R$0 a R$99/mês | Tudo. Ela que abre, escreve, edita, posta. |
-| **Rekan** | **R$108,90/mês** | **Manda foto, recebe post pronto, copia e cola.** |
+| **Rekan Parceiro** | **R$108,90/mês** | **Manda foto, recebe post pronto, copia e cola.** |
 | Social media manager junior | R$590 a R$1.500/mês | Nada. Mas custa 5x a 14x mais. |
 | Agência | R$2.000 a R$5.000+/mês | Nada. Mas é pra empresa grande. |
 
@@ -68,11 +71,12 @@ O Rekan resolve o problema de consistência, não o problema de criação. Qualq
 - "Menos que um lanche no iFood por dia"
 - "Menos que um almoço executivo por semana"
 - "10x mais barato que contratar um social media"
-- "R$19,90 pra testar um mês inteiro"
+- "Se em 30 dias não sentir a diferença, devolvo tudo pelo Pix"
 
-### O que a cliente recebe
+### O que a cliente recebe (Parceiro)
 
-- 2 posts por semana (legenda + hashtags + dica de foto + ideia de reels)
+- 3 posts por semana (legenda + hashtags + direção de foto + roteiro de reels)
+- Melhor horário pra postar
 - Tudo pelo WhatsApp, sem app, sem login, sem senha
 - Alguém que conhece o negócio dela e acompanha toda semana
 - Cobrança se ela esquecer de mandar conteúdo (isso é valor, não incômodo)
@@ -87,8 +91,9 @@ Não são falas prontas. São os fatos e a lógica pra usar do jeito que quiser.
 
 - Um social media cobra no mínimo R$590. O Rekan custa R$108,90. É 5x mais barato.
 - Dá menos de R$4 por dia. Menos que um cafezinho.
-- O primeiro mês é R$19,90. Testa por um mês inteiro antes de decidir.
+- Se em 30 dias não sentir a diferença, devolvo tudo pelo Pix. Sem perguntas.
 - Cada semana sem postar é uma semana que a concorrente aparece no lugar dela.
+- Se quiser economizar mais, o plano trimestral sai por R$99,90/mês.
 
 ### "Eu uso o ChatGPT"
 
@@ -112,6 +117,12 @@ Não são falas prontas. São os fatos e a lógica pra usar do jeito que quiser.
 
 - Se tá funcionando, ótimo. Mas se o perfil tá parado há semanas, é porque a sobrinha também tem a vida dela.
 - R$108,90 por mês pra não depender da agenda de outra pessoa.
+
+### "Por que tem três planos?"
+
+- O Básico é pra quem quer começar com pouco. O Profissional é pra quem já leva o Instagram mais a sério e quer estratégia junto.
+- A maioria das clientes escolhe o Parceiro. Tem tudo que precisa pra manter o Instagram ativo e consistente.
+- Você pode trocar de plano a qualquer momento.
 
 ---
 
@@ -169,6 +180,39 @@ Guias de comportamento, não falas prontas.
 
 Esses são os momentos em que copiar e colar ajuda, porque são mensagens recorrentes com estrutura fixa.
 
+### Cardápio (mensagem pro WhatsApp)
+
+Mensagem pronta pra encaminhar pra quem pergunta "quanto custa?" ou pra mandar depois de um primeiro contato. Pode copiar e colar direto.
+
+**Mensagem 1 (âncora + proposta):**
+
+> Um social media manager cobra a partir de R$590/mês. O Rekan entrega conteúdo pronto pro seu Instagram por uma fração disso.
+>
+> Funciona assim: você me manda uma foto ou me conta o que fez hoje. Eu devolvo o post prontinho: legenda, hashtags, dica de foto e ideia de reels. Tudo pelo WhatsApp, sem app, sem login.
+>
+> O Rekan é um serviço pequeno e pessoal. Eu conheço seu negócio, acompanho toda semana e cobro quando você esquece de mandar conteúdo. Não é ferramenta, é parceiro.
+
+**Mensagem 2 (planos):**
+
+> *Planos Rekan*
+>
+> *Básico* — R$69,90/mês
+> 8 posts/mês · legendas + hashtags
+>
+> *Parceiro* — ~R$149,90~ *R$108,90/mês* (preço de lançamento)
+> 12 posts/mês · legendas + hashtags + direção de foto/vídeo + roteiros de reels + melhor horário pra postar
+>
+> *Profissional* — R$249,90/mês
+> 20 posts/mês · tudo do Parceiro + chamada mensal de estratégia + calendário de stories + resposta prioritária
+>
+> Menos de R$4 por dia no Parceiro. Sem contrato, cancela quando quiser.
+
+**Mensagem 3 (garantia + CTA):**
+
+> Todos os planos têm *garantia de 30 dias*: se você não sentir a diferença no seu Instagram, devolvo tudo pelo Pix. Sem perguntas.
+>
+> Qual plano faz mais sentido pra você?
+
 ### Primeiro contato online (exemplo de referência)
 
 Não precisa usar essas palavras, mas é o tipo de tom e estrutura que funciona.
@@ -181,7 +225,7 @@ Não precisa usar essas palavras, mas é o tipo de tom e estrutura que funciona.
 >
 > Eu tenho um serviço que resolve isso. Funciona assim: você me manda uma foto ou me conta o que fez hoje, pelo WhatsApp mesmo. Em poucos minutos eu te devolvo o post pronto: legenda, hashtags, dica de foto e até ideia de reels. Você só copia, cola e posta.
 >
-> O primeiro mês custa R$19,90 pra você testar sem compromisso. Quer experimentar?
+> O Parceiro custa R$108,90 por mês. Menos de R$4 por dia. E se em 30 dias você não sentir a diferença no seu Instagram, devolvo tudo pelo Pix. Pode testar sem risco. Quer experimentar?
 
 ### Quando alguém chega pelo anúncio (exemplo de referência)
 
@@ -195,7 +239,7 @@ A pessoa viu o anúncio e mandou mensagem. Ela já sabe o básico.
 >
 > O Rekan funciona assim: você me manda uma foto ou me conta o que aconteceu no seu dia de trabalho. Pode ser por texto, áudio, foto. Eu devolvo o post prontinho, com legenda, hashtags e sugestão de conteúdo. Tudo aqui pelo WhatsApp.
 >
-> O primeiro mês é R$19,90. Depois fica R$108,90 por mês, sem contrato, cancela quando quiser. Isso dá menos de R$4 por dia pra você nunca mais ficar sem postar.
+> O plano Parceiro custa R$108,90 por mês, sem contrato, cancela quando quiser. Isso dá menos de R$4 por dia pra você nunca mais ficar sem postar. E se em 30 dias você não gostar, devolvo tudo pelo Pix.
 >
 > Quer começar?
 
@@ -203,7 +247,7 @@ A pessoa viu o anúncio e mandou mensagem. Ela já sabe o básico.
 
 **"É caro":**
 
-> Entendo. Um social media cobra no mínimo R$590 por mês. O Rekan faz a mesma coisa por R$108,90. E o primeiro mês é R$19,90, então você testa antes de decidir.
+> Entendo. Um social media cobra no mínimo R$590 por mês. O Rekan faz a mesma coisa por R$108,90. E tem garantia de 30 dias: se não gostar, devolvo tudo pelo Pix.
 >
 > E pensa assim: cada semana que passa sem postar, a sua concorrente tá lá aparecendo pro cliente que podia ser seu.
 
@@ -265,19 +309,21 @@ Mandar as perguntas pra conhecer a cliente:
 >
 > Melhor horário pra postar hoje: [horário]. É só copiar e colar!
 
-### Dia 20: mensagem de renovação
+### Dia 20: check-in de primeiro mês
 
-Cerca de 10 dias antes do segundo mês cobrar. Usar o número de posts, não o print do grid (depois de só 1 mês o grid pode não impressionar ainda). O print do grid é pro check-in mensal, quando já tem 2+ meses de conteúdo.
+Com a garantia de 30 dias, não tem "renovação surpresa". A cliente já está pagando R$108,90 desde o dia 1. O check-in do dia 20 é pra reforçar valor e oferecer o trimestral.
 
 > Oi [nome]! Esse mês você postou [X] vezes no Instagram. Antes eram quantas? Olha como seu perfil tá ficando consistente.
 >
-> Mês que vem o plano renova por R$108,90. Isso dá menos de R$4 por dia pra nunca mais ficar sem post.
->
-> Quer continuar? Se tiver qualquer dúvida, me fala.
+> Sabia que no plano trimestral o preço cai pra R$99,90/mês? Se quiser garantir, é só me falar.
 
-**Se a pessoa quiser cancelar:**
+**Se a pessoa quiser cancelar (dentro dos 30 dias):**
 
-> Sem problema nenhum, [nome]. Foi um prazer trabalhar com você. Se um dia quiser voltar, é só me chamar.
+> Sem problema nenhum, [nome]. Vou devolver o valor todo pelo Pix agora. Foi um prazer trabalhar com você. Se um dia quiser voltar, é só me chamar.
+
+**Se a pessoa quiser cancelar (depois dos 30 dias):**
+
+> Sem problema nenhum, [nome]. Vou cancelar a assinatura. Foi um prazer trabalhar com você. Se um dia quiser voltar, é só me chamar.
 
 Não insistir. Parceira, não vendedora.
 
@@ -297,7 +343,7 @@ Uma vez por mês, depois que a cliente já está pagando.
 
 Só depois de pelo menos 1 mês de cliente satisfeita.
 
-> [nome], posso te pedir um favor? Você conhece alguma [confeiteira/cabeleireira/manicure] que também não consegue postar com frequência? Se você indicar alguém e ela assinar, você ganha uma semana grátis.
+> [nome], posso te pedir um favor? Você conhece alguma [confeiteira/cabeleireira/manicure] que também não consegue postar com frequência? Se você indicar alguém e ela assinar, você ganha um mês grátis.
 
 ### Pedindo depoimento
 

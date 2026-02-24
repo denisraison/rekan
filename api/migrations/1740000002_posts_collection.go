@@ -7,10 +7,15 @@ import (
 
 func init() {
 	m.Register(func(app core.App) error {
+		businesses, err := app.FindCollectionByNameOrId("businesses")
+		if err != nil {
+			return err
+		}
+
 		collection := core.NewBaseCollection("posts")
 
 		collection.Fields.Add(
-			&core.RelationField{Name: "business", CollectionId: "businesses", MaxSelect: 1, Required: true},
+			&core.RelationField{Name: "business", CollectionId: businesses.Id, MaxSelect: 1, Required: true},
 			&core.TextField{Name: "caption", Required: true},
 			&core.JSONField{Name: "hashtags"},
 			&core.TextField{Name: "production_note"},
