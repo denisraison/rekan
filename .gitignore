@@ -14,5 +14,8 @@ web/build/
 eval/eval
 eval/runs/
 
+# Generated posts
+rekan-posts/
+
 # Secrets
 .env
