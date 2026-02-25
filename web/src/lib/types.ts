@@ -13,6 +13,8 @@ export interface Service {
 }
 
 export type InviteStatus = 'draft' | 'invited' | 'accepted' | 'active' | 'payment_failed' | 'cancelled';
+export type Tier = 'basico' | 'parceiro' | 'profissional';
+export type Commitment = 'mensal' | 'trimestral';
 
 export interface Business {
 	id: string;
@@ -33,7 +35,12 @@ export interface Business {
 	invite_token: string;
 	invite_status: InviteStatus;
 	invite_sent_at: string;
-	subscription_id: string;
+	authorization_id: string;
+	customer_id: string;
+	tier: Tier;
+	commitment: Commitment;
+	next_charge_date: string;
+	charge_pending: boolean;
 	terms_accepted_at: string;
 }
 

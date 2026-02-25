@@ -6,6 +6,7 @@ import (
 	"net/http"
 	"strings"
 
+	"github.com/denisraison/rekan/api/internal/domain"
 	"github.com/denisraison/rekan/eval"
 	"github.com/pocketbase/pocketbase/core"
 )
@@ -14,7 +15,7 @@ func OperatorGenerate(deps Deps) func(*core.RequestEvent) error {
 	return func(e *core.RequestEvent) error {
 		businessID := e.Request.PathValue("id")
 
-		business, err := e.App.FindRecordById("businesses", businessID)
+		business, err := e.App.FindRecordById(domain.CollBusinesses, businessID)
 		if err != nil {
 			return e.JSON(http.StatusNotFound, map[string]string{"message": "negócio não encontrado"})
 		}
@@ -55,7 +56,7 @@ func OperatorGenerate(deps Deps) func(*core.RequestEvent) error {
 			hookStr = hook[0]
 		}
 
-		collection, err := e.App.FindCollectionByNameOrId("posts")
+		collection, err := e.App.FindCollectionByNameOrId(domain.CollPosts)
 		if err != nil {
 			return fmt.Errorf("find posts collection: %w", err)
 		}
@@ -66,7 +67,7 @@ func OperatorGenerate(deps Deps) func(*core.RequestEvent) error {
 		record.Set("hashtags", post.Hashtags)
 		record.Set("production_note", post.ProductionNote)
 		record.Set("hook", hookStr)
-		record.Set("source", "operator")
+		record.Set("source", domain.PostSourceOperator)
 		record.Set("edited", false)
 		if body.MessageID != "" {
 			record.Set("message", body.MessageID)

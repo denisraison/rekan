@@ -718,7 +718,7 @@
     if (!confirm(`Cancelar assinatura de ${selected.name}? Essa ação não pode ser desfeita.`)) return;
     cancelling = true;
     try {
-      await pb.send(`/api/businesses/${selected.id}/subscription:cancel`, {
+      await pb.send(`/api/businesses/${selected.id}/authorization:cancel`, {
         method: "POST",
       });
       const refreshed = await pb.collection("businesses").getOne<Business>(selected.id);

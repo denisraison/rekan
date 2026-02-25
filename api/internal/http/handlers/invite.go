@@ -4,21 +4,24 @@ import (
 	"crypto/rand"
 	"encoding/hex"
 	"encoding/json"
+	"errors"
 	"net/http"
 	"time"
 
 	asaasclient "github.com/denisraison/rekan/api/internal/asaas"
+	"github.com/denisraison/rekan/api/internal/domain"
+	"github.com/denisraison/rekan/api/internal/pricing"
 	"github.com/pocketbase/pocketbase/core"
 	"go.mau.fi/whatsmeow/proto/waE2E"
 	"go.mau.fi/whatsmeow/types"
 )
 
-const PriceParceiro = 108.90
+var errAlreadyClaimed = errors.New("invite already claimed")
 
 func InviteSend(deps Deps) func(*core.RequestEvent) error {
 	return func(e *core.RequestEvent) error {
 		businessID := e.Request.PathValue("id")
-		business, err := e.App.FindRecordById("businesses", businessID)
+		business, err := e.App.FindRecordById(domain.CollBusinesses, businessID)
 		if err != nil {
 			return e.JSON(http.StatusNotFound, map[string]string{"message": "negócio não encontrado"})
 		}
@@ -31,9 +34,15 @@ func InviteSend(deps Deps) func(*core.RequestEvent) error {
 			return e.JSON(http.StatusBadRequest, map[string]string{"message": "cliente sem telefone cadastrado"})
 		}
 
+		tier := business.GetString("tier")
+		commitment := business.GetString("commitment")
+		if !pricing.ValidTier(tier) || !pricing.ValidCommitment(commitment) {
+			return e.JSON(http.StatusBadRequest, map[string]string{"message": "plano e compromisso devem ser definidos antes de enviar o convite"})
+		}
+
 		status := business.GetString("invite_status")
 		switch status {
-		case "accepted", "active":
+		case domain.InviteStatusAccepted, domain.InviteStatusActive:
 			return e.JSON(http.StatusConflict, map[string]string{"message": "convite já aceito ou assinatura ativa"})
 		}
 
@@ -68,21 +77,21 @@ func InviteSend(deps Deps) func(*core.RequestEvent) error {
 
 		now := time.Now().UTC().Format(time.RFC3339)
 		business.Set("invite_token", token)
-		business.Set("invite_status", "invited")
+		business.Set("invite_status", domain.InviteStatusInvited)
 		business.Set("invite_sent_at", now)
 		if err := e.App.Save(business); err != nil {
 			return e.JSON(http.StatusInternalServerError, map[string]string{"message": "erro interno"})
 		}
 
 		// Store outgoing message
-		collection, _ := e.App.FindCollectionByNameOrId("messages")
+		collection, _ := e.App.FindCollectionByNameOrId(domain.CollMessages)
 		if collection != nil {
 			record := core.NewRecord(collection)
 			record.Set("business", businessID)
 			record.Set("phone", phone)
-			record.Set("type", "text")
+			record.Set("type", domain.MsgTypeText)
 			record.Set("content", text)
-			record.Set("direction", "outgoing")
+			record.Set("direction", domain.DirectionOutgoing)
 			record.Set("wa_timestamp", now)
 			e.App.Save(record)
 		}
@@ -95,7 +104,7 @@ func InviteGet(deps Deps) func(*core.RequestEvent) error {
 	return func(e *core.RequestEvent) error {
 		token := e.Request.PathValue("token")
 
-		business, err := e.App.FindFirstRecordByFilter("businesses", "invite_token = {:token}", map[string]any{"token": token})
+		business, err := e.App.FindFirstRecordByFilter(domain.CollBusinesses, "invite_token = {:token}", map[string]any{"token": token})
 		if err != nil {
 			return e.JSON(http.StatusNotFound, map[string]string{"message": "convite não encontrado"})
 		}
@@ -105,12 +114,26 @@ func InviteGet(deps Deps) func(*core.RequestEvent) error {
 			return e.JSON(http.StatusGone, map[string]string{"message": "convite expirado. Peça um novo ao seu gestor de conteúdo."})
 		}
 
-		return e.JSON(http.StatusOK, map[string]any{
-			"business_name": business.GetString("name"),
-			"client_name":   business.GetString("client_name"),
-			"invite_status": business.GetString("invite_status"),
-			"price_monthly":  PriceParceiro,
-		})
+		tier := pricing.Tier(business.GetString("tier"))
+		commitment := pricing.Commitment(business.GetString("commitment"))
+		price, _ := pricing.Price(tier, commitment)
+		months := pricing.Months[commitment]
+
+		resp := map[string]any{
+			"business_name":    business.GetString("name"),
+			"client_name":     business.GetString("client_name"),
+			"invite_status":   business.GetString("invite_status"),
+			"tier":            string(tier),
+			"commitment":      string(commitment),
+			"price":           price,
+			"commitment_months": months,
+		}
+
+		if business.GetString("invite_status") == domain.InviteStatusAccepted {
+			resp["qr_payload"] = business.GetString("qr_payload")
+		}
+
+		return e.JSON(http.StatusOK, resp)
 	}
 }
 
@@ -124,7 +147,7 @@ func InviteAccept(deps Deps) func(*core.RequestEvent) error {
 
 		token := e.Request.PathValue("token")
 
-		business, err := e.App.FindFirstRecordByFilter("businesses", "invite_token = {:token}", map[string]any{"token": token})
+		business, err := e.App.FindFirstRecordByFilter(domain.CollBusinesses, "invite_token = {:token}", map[string]any{"token": token})
 		if err != nil {
 			return e.JSON(http.StatusNotFound, map[string]string{"message": "convite não encontrado"})
 		}
@@ -136,21 +159,24 @@ func InviteAccept(deps Deps) func(*core.RequestEvent) error {
 
 		status := business.GetString("invite_status")
 
-		// Idempotency: already accepted with subscription, return existing payment link
-		if status == "accepted" && business.GetString("subscription_id") != "" {
-			sub, err := deps.Asaas.GetSubscription(e.Request.Context(), business.GetString("subscription_id"))
-			if err != nil {
-				return e.JSON(http.StatusBadGateway, map[string]string{"message": "erro ao buscar assinatura"})
-			}
-			return e.JSON(http.StatusOK, map[string]string{"payment_url": sub.PaymentLink})
+		// Idempotency: already accepted with authorization, return stored qr_payload
+		if status == domain.InviteStatusAccepted && business.GetString("authorization_id") != "" {
+			return e.JSON(http.StatusOK, map[string]string{"qr_payload": business.GetString("qr_payload")})
 		}
 
-		if status == "active" {
+		if status == domain.InviteStatusActive {
 			return e.JSON(http.StatusConflict, map[string]string{"message": "assinatura já está ativa"})
 		}
 
-		if status != "invited" {
+		if status != domain.InviteStatusInvited {
 			return e.JSON(http.StatusBadRequest, map[string]string{"message": "convite não pode ser aceito neste estado"})
+		}
+
+		tier := pricing.Tier(business.GetString("tier"))
+		commitment := pricing.Commitment(business.GetString("commitment"))
+		price, ok := pricing.Price(tier, commitment)
+		if !ok {
+			return e.JSON(http.StatusBadRequest, map[string]string{"message": "plano ou compromisso inválido"})
 		}
 
 		var body struct {
@@ -160,52 +186,106 @@ func InviteAccept(deps Deps) func(*core.RequestEvent) error {
 			return e.JSON(http.StatusBadRequest, map[string]string{"message": "corpo inválido"})
 		}
 
-		// Save terms acceptance timestamp before Asaas calls.
-		// Status stays "invited" until Asaas succeeds, so retries work.
-		business.Set("terms_accepted_at", time.Now().UTC().Format(time.RFC3339))
-		if err := e.App.Save(business); err != nil {
+		// Atomically claim this invite: re-read inside the transaction and
+		// transition "invited" -> "accepted" to prevent concurrent requests
+		// from both calling Asaas and creating duplicate authorizations.
+		err = e.App.RunInTransaction(func(txApp core.App) error {
+			fresh, err := txApp.FindFirstRecordByFilter(domain.CollBusinesses, "invite_token = {:token}", map[string]any{"token": token})
+			if err != nil {
+				return err
+			}
+			if fresh.GetString("invite_status") != domain.InviteStatusInvited {
+				return errAlreadyClaimed
+			}
+			fresh.Set("invite_status", domain.InviteStatusAccepted)
+			fresh.Set("terms_accepted_at", time.Now().UTC().Format(time.RFC3339))
+			return txApp.Save(fresh)
+		})
+		if errors.Is(err, errAlreadyClaimed) {
+			// Concurrent request claimed it. Check if it finished.
+			business, _ = e.App.FindFirstRecordByFilter(domain.CollBusinesses, "invite_token = {:token}", map[string]any{"token": token})
+			if business != nil && business.GetString("authorization_id") != "" {
+				return e.JSON(http.StatusOK, map[string]string{"qr_payload": business.GetString("qr_payload")})
+			}
+			return e.JSON(http.StatusConflict, map[string]string{"message": "convite está sendo processado"})
+		}
+		if err != nil {
 			return e.JSON(http.StatusInternalServerError, map[string]string{"message": "erro interno"})
 		}
 
-		clientName := business.GetString("client_name")
-		clientEmail := business.GetString("client_email")
+		// Status is "accepted" in DB. Concurrent requests are blocked.
 
-		customer, err := deps.Asaas.CreateCustomer(e.Request.Context(), clientName, clientEmail, body.CpfCnpj)
-		if err != nil {
-			e.App.Logger().Error("asaas create customer", "error", err)
-			return e.JSON(http.StatusBadGateway, map[string]string{"message": "erro ao criar conta de pagamento"})
+		// Reuse existing Asaas customer on retry (CreateAuthorization may
+		// have failed after CreateCustomer succeeded on a previous attempt).
+		customerID := business.GetString("customer_id")
+		if customerID == "" {
+			clientName := business.GetString("client_name")
+			clientEmail := business.GetString("client_email")
+			customer, err := deps.Asaas.CreateCustomer(e.Request.Context(), clientName, clientEmail, body.CpfCnpj)
+			if err != nil {
+				e.App.Logger().Error("asaas create customer", "error", err)
+				revertToInvited(e.App, token)
+				return e.JSON(http.StatusBadGateway, map[string]string{"message": "erro ao criar conta de pagamento"})
+			}
+			customerID = customer.ID
+			// Persist customer_id immediately so retries reuse it
+			if fresh, err := e.App.FindFirstRecordByFilter(domain.CollBusinesses, "invite_token = {:token}", map[string]any{"token": token}); err == nil {
+				fresh.Set("customer_id", customerID)
+				_ = e.App.Save(fresh)
+			}
 		}
 
-		sub, err := deps.Asaas.CreateSubscription(e.Request.Context(), asaasclient.CreateSubscriptionReq{
-			Customer:          customer.ID,
-			BillingType:       "PIX",
-			Value:             PriceParceiro,
-			NextDueDate:       time.Now().Format("2006-01-02"),
-			Cycle:             "MONTHLY",
-			Description:       "Rekan - Parceiro",
-			ExternalReference: business.Id,
-			Callback: &asaasclient.Callback{
-				SuccessURL:   deps.AppURL + "/convite/" + token + "/confirmacao",
-				AutoRedirect: true,
+		dueDate := time.Now().Format("2006-01-02")
+		auth, err := deps.Asaas.CreateAuthorization(e.Request.Context(), asaasclient.CreateAuthorizationReq{
+			CustomerID:  customerID,
+			Description: "Rekan - " + string(tier),
+			Frequency:   pricing.AsaasFrequency[commitment],
+			ContractID:  business.Id,
+			StartDate:   dueDate,
+			ImmediateQrCode: asaasclient.ImmediateQrCodeReq{
+				Value:             price,
+				OriginalValue:     price,
+				DueDate:           dueDate,
+				ExpirationSeconds: 86400, // 24h
 			},
 		})
 		if err != nil {
-			e.App.Logger().Error("asaas create subscription", "error", err)
-			return e.JSON(http.StatusBadGateway, map[string]string{"message": "erro ao criar assinatura"})
+			e.App.Logger().Error("asaas create authorization", "error", err)
+			revertToInvited(e.App, token)
+			return e.JSON(http.StatusBadGateway, map[string]string{"message": "erro ao criar autorização de pagamento"})
 		}
 
-		// Both Asaas calls succeeded. Set accepted + subscription_id atomically.
-		business.Set("invite_status", "accepted")
-		business.Set("subscription_id", sub.ID)
+		qrPayload := auth.Payload
+
+		// Re-read fresh record (the transaction saved a different in-memory copy).
+		business, err = e.App.FindFirstRecordByFilter(domain.CollBusinesses, "invite_token = {:token}", map[string]any{"token": token})
+		if err != nil {
+			return e.JSON(http.StatusInternalServerError, map[string]string{"message": "erro interno"})
+		}
+		business.Set("authorization_id", auth.ID)
+		business.Set("customer_id", customerID)
+		business.Set("qr_payload", qrPayload)
 		if err := e.App.Save(business); err != nil {
-			e.App.Logger().Error("save accepted status", "error", err)
+			e.App.Logger().Error("save authorization details", "error", err)
+			return e.JSON(http.StatusInternalServerError, map[string]string{"message": "erro interno"})
 		}
 
-		return e.JSON(http.StatusOK, map[string]string{"payment_url": sub.PaymentLink})
+		return e.JSON(http.StatusOK, map[string]string{"qr_payload": qrPayload})
 	}
 }
 
-func SubscriptionCancel(deps Deps) func(*core.RequestEvent) error {
+// revertToInvited is a best-effort rollback when Asaas calls fail after
+// the status was atomically set to "accepted". Allows the user to retry.
+func revertToInvited(app core.App, token string) {
+	biz, err := app.FindFirstRecordByFilter(domain.CollBusinesses, "invite_token = {:token}", map[string]any{"token": token})
+	if err != nil {
+		return
+	}
+	biz.Set("invite_status", domain.InviteStatusInvited)
+	_ = app.Save(biz)
+}
+
+func AuthorizationCancel(deps Deps) func(*core.RequestEvent) error {
 	return func(e *core.RequestEvent) error {
 		if deps.Asaas == nil {
 			return e.JSON(http.StatusServiceUnavailable, map[string]string{
@@ -214,7 +294,7 @@ func SubscriptionCancel(deps Deps) func(*core.RequestEvent) error {
 		}
 
 		businessID := e.Request.PathValue("id")
-		business, err := e.App.FindRecordById("businesses", businessID)
+		business, err := e.App.FindRecordById(domain.CollBusinesses, businessID)
 		if err != nil {
 			return e.JSON(http.StatusNotFound, map[string]string{"message": "negócio não encontrado"})
 		}
@@ -222,17 +302,17 @@ func SubscriptionCancel(deps Deps) func(*core.RequestEvent) error {
 			return e.JSON(http.StatusForbidden, map[string]string{"message": "acesso negado"})
 		}
 
-		subID := business.GetString("subscription_id")
-		if subID == "" || business.GetString("invite_status") != "active" {
+		authID := business.GetString("authorization_id")
+		if authID == "" || business.GetString("invite_status") != domain.InviteStatusActive {
 			return e.JSON(http.StatusBadRequest, map[string]string{"message": "nenhuma assinatura ativa"})
 		}
 
-		if err := deps.Asaas.CancelSubscription(e.Request.Context(), subID); err != nil {
-			e.App.Logger().Error("asaas cancel subscription", "error", err)
+		if err := deps.Asaas.CancelAuthorization(e.Request.Context(), authID); err != nil {
+			e.App.Logger().Error("asaas cancel authorization", "error", err)
 			return e.JSON(http.StatusBadGateway, map[string]string{"message": "erro ao cancelar assinatura"})
 		}
 
-		business.Set("invite_status", "cancelled")
+		business.Set("invite_status", domain.InviteStatusCancelled)
 		if err := e.App.Save(business); err != nil {
 			return e.JSON(http.StatusInternalServerError, map[string]string{"message": "erro interno"})
 		}

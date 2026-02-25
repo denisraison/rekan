@@ -7,6 +7,7 @@ import (
 
 	"go.mau.fi/whatsmeow/types/events"
 
+	"github.com/denisraison/rekan/api/internal/domain"
 	"github.com/denisraison/rekan/api/internal/transcribe"
 	"github.com/pocketbase/pocketbase/core"
 	"github.com/pocketbase/pocketbase/tools/filesystem"
@@ -54,16 +55,16 @@ func handleMessage(deps HandlerDeps, evt *events.Message) {
 
 	switch {
 	case msg.GetConversation() != "":
-		msgType = "text"
+		msgType = domain.MsgTypeText
 		content = msg.GetConversation()
 	case msg.GetExtendedTextMessage() != nil:
-		msgType = "text"
+		msgType = domain.MsgTypeText
 		content = msg.GetExtendedTextMessage().GetText()
 	case msg.GetAudioMessage() != nil:
-		msgType = "audio"
+		msgType = domain.MsgTypeAudio
 		content = transcribeAudio(ctx, deps, evt)
 	case msg.GetImageMessage() != nil:
-		msgType = "image"
+		msgType = domain.MsgTypeImage
 		if msg.GetImageMessage().GetCaption() != "" {
 			content = msg.GetImageMessage().GetCaption()
 		}
@@ -73,19 +74,19 @@ func handleMessage(deps HandlerDeps, evt *events.Message) {
 	}
 
 	// Deduplicate
-	existing, _ := deps.App.FindFirstRecordByFilter("messages", "wa_message_id = {:id}", map[string]any{"id": waMessageID})
+	existing, _ := deps.App.FindFirstRecordByFilter(domain.CollMessages, "wa_message_id = {:id}", map[string]any{"id": waMessageID})
 	if existing != nil {
 		return
 	}
 
 	// Match phone to business
 	businessID := ""
-	business, _ := deps.App.FindFirstRecordByFilter("businesses", "phone = {:phone}", map[string]any{"phone": phone})
+	business, _ := deps.App.FindFirstRecordByFilter(domain.CollBusinesses, "phone = {:phone}", map[string]any{"phone": phone})
 	if business != nil {
 		businessID = business.Id
 	}
 
-	collection, err := deps.App.FindCollectionByNameOrId("messages")
+	collection, err := deps.App.FindCollectionByNameOrId(domain.CollMessages)
 	if err != nil {
 		log.Printf("whatsapp: messages collection not found: %v", err)
 		return
@@ -98,7 +99,7 @@ func handleMessage(deps HandlerDeps, evt *events.Message) {
 	record.Set("phone", phone)
 	record.Set("type", msgType)
 	record.Set("content", content)
-	record.Set("direction", "incoming")
+	record.Set("direction", domain.DirectionIncoming)
 	record.Set("wa_timestamp", waTimestamp.UTC().Format(time.RFC3339))
 	record.Set("wa_message_id", waMessageID)
 

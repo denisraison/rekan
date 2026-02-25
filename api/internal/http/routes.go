@@ -20,7 +20,7 @@ func RegisterRoutes(rtr *router.Router[*core.RequestEvent], deps handlers.Deps) 
 
 	// Invite management (auth required)
 	rtr.POST("/api/businesses/{id}/invites:send", handlers.InviteSend(deps)).Bind(auth)
-	rtr.POST("/api/businesses/{id}/subscription:cancel", handlers.SubscriptionCancel(deps)).Bind(auth)
+	rtr.POST("/api/businesses/{id}/authorization:cancel", handlers.AuthorizationCancel(deps)).Bind(auth)
 
 	// Operator tool (single-post generation from WhatsApp message)
 	rtr.POST("/api/businesses/{id}/posts:generateFromMessage", handlers.OperatorGenerate(deps)).Bind(auth)

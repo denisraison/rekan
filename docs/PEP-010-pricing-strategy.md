@@ -61,15 +61,15 @@ Everything needed to go live. Three tiers, commitment plans, automatic payments 
 
 ### Commitment pricing
 
-| Plan | Mensal | Trimestral | Semestral |
-|---|---|---|---|
-| Basico | R$69,90 | R$179,70 (R$59,90/mes) | R$299,40 (R$49,90/mes) |
-| **Parceiro** | **R$149,90** | **R$299,70 (R$99,90/mes)** | **R$539,40 (R$89,90/mes)** |
-| Profissional | R$249,90 | R$599,70 (R$199,90/mes) | R$1.049,40 (R$174,90/mes) |
+| Plan | Mensal | Trimestral |
+|---|---|---|
+| Basico | R$69,90 | R$179,70 (R$59,90/mes) |
+| **Parceiro** | **R$149,90** | **R$299,70 (R$99,90/mes)** |
+| Profissional | R$249,90 | R$599,70 (R$199,90/mes) |
 
 Note: the monthly Parceiro price is R$149.90 (full price). The "preco de lançamento" R$108.90 only applies to the monthly plan during the launch period, which makes the trimestral at R$99.90/month look like an even better deal. The MEI thinks: "I can pay R$149.90/month (or R$108.90 with the launch discount), OR I can commit to 3 months and pay R$99.90/month. Easy choice."
 
-**Why trimestral is the sweet spot:** R$299.70 is roughly one week of average MEI income (R$6,750/month). That's a real but manageable commitment. Annual at R$1,089+ is too large for most MEIs. Semestral at R$539 is a stretch but available for those who want it.
+**Why trimestral is the sweet spot:** R$299.70 is roughly one week of average MEI income (R$6,750/month). That's a real but manageable commitment.
 
 **The "infinite marketing budget" unlock.** Cohen: at WP Engine, 25% of signups chose annual prepay. That gave 3x the cash flow and meant they collected more cash each month than they spent on acquisition. "The marketing budget at WP Engine is not limited by money." For Rekan: if even 30% of clients choose trimestral, Elenice collects R$299.70 upfront per trimestral vs. R$108.90 per monthly. That's 2.75x the first-month cash. Combined with PEP-009 ad spend (R$40-55 acquisition cost per trial), trimestral clients pay back their acquisition cost on day 1. This means every real earned from ads can be immediately reinvested into more ads. The constraint shifts from cash to Elenice's capacity, which is where it should be.
 
@@ -97,6 +97,8 @@ The old subscription flow (Asaas `POST /subscriptions` with `BillingType: PIX`) 
 
 Pix Automatico eliminates this. The customer authorizes recurring debits once. All future charges are auto-debited from their bank account on the due date. No QR codes, no scanning, no reminders. Payment becomes invisible, like a credit card subscription but via Pix.
 
+**Pre-requisite:** The Asaas production account must have a Pix key (EVP) registered before creating authorizations. Without it, the API returns "Chave Pix nao encontrada." Create one via `POST /pix/addressKeys` with `{"type":"EVP"}` or through the Asaas dashboard.
+
 **How it works on Asaas:**
 
 1. **Authorization (once, on signup):** Call the Asaas authorization endpoint. Get back a QR code that combines the first charge + recurring debit authorization. Customer scans once. First payment is collected, and authorization becomes `ACTIVE`.
@@ -118,11 +120,14 @@ Pix Automatico eliminates this. The customer authorizes recurring debits once. A
 **DB schema changes (businesses collection):**
 
 - Remove: `subscription_id`
-- Add: `pix_authorization_id` (string, from Asaas authorization response)
-- Add: `tier` (string: `basico`, `parceiro`, `profissional`)
-- Add: `commitment` (string: `mensal`, `trimestral`, `semestral`)
+- Add: `authorization_id` (text, from Asaas authorization response, unique index)
+- Add: `customer_id` (text, Asaas customer ID, persists across retries)
+- Add: `tier` (select: `basico`, `parceiro`, `profissional`)
+- Add: `commitment` (select: `mensal`, `trimestral`)
 - Add: `next_charge_date` (date, when the next charge is due)
-- Add: `charge_amount` (number, the amount per billing cycle in BRL)
+- Add: `charge_pending` (bool, set before creating Asaas charge, cleared on webhook confirmation)
+- Add: `qr_payload` (text, Pix copia-e-cola string for inline QR code rendering)
+- Note: `charge_amount` was dropped in favor of runtime computation via `pricing.Price(tier, commitment)`
 
 **Webhook changes:**
 
@@ -160,20 +165,27 @@ Remove old events: `PAYMENT_OVERDUE`, `SUBSCRIPTION_DELETED` (no longer using su
 - [x] Include the boutique/founder angle: "O Rekan e um servico pequeno e pessoal. Eu conheco seu negocio, acompanho toda semana e cobro quando voce esquece de mandar conteudo. Nao e ferramenta, e parceiro." In cardapio message 1.
 - [x] Update `docs/guia-de-vendas.md` with the new cardapio and objection handling for "Por que tem tres planos?"
 - [x] Update BUSINESS.md: replaced old R$19 first-month cardapio with reference to guia-de-vendas, updated pricing table to 3 tiers, changed "7 day trial" to "first week".
-- [ ] Update cardapio to include commitment options (mensal/trimestral/semestral prices). Test whether this fits in a scannable WhatsApp message or needs a separate follow-up message.
-- [ ] Write the "trimestral pitch" for when the prospect is interested: "Se voce quiser garantir o preco de R$99,90/mes, tem o plano trimestral: R$299,70 por 3 meses. Voce economiza R$150 e nao precisa se preocupar com pagamento, debita automatico."
+- [x] Update cardapio to include commitment options (mensal/trimestral prices). Added trimestral column to plans table, added trimestral pitch to cardapio message 3, added note about strikethrough pricing strategy.
+- [x] Write the "trimestral pitch" for when the prospect is interested. Added to cardapio message 3 and "E caro" objection section.
 
 ### Code changes
 
-- [ ] Delete old subscription code: `CreateSubscription`, `UpdateSubscription`, `GetSubscription`, `CancelSubscription` from `asaas/client.go`. Delete `CreateSubscriptionReq` and `Subscription` types.
-- [ ] Add Pix Automatico methods to `asaas/client.go`: `CreateAuthorization(ctx, req) (Authorization, error)`, `CreateCharge(ctx, req) (Charge, error)`, `CancelAuthorization(ctx, id) error`.
-- [ ] Add DB migration: new fields `pix_authorization_id`, `tier`, `commitment`, `next_charge_date`, `charge_amount` on businesses. Remove `subscription_id`.
-- [ ] Rewrite `invite.go` InviteAccept: create authorization instead of subscription, accept tier + commitment from request body, compute `charge_amount` from tier + commitment matrix, store all new fields.
-- [ ] Update `convite/[token]/+page.svelte`: add tier and commitment selection UI. Show prices from the commitment table. Redirect to Asaas payment page as before.
-- [ ] Rewrite `webhooks.go`: handle Pix Automatico events (`PIX_AUTOMATIC_RECURRING_AUTHORIZATION_ACTIVATED`, `_CANCELLED`, `_REFUSED`, `PIX_AUTOMATIC_RECURRING_PAYMENT_INSTRUCTION_REFUSED`, `PAYMENT_CONFIRMED`). Remove old subscription events.
-- [ ] Add PocketBase cron job: daily charge creation for upcoming due dates. Register in `main.go`.
-- [ ] Update `(marketing)/+page.svelte`: add commitment toggle or display to the pricing grid (already has 3 tiers, needs commitment options).
-- [ ] Update tests: `invite_test.go`, `webhooks_test.go`, new `cron_test.go` for the charge scheduler.
+- [x] Delete old subscription code: `CreateSubscription`, `UpdateSubscription`, `GetSubscription`, `CancelSubscription` from `asaas/client.go`. Delete `CreateSubscriptionReq` and `Subscription` types. Also removed `get()` and `put()` helpers.
+- [x] Add Pix Automatico methods to `asaas/client.go`: `CreateAuthorization(ctx, req) (Authorization, error)`, `CreateCharge(ctx, req) (Charge, error)`, `CancelAuthorization(ctx, id) error`.
+- [x] Add DB migration: new fields `authorization_id`, `customer_id`, `tier`, `commitment`, `next_charge_date`, `charge_pending`, `qr_payload` on businesses. Unique index on `authorization_id`. Remove `subscription_id`. Note: `charge_amount` was replaced by runtime lookup via `pricing.Price(tier, commitment)`.
+- [x] Rewrite `invite.go` InviteAccept: create authorization instead of subscription, accept tier + commitment from request body. Uses DB transaction to atomically claim the invite (`invited` -> `accepted`) preventing duplicate Asaas authorizations. Reuses existing `customer_id` on retry. Returns `qr_payload` instead of `payment_url`. Reverts to `invited` on failure so user can retry.
+- [x] Update `convite/[token]/+page.svelte`: shows tier, commitment, and calculated price. Renders Pix QR code inline (via `qrcode` npm package) instead of redirecting to Asaas payment page. Polls for status change every 5s. Confirmation page (`confirmacao/+page.svelte`) gutted to a redirect shim.
+- [x] Rewrite `webhooks.go`: handles all Pix Automatico events (`AUTHORIZATION_ACTIVATED`, `_REFUSED`, `_CANCELLED`, `_EXPIRED`, `PAYMENT_CONFIRMED`, `PAYMENT_INSTRUCTION_REFUSED`, `PAYMENT_INSTRUCTION_CANCELLED`). All handlers are idempotent. Business lookup by `authorization_id` instead of `subscription_id`.
+- [x] Add PocketBase cron job: `billing.CreatePendingCharges()` runs daily at 10:00. Queries businesses due within 7 days, sets `charge_pending = true` before calling Asaas (crash safety), rolls back on failure. Registered in `main.go`. Nil-client guard for dev environments.
+- [x] Update `(marketing)/+page.svelte`: added mensal/trimestral toggle with dynamic prices. Trimestral view shows effective per-month price prominently with total below. WhatsApp CTA includes selected commitment.
+- [x] Update tests: `invite_test.go` and `webhooks_test.go` rewritten for new flow. New `billing/charges_test.go` (5 cases: charge creation, skip pending, skip far dates, skip non-active, nil client). New `asaas/sandbox_test.go` for real Asaas sandbox integration (skips without `ASAAS_SANDBOX_KEY`).
+
+**Additional work done (not in original checklist):**
+
+- [x] New `api/internal/pricing/` package: three-tier pricing matrix with `Price(tier, commitment)` lookup, `Months` map, validators. Replaces hardcoded `PriceParceiro` constant.
+- [x] New `api/internal/domain/` package: centralizes collection names, invite statuses, webhook event names, message types, billing type, post source. All handlers refactored to use these constants instead of raw strings.
+- [x] Route renamed: `/api/businesses/{id}/subscription:cancel` -> `/api/businesses/{id}/authorization:cancel`.
+- [x] Frontend types updated: `Business` interface reflects new fields (`authorization_id`, `customer_id`, `tier`, `commitment`, `next_charge_date`, `charge_pending`). New `Tier` and `Commitment` type aliases.
 
 **Gate:** End-to-end test in Asaas sandbox: create authorization, confirm first payment, cron creates next charge, auto-debit succeeds, webhook updates next_charge_date. Test with all 3 tiers and all 3 commitment periods.
 

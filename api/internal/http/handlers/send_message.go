@@ -11,6 +11,7 @@ import (
 	"go.mau.fi/whatsmeow/proto/waE2E"
 	"go.mau.fi/whatsmeow/types"
 
+	"github.com/denisraison/rekan/api/internal/domain"
 	"github.com/denisraison/rekan/api/internal/postingtime"
 	"github.com/pocketbase/pocketbase/core"
 )
@@ -39,7 +40,7 @@ func SendMessage(deps Deps) func(*core.RequestEvent) error {
 			return e.JSON(http.StatusBadRequest, map[string]string{"message": "Negócio e legenda são obrigatórios"})
 		}
 
-		business, err := e.App.FindRecordById("businesses", body.BusinessID)
+		business, err := e.App.FindRecordById(domain.CollBusinesses, body.BusinessID)
 		if err != nil {
 			return e.JSON(http.StatusNotFound, map[string]string{"message": "Negócio não encontrado"})
 		}
@@ -78,14 +79,14 @@ func SendMessage(deps Deps) func(*core.RequestEvent) error {
 		}
 
 		// Store outgoing message
-		collection, _ := e.App.FindCollectionByNameOrId("messages")
+		collection, _ := e.App.FindCollectionByNameOrId(domain.CollMessages)
 		if collection != nil {
 			record := core.NewRecord(collection)
 			record.Set("business", body.BusinessID)
 			record.Set("phone", phone)
-			record.Set("type", "text")
+			record.Set("type", domain.MsgTypeText)
 			record.Set("content", text)
-			record.Set("direction", "outgoing")
+			record.Set("direction", domain.DirectionOutgoing)
 			record.Set("wa_timestamp", time.Now().UTC().Format(time.RFC3339))
 			if err := e.App.Save(record); err != nil {
 				log.Printf("send_message: failed to save outgoing message: %v", err)
@@ -106,9 +107,9 @@ func SendMessage(deps Deps) func(*core.RequestEvent) error {
 				noteRecord := core.NewRecord(collection)
 				noteRecord.Set("business", body.BusinessID)
 				noteRecord.Set("phone", phone)
-				noteRecord.Set("type", "text")
+				noteRecord.Set("type", domain.MsgTypeText)
 				noteRecord.Set("content", noteText)
-				noteRecord.Set("direction", "outgoing")
+				noteRecord.Set("direction", domain.DirectionOutgoing)
 				noteRecord.Set("wa_timestamp", time.Now().UTC().Format(time.RFC3339))
 				if err := e.App.Save(noteRecord); err != nil {
 					log.Printf("send_message: failed to save production note message: %v", err)

@@ -36,25 +36,41 @@ type Customer struct {
 	ID string `json:"id"`
 }
 
-type Subscription struct {
-	ID          string `json:"id"`
-	PaymentLink string `json:"paymentLink"`
+type Authorization struct {
+	ID      string `json:"id"`
+	Status  string `json:"status"`
+	Payload string `json:"payload"` // Pix copia-e-cola for the combined QR code
 }
 
-type Callback struct {
-	SuccessURL   string `json:"successUrl"`
-	AutoRedirect bool   `json:"autoRedirect"`
+type ImmediateQrCodeReq struct {
+	Value             float64 `json:"value"`
+	OriginalValue     float64 `json:"originalValue"`
+	DueDate           string  `json:"dueDate"`
+	ExpirationSeconds int     `json:"expirationSeconds"`
 }
 
-type CreateSubscriptionReq struct {
-	Customer          string    `json:"customer"`
-	BillingType       string    `json:"billingType"`
-	Value             float64   `json:"value"`
-	NextDueDate       string    `json:"nextDueDate"`
-	Cycle             string    `json:"cycle"`
-	Description       string    `json:"description"`
-	ExternalReference string    `json:"externalReference,omitempty"`
-	Callback          *Callback `json:"callback,omitempty"`
+type CreateAuthorizationReq struct {
+	CustomerID       string             `json:"customerId"`
+	Description      string             `json:"description"`
+	Frequency        string             `json:"frequency"` // MONTHLY, WEEKLY, etc.
+	ContractID       string             `json:"contractId"`
+	StartDate        string             `json:"startDate"`
+	ImmediateQrCode  ImmediateQrCodeReq `json:"immediateQrCode"`
+}
+
+type Payment struct {
+	ID     string `json:"id"`
+	Status string `json:"status"`
+}
+
+type CreateChargeReq struct {
+	Customer                      string  `json:"customer"`
+	BillingType                   string  `json:"billingType"`
+	Value                         float64 `json:"value"`
+	DueDate                       string  `json:"dueDate"`
+	Description                   string  `json:"description"`
+	ExternalReference             string  `json:"externalReference,omitempty"`
+	PixAutomaticAuthorizationId   string  `json:"pixAutomaticAuthorizationId"`
 }
 
 func (c *Client) CreateCustomer(ctx context.Context, name, email, cpfCnpj string) (Customer, error) {
@@ -66,29 +82,24 @@ func (c *Client) CreateCustomer(ctx context.Context, name, email, cpfCnpj string
 	return out, nil
 }
 
-func (c *Client) CreateSubscription(ctx context.Context, req CreateSubscriptionReq) (Subscription, error) {
-	var out Subscription
-	if err := c.post(ctx, "/subscriptions", req, &out); err != nil {
-		return Subscription{}, fmt.Errorf("create subscription: %w", err)
+func (c *Client) CreateAuthorization(ctx context.Context, req CreateAuthorizationReq) (Authorization, error) {
+	var out Authorization
+	if err := c.post(ctx, "/pix/automatic/authorizations", req, &out); err != nil {
+		return Authorization{}, fmt.Errorf("create authorization: %w", err)
 	}
 	return out, nil
 }
 
-func (c *Client) UpdateSubscription(ctx context.Context, id string, value float64) error {
-	var out map[string]any
-	return c.put(ctx, "/subscriptions/"+id, map[string]float64{"value": value}, &out)
+func (c *Client) CancelAuthorization(ctx context.Context, id string) error {
+	return c.del(ctx, "/pix/automatic/authorizations/"+id)
 }
 
-func (c *Client) GetSubscription(ctx context.Context, id string) (Subscription, error) {
-	var out Subscription
-	if err := c.get(ctx, "/subscriptions/"+id, &out); err != nil {
-		return Subscription{}, fmt.Errorf("get subscription: %w", err)
+func (c *Client) CreateCharge(ctx context.Context, req CreateChargeReq) (Payment, error) {
+	var out Payment
+	if err := c.post(ctx, "/payments", req, &out); err != nil {
+		return Payment{}, fmt.Errorf("create charge: %w", err)
 	}
 	return out, nil
-}
-
-func (c *Client) CancelSubscription(ctx context.Context, id string) error {
-	return c.del(ctx, "/subscriptions/"+id)
 }
 
 func (c *Client) post(ctx context.Context, path string, body, out any) error {
@@ -101,32 +112,6 @@ func (c *Client) post(ctx context.Context, path string, body, out any) error {
 		return fmt.Errorf("new request: %w", err)
 	}
 	req.Header.Set("Content-Type", "application/json")
-	req.Header.Set("access_token", c.apiKey)
-	resp, err := c.http.Do(req)
-	if err != nil {
-		return fmt.Errorf("http: %w", err)
-	}
-	defer resp.Body.Close()
-	if resp.StatusCode >= 400 {
-		var errResp struct {
-			Errors []struct {
-				Description string `json:"description"`
-			} `json:"errors"`
-		}
-		_ = json.NewDecoder(resp.Body).Decode(&errResp)
-		if len(errResp.Errors) > 0 {
-			return fmt.Errorf("asaas %s: %s", resp.Status, errResp.Errors[0].Description)
-		}
-		return fmt.Errorf("asaas %s", resp.Status)
-	}
-	return json.NewDecoder(resp.Body).Decode(out)
-}
-
-func (c *Client) get(ctx context.Context, path string, out any) error {
-	req, err := http.NewRequestWithContext(ctx, http.MethodGet, c.baseURL+path, nil)
-	if err != nil {
-		return fmt.Errorf("new request: %w", err)
-	}
 	req.Header.Set("access_token", c.apiKey)
 	resp, err := c.http.Do(req)
 	if err != nil {
@@ -172,35 +157,4 @@ func (c *Client) del(ctx context.Context, path string) error {
 		return fmt.Errorf("asaas %s", resp.Status)
 	}
 	return nil
-}
-
-func (c *Client) put(ctx context.Context, path string, body, out any) error {
-	b, err := json.Marshal(body)
-	if err != nil {
-		return fmt.Errorf("marshal: %w", err)
-	}
-	req, err := http.NewRequestWithContext(ctx, http.MethodPut, c.baseURL+path, bytes.NewReader(b))
-	if err != nil {
-		return fmt.Errorf("new request: %w", err)
-	}
-	req.Header.Set("Content-Type", "application/json")
-	req.Header.Set("access_token", c.apiKey)
-	resp, err := c.http.Do(req)
-	if err != nil {
-		return fmt.Errorf("http: %w", err)
-	}
-	defer resp.Body.Close()
-	if resp.StatusCode >= 400 {
-		var errResp struct {
-			Errors []struct {
-				Description string `json:"description"`
-			} `json:"errors"`
-		}
-		_ = json.NewDecoder(resp.Body).Decode(&errResp)
-		if len(errResp.Errors) > 0 {
-			return fmt.Errorf("asaas %s: %s", resp.Status, errResp.Errors[0].Description)
-		}
-		return fmt.Errorf("asaas %s", resp.Status)
-	}
-	return json.NewDecoder(resp.Body).Decode(out)
 }

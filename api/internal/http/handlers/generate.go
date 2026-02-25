@@ -6,6 +6,7 @@ import (
 	"net/http"
 	"strings"
 
+	"github.com/denisraison/rekan/api/internal/domain"
 	"github.com/denisraison/rekan/eval"
 	"github.com/google/uuid"
 	"github.com/pocketbase/dbx"
@@ -22,7 +23,7 @@ func GeneratePosts(deps Deps) func(*core.RequestEvent) error {
 	return func(e *core.RequestEvent) error {
 		businessID := e.Request.PathValue("id")
 
-		business, err := e.App.FindRecordById("businesses", businessID)
+		business, err := e.App.FindRecordById(domain.CollBusinesses, businessID)
 		if err != nil {
 			return e.JSON(http.StatusNotFound, map[string]string{"message": "negócio não encontrado"})
 		}
@@ -53,7 +54,7 @@ func GeneratePosts(deps Deps) func(*core.RequestEvent) error {
 		hooks := eval.ExtractHooks(posts)
 
 		batchID := uuid.New().String()
-		collection, err := e.App.FindCollectionByNameOrId("posts")
+		collection, err := e.App.FindCollectionByNameOrId(domain.CollPosts)
 		if err != nil {
 			return fmt.Errorf("find posts collection: %w", err)
 		}
@@ -145,7 +146,7 @@ func businessToProfile(record *core.Record) (eval.BusinessProfile, error) {
 }
 
 func loadPreviousHooks(app core.App, businessID string) ([]string, error) {
-	records, err := app.FindAllRecords("posts", dbx.HashExp{"business": businessID})
+	records, err := app.FindAllRecords(domain.CollPosts, dbx.HashExp{"business": businessID})
 	if err != nil {
 		return nil, err
 	}

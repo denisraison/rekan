@@ -6,9 +6,11 @@ const ACCEPT_URL = `**/api/invites/${TOKEN}/accept`;
 const BASE_INVITE = {
 	business_name: 'Padaria Dona Elza',
 	client_name: 'Ana',
-	status: 'invited',
-	price_first_month: 19,
-	price_monthly: 108.9,
+	invite_status: 'invited',
+	tier: 'parceiro',
+	commitment: 'mensal',
+	price: 108.9,
+	commitment_months: 1,
 };
 
 // Valid CPF: 529.982.247-25
@@ -44,16 +46,17 @@ test.describe('invite page', () => {
 
 		await expect(page.getByText('Ana', { exact: false })).toBeVisible();
 		await expect(page.getByText('Padaria Dona Elza')).toBeVisible();
+		await expect(page.getByText('Parceiro')).toBeVisible();
 		await expect(page.getByLabel('CPF ou CNPJ')).toBeVisible();
 		await expect(page.getByLabel('Li e aceito os Termos de Uso')).toBeVisible();
 		await expect(page.getByRole('button', { name: /Aceitar/ })).toBeVisible();
 	});
 
-	test('active status shows account active message and WhatsApp link', async ({ page }) => {
-		await mockInvite(page, { ...BASE_INVITE, status: 'active' });
+	test('active status shows success message and WhatsApp link', async ({ page }) => {
+		await mockInvite(page, { ...BASE_INVITE, invite_status: 'active' });
 		await page.goto(`/convite/${TOKEN}`);
 
-		await expect(page.getByText('Sua conta já está ativa')).toBeVisible();
+		await expect(page.getByText('Tudo certo')).toBeVisible();
 		await expect(page.getByRole('link', { name: /WhatsApp/ })).toHaveAttribute('href', /wa\.me/);
 	});
 
@@ -79,15 +82,12 @@ test.describe('invite page', () => {
 		const input = page.getByLabel('CPF ou CNPJ');
 		const submit = page.getByRole('button', { name: /Aceitar/ });
 
-		// Check the terms so validation reaches CPF check
 		await page.getByLabel('Li e aceito os Termos de Uso').check();
 
-		// Type invalid CPF and submit
 		await input.fill('12345678900');
 		await submit.click();
 		await expect(page.getByText('CPF ou CNPJ inválido')).toBeVisible();
 
-		// Type valid CPF, attempt submit (error should clear)
 		await input.fill('');
 		await input.pressSequentially(VALID_CPF);
 		await expect(page.getByText('CPF ou CNPJ inválido')).not.toBeVisible();
@@ -105,13 +105,13 @@ test.describe('invite page', () => {
 		await expect(page.getByText('Você precisa aceitar os Termos de Uso.')).toBeVisible();
 	});
 
-	test('accept flow sends POST and redirects to payment URL', async ({ page }) => {
+	test('accept flow shows QR code for payment', async ({ page }) => {
 		await mockInvite(page, BASE_INVITE);
 		await page.route(ACCEPT_URL, (route) => {
 			route.fulfill({
 				status: 200,
 				contentType: 'application/json',
-				body: JSON.stringify({ payment_url: 'https://pay.example.com/checkout' }),
+				body: JSON.stringify({ qr_payload: '00020126580014br.gov.bcb.pix0136test-payload' }),
 			});
 		});
 
@@ -120,7 +120,6 @@ test.describe('invite page', () => {
 		await page.getByLabel('CPF ou CNPJ').pressSequentially(VALID_CPF);
 		await page.getByLabel('Li e aceito os Termos de Uso').check();
 
-		// Verify the POST to accept is made when clicking submit
 		const [request] = await Promise.all([
 			page.waitForRequest((req) => req.url().includes('/accept') && req.method() === 'POST'),
 			page.getByRole('button', { name: /Aceitar/ }).click(),
@@ -128,48 +127,63 @@ test.describe('invite page', () => {
 
 		const body = JSON.parse(request.postData() ?? '{}');
 		expect(body.cpf_cnpj).toBe(VALID_CPF);
+
+		// QR code and copy button should appear
+		await expect(page.getByText('Escaneie o QR Code')).toBeVisible();
+		await expect(page.getByRole('button', { name: 'Copiar' })).toBeVisible();
+		await expect(page.getByText('Aguardando confirmação do pagamento')).toBeVisible();
 	});
-});
 
-// --- Confirmation page: /convite/[token]/confirmacao ---
+	test('accepted status with qr_payload shows QR code', async ({ page }) => {
+		await mockInvite(page, {
+			...BASE_INVITE,
+			invite_status: 'accepted',
+			qr_payload: '00020126580014br.gov.bcb.pix0136test-payload',
+		});
+		await page.goto(`/convite/${TOKEN}`);
 
-test.describe('confirmation page', () => {
-	test('accepted status shows spinner and waiting message', async ({ page }) => {
-		await mockInvite(page, { ...BASE_INVITE, status: 'accepted' });
-		await page.goto(`/convite/${TOKEN}/confirmacao`);
-
-		await expect(page.getByText('Aguardando confirmação')).toBeVisible();
+		await expect(page.getByText('Escaneie o QR Code')).toBeVisible();
 		await expect(page.locator('.animate-spin')).toBeVisible();
-	});
-
-	test('active status shows success screen', async ({ page }) => {
-		await mockInvite(page, { ...BASE_INVITE, status: 'active', client_name: 'Ana' });
-		await page.goto(`/convite/${TOKEN}/confirmacao`);
-
-		await expect(page.getByText('Tudo certo')).toBeVisible();
-		await expect(page.getByText('Pagamento confirmado')).toBeVisible();
-		await expect(page.getByRole('link', { name: /WhatsApp/ })).toBeVisible();
 	});
 
 	test('polling transitions from accepted to active', async ({ page }) => {
 		let callCount = 0;
 		await page.route(isInviteGet, (route) => {
 			callCount++;
-			const status = callCount <= 1 ? 'accepted' : 'active';
-			route.fulfill({
-				status: 200,
-				contentType: 'application/json',
-				body: JSON.stringify({ ...BASE_INVITE, status, client_name: 'Ana' }),
-			});
+			if (callCount <= 1) {
+				route.fulfill({
+					status: 200,
+					contentType: 'application/json',
+					body: JSON.stringify({
+						...BASE_INVITE,
+						invite_status: 'accepted',
+						qr_payload: '00020126580014br.gov.bcb.pix0136test-payload',
+					}),
+				});
+			} else {
+				route.fulfill({
+					status: 200,
+					contentType: 'application/json',
+					body: JSON.stringify({ ...BASE_INVITE, invite_status: 'active', client_name: 'Ana' }),
+				});
+			}
 		});
 
+		await page.goto(`/convite/${TOKEN}`);
+
+		await expect(page.getByText('Aguardando confirmação do pagamento')).toBeVisible();
+		await expect(page.getByText('Tudo certo')).toBeVisible({ timeout: 10000 });
+	});
+});
+
+// --- Confirmation page redirects to invite page ---
+
+test.describe('confirmation page', () => {
+	test('redirects to invite page', async ({ page }) => {
+		await mockInvite(page, { ...BASE_INVITE, invite_status: 'active' });
 		await page.goto(`/convite/${TOKEN}/confirmacao`);
 
-		// First load: accepted, shows spinner
-		await expect(page.getByText('Aguardando confirmação')).toBeVisible();
-
-		// Wait for poll to fire and transition to active
-		await expect(page.getByText('Tudo certo')).toBeVisible({ timeout: 10000 });
-		await expect(page.getByText('Pagamento confirmado')).toBeVisible();
+		await page.waitForURL(`**/convite/${TOKEN}`);
+		await expect(page.getByText('Tudo certo')).toBeVisible();
 	});
 });

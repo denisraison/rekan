@@ -2,6 +2,22 @@
 	import LogoCombo from '$lib/components/LogoCombo.svelte';
 	import { SectionLabel, PhoneFrame, IgPost } from '$lib/components/marketing';
 
+	let commitment: 'mensal' | 'trimestral' = $state('mensal');
+
+	const prices = {
+		basico:       { mensal: 69_90, trimestral: 179_70 },
+		parceiro:     { mensal: 108_90, trimestral: 299_70 },
+		profissional: { mensal: 249_90, trimestral: 599_70 },
+	} as const;
+
+	function fmt(cents: number): string {
+		return (cents / 100).toFixed(2).replace('.', ',');
+	}
+
+	function monthly(cents: number): string {
+		return fmt(cents / 3);
+	}
+
 	function _reveal(node: HTMLElement) {
 		const observer = new IntersectionObserver(
 			(entries) => {
@@ -200,30 +216,44 @@
 		<h2 class="pricing-heading">Três planos. Sem pegadinha.</h2>
 		<p class="pricing-sub">Um social media manager cobra a partir de R$590/mês.</p>
 		<p class="pricing-guarantee">Garantia de 30 dias. Sem contrato.</p>
+		<div class="commitment-toggle">
+			<button class="toggle-option" class:active={commitment === 'mensal'} onclick={() => { commitment = 'mensal'; }}>Mensal</button>
+			<button class="toggle-option" class:active={commitment === 'trimestral'} onclick={() => { commitment = 'trimestral'; }}>
+				Trimestral
+				<span class="toggle-save">economize até 30%</span>
+			</button>
+		</div>
 		<div class="pricing-grid">
 			<div class="tier-card">
 				<h3 class="tier-name">Básico</h3>
 				<div class="tier-price">
 					<span class="tier-currency">R$</span>
-					<span class="tier-value">69,90</span>
+					<span class="tier-value">{commitment === 'mensal' ? fmt(prices.basico.mensal) : monthly(prices.basico.trimestral)}</span>
 					<span class="tier-period">/mês</span>
 				</div>
+				{#if commitment === 'trimestral'}
+					<p class="tier-total">R$ {fmt(prices.basico.trimestral)} por trimestre</p>
+				{/if}
 				<ul class="tier-features">
 					<li>8 posts por mês</li>
 					<li>Legendas + hashtags</li>
 				</ul>
 				<!-- TODO: replace phone number -->
-				<a href="https://wa.me/5500000000000?text=Oi,%20quero%20o%20plano%20Básico" target="_blank" rel="noopener" class="btn btn-ghost btn-block">Começar</a>
+				<a href="https://wa.me/5500000000000?text=Oi,%20quero%20o%20plano%20Básico%20{commitment}" target="_blank" rel="noopener" class="btn btn-ghost btn-block">Começar</a>
 			</div>
 			<div class="tier-card tier-card--featured">
 				<span class="tier-badge">Mais popular</span>
 				<h3 class="tier-name">Parceiro</h3>
 				<div class="tier-price">
 					<span class="tier-currency">R$</span>
-					<span class="tier-value">108,90</span>
+					<span class="tier-value">{commitment === 'mensal' ? fmt(prices.parceiro.mensal) : monthly(prices.parceiro.trimestral)}</span>
 					<span class="tier-period">/mês</span>
 				</div>
-				<p class="tier-original">de <s>R$149,90</s></p>
+				{#if commitment === 'mensal'}
+					<p class="tier-original">de <s>R$149,90</s></p>
+				{:else}
+					<p class="tier-total">R$ {fmt(prices.parceiro.trimestral)} por trimestre</p>
+				{/if}
 				<ul class="tier-features">
 					<li>12 posts por mês</li>
 					<li>Legendas + hashtags</li>
@@ -231,16 +261,19 @@
 					<li>Melhor horário pra postar</li>
 				</ul>
 				<!-- TODO: replace phone number -->
-				<a href="https://wa.me/5500000000000?text=Oi,%20quero%20o%20plano%20Parceiro" target="_blank" rel="noopener" class="btn btn-primary btn-block">Começar agora</a>
-				<p class="tier-daily">Menos de R$4 por dia</p>
+				<a href="https://wa.me/5500000000000?text=Oi,%20quero%20o%20plano%20Parceiro%20{commitment}" target="_blank" rel="noopener" class="btn btn-primary btn-block">Começar agora</a>
+				<p class="tier-daily">{commitment === 'mensal' ? 'Menos de R$4 por dia' : 'Menos de R$3,50 por dia'}</p>
 			</div>
 			<div class="tier-card">
 				<h3 class="tier-name">Profissional</h3>
 				<div class="tier-price">
 					<span class="tier-currency">R$</span>
-					<span class="tier-value">249,90</span>
+					<span class="tier-value">{commitment === 'mensal' ? fmt(prices.profissional.mensal) : monthly(prices.profissional.trimestral)}</span>
 					<span class="tier-period">/mês</span>
 				</div>
+				{#if commitment === 'trimestral'}
+					<p class="tier-total">R$ {fmt(prices.profissional.trimestral)} por trimestre</p>
+				{/if}
 				<ul class="tier-features">
 					<li>20 posts por mês</li>
 					<li>Tudo do Parceiro</li>
@@ -249,7 +282,7 @@
 					<li>Resposta prioritária</li>
 				</ul>
 				<!-- TODO: replace phone number -->
-				<a href="https://wa.me/5500000000000?text=Oi,%20quero%20o%20plano%20Profissional" target="_blank" rel="noopener" class="btn btn-ghost btn-block">Começar</a>
+				<a href="https://wa.me/5500000000000?text=Oi,%20quero%20o%20plano%20Profissional%20{commitment}" target="_blank" rel="noopener" class="btn btn-ghost btn-block">Começar</a>
 			</div>
 		</div>
 	</div>
@@ -683,8 +716,39 @@
 	}
 	.pricing-guarantee {
 		color: var(--text-muted);
-		margin-bottom: 48px;
+		margin-bottom: 28px;
 		font-size: 0.88rem;
+	}
+	.commitment-toggle {
+		display: inline-flex;
+		background: white;
+		border: 1px solid var(--border);
+		border-radius: var(--radius-full);
+		padding: 4px;
+		margin-bottom: 48px;
+	}
+	.toggle-option {
+		padding: 9px 24px;
+		border-radius: var(--radius-full);
+		font-size: 0.85rem;
+		font-weight: 500;
+		font-family: var(--font-primary);
+		color: var(--text-secondary);
+		background: transparent;
+		border: none;
+		cursor: pointer;
+		transition: all 200ms ease;
+	}
+	.toggle-option.active {
+		background: var(--coral);
+		color: white;
+		box-shadow: 0 2px 8px rgba(249, 115, 104, 0.25);
+	}
+	.toggle-save {
+		font-size: 0.72rem;
+		font-weight: 600;
+		margin-left: 6px;
+		opacity: 0.75;
 	}
 	.pricing-grid {
 		display: grid;
@@ -757,7 +821,8 @@
 		font-weight: 400;
 		color: var(--text-muted);
 	}
-	.tier-original {
+	.tier-original,
+	.tier-total {
 		font-size: 0.82rem;
 		color: var(--text-muted);
 		margin-bottom: 8px;

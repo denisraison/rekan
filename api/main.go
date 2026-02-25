@@ -11,6 +11,7 @@ import (
 	"github.com/pocketbase/pocketbase/plugins/migratecmd"
 
 	"github.com/denisraison/rekan/api/internal/asaas"
+	"github.com/denisraison/rekan/api/internal/billing"
 	apphttp "github.com/denisraison/rekan/api/internal/http"
 	"github.com/denisraison/rekan/api/internal/http/handlers"
 	"github.com/denisraison/rekan/api/internal/transcribe"
@@ -70,6 +71,10 @@ func run(ctx context.Context, getenv func(string) string) error {
 				waClient = wac
 			}
 		}
+
+		app.Cron().MustAdd("create-charges", "0 10 * * *", func() {
+			billing.CreatePendingCharges(app, asaasClient)
+		})
 
 		apphttp.RegisterRoutes(se.Router, handlers.Deps{
 			App:                 app,
