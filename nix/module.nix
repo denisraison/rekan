@@ -46,12 +46,16 @@ in
       wantedBy = [ "multi-user.target" ];
       after = [ "network.target" ];
 
+      # BAML runtime needs a cache directory on init
+      environment.XDG_CACHE_HOME = "/var/cache/rekan";
+
       serviceConfig = {
         ExecStart = "${cfg.package}/bin/api serve --http=127.0.0.1:${toString cfg.port} --dir=/var/lib/rekan";
         WorkingDirectory = "/var/lib/rekan";
         EnvironmentFile = cfg.envFile;
         DynamicUser = true;
         StateDirectory = "rekan";
+        CacheDirectory = "rekan";
         ProtectSystem = "strict";
         ProtectHome = true;
         NoNewPrivileges = true;
