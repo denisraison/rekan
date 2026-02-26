@@ -50,6 +50,10 @@ func run(ctx context.Context, getenv func(string) string) error {
 			disableRateLimits(app)
 		}
 
+		if err := configureBackups(app, getenv); err != nil {
+			log.Printf("warning: failed to configure backups: %v", err)
+		}
+
 		// Start WhatsApp client, store session alongside PocketBase data
 		dbPath := filepath.Join(app.DataDir(), "whatsapp.db")
 		wac, err := whatsapp.New(ctx, dbPath)
@@ -97,6 +101,25 @@ func run(ctx context.Context, getenv func(string) string) error {
 	})
 
 	return app.Start()
+}
+
+func configureBackups(app core.App, getenv func(string) string) error {
+	bucket := getenv("GCS_BACKUP_BUCKET")
+	if bucket == "" {
+		return nil
+	}
+
+	settings := app.Settings()
+	settings.Backups.Cron = "0 3 * * *" // daily at 03:00
+	settings.Backups.CronMaxKeep = 7
+	settings.Backups.S3.Enabled = true
+	settings.Backups.S3.Bucket = bucket
+	settings.Backups.S3.Region = getenv("GCS_BACKUP_REGION")
+	settings.Backups.S3.Endpoint = "https://storage.googleapis.com"
+	settings.Backups.S3.AccessKey = getenv("GCS_BACKUP_ACCESS_KEY")
+	settings.Backups.S3.Secret = getenv("GCS_BACKUP_SECRET")
+	settings.Backups.S3.ForcePathStyle = false
+	return app.Save(settings)
 }
 
 func disableRateLimits(app core.App) {
