@@ -37,7 +37,6 @@
 	let cpfCnpj = $state('');
 	let cpfCnpjError = $state('');
 	let termsAccepted = $state(false);
-	let termsExpanded = $state(false);
 	let submitting = $state(false);
 	let submitError = $state('');
 
@@ -188,9 +187,8 @@
 				<p class="text-sm mb-4" style="color: var(--text-secondary)">
 					Este convite não é mais válido. Entre em contato pelo WhatsApp para solicitar um novo.
 				</p>
-				<!-- TODO: replace phone number -->
 				<a
-					href="https://wa.me/5500000000000?text=Oi,%20meu%20convite%20expirou"
+					href="https://wa.me/5511940699184?text=Oi,%20meu%20convite%20expirou"
 					target="_blank"
 					rel="noopener"
 					class="inline-block px-5 py-2.5 rounded-full text-sm font-medium"
@@ -230,9 +228,8 @@
 				<p class="text-sm mb-4" style="color: var(--text-secondary)">
 					Pagamento confirmado. O Rekan já está pronto para gerar conteúdo para o seu negócio. Em breve você receberá seus primeiros posts pelo WhatsApp.
 				</p>
-				<!-- TODO: replace phone number -->
 				<a
-					href="https://wa.me/5500000000000?text=Oi,%20acabei%20de%20assinar!"
+					href="https://wa.me/5511940699184?text=Oi,%20acabei%20de%20assinar!"
 					target="_blank"
 					rel="noopener"
 					class="inline-block px-5 py-2.5 rounded-full text-sm font-medium"
@@ -254,9 +251,8 @@
 						<p class="text-sm mb-4" style="color: var(--text-secondary)">
 							Se você já realizou o pagamento, pode levar alguns minutos para a confirmação. Caso tenha dúvidas, fale com a gente.
 						</p>
-						<!-- TODO: replace phone number -->
-						<a
-							href="https://wa.me/5500000000000?text=Oi,%20fiz%20o%20pagamento%20mas%20nao%20confirmou"
+								<a
+							href="https://wa.me/5511940699184?text=Oi,%20fiz%20o%20pagamento%20mas%20nao%20confirmou"
 							target="_blank"
 							rel="noopener"
 							class="inline-block px-5 py-2.5 rounded-full text-sm font-medium"
@@ -346,40 +342,6 @@
 						{/if}
 					</label>
 
-					<div>
-						<button
-							onclick={() => { termsExpanded = !termsExpanded; }}
-							class="text-sm font-medium flex items-center gap-1"
-							style="color: var(--coral)"
-						>
-							<svg viewBox="0 0 20 20" fill="currentColor" width="16" height="16" class="transition-transform" style="transform: rotate({termsExpanded ? '90deg' : '0deg'})">
-								<path fill-rule="evenodd" d="M7.293 14.707a1 1 0 010-1.414L10.586 10 7.293 6.707a1 1 0 011.414-1.414l4 4a1 1 0 010 1.414l-4 4a1 1 0 01-1.414 0z" clip-rule="evenodd" />
-							</svg>
-							Termos de Uso
-						</button>
-
-						{#if termsExpanded}
-							<div
-								class="mt-2 p-4 rounded-xl text-xs leading-relaxed overflow-y-auto"
-								style="background: var(--bg); border: 1px solid var(--border); max-height: 300px; color: var(--text-secondary)"
-							>
-								<p class="font-semibold mb-2" style="color: var(--text)">Termos de Uso do Serviço Rekan</p>
-
-								<p class="mb-2"><strong>1. Descrição do Serviço.</strong> O Rekan é um serviço de geração de conteúdo para Instagram destinado a micro-empreendedores brasileiros. O serviço inclui a criação de legendas, hashtags e textos para stories personalizados para o seu negócio.</p>
-
-								<p class="mb-2"><strong>2. Preços e Pagamento.</strong> O valor do plano {tierNames[invite.tier] ?? invite.tier} é {priceDescription()}. O pagamento é realizado via Pix Automático. A assinatura é renovada automaticamente a cada período. Você tem uma garantia de 30 dias: se não estiver satisfeito, devolvemos o valor integral via Pix.</p>
-
-								<p class="mb-2"><strong>3. Cancelamento.</strong> Conforme o Art. 49 do Código de Defesa do Consumidor, você pode cancelar o serviço em até 7 dias após a contratação, com reembolso integral. Após esse prazo, o cancelamento pode ser solicitado a qualquer momento e será efetivado ao final do período já pago. Não há multa por cancelamento.</p>
-
-								<p class="mb-2"><strong>4. Proteção de Dados (LGPD).</strong> O Rekan é o controlador dos seus dados pessoais. Coletamos nome, email e dados do negócio para a prestação do serviço contratado. O CPF/CNPJ informado neste formulário é enviado diretamente ao processador de pagamentos (Asaas) e não é armazenado pelo Rekan. Seus dados não são compartilhados com terceiros para fins de marketing. Você pode solicitar a exclusão dos seus dados a qualquer momento entrando em contato conosco.</p>
-
-								<p class="mb-2"><strong>5. Uso do Conteúdo.</strong> Todo conteúdo gerado pelo Rekan é de sua propriedade e pode ser usado livremente no Instagram e em outras plataformas do seu negócio. O Rekan pode utilizar exemplos anonimizados para demonstração do serviço.</p>
-
-								<p><strong>6. Contato.</strong> Para dúvidas, cancelamentos ou solicitações relacionadas aos seus dados, entre em contato pelo WhatsApp.</p>
-							</div>
-						{/if}
-					</div>
-
 					<label class="flex items-start gap-2 cursor-pointer">
 						<input
 							type="checkbox"
@@ -388,7 +350,7 @@
 							style="accent-color: var(--coral)"
 						/>
 						<span class="text-sm" style="color: var(--text-secondary)">
-							Li e aceito os Termos de Uso
+							Li e aceito os <a href="/termos" target="_blank" rel="noopener" class="underline" style="color: var(--coral)">Termos de Uso</a>
 						</span>
 					</label>
 

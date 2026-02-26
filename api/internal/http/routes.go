@@ -14,6 +14,9 @@ func RegisterRoutes(rtr *router.Router[*core.RequestEvent], deps handlers.Deps) 
 	// Custom method on the business resource (Google API style: :verb suffix)
 	rtr.POST("/api/businesses/{id}/posts:generate", handlers.GeneratePosts(deps)).Bind(auth)
 
+	// Terms (public, no auth)
+	rtr.GET("/api/terms", handlers.Terms())
+
 	// Invite flow (public, no auth)
 	rtr.GET("/api/invites/{token}", handlers.InviteGet(deps))
 	rtr.POST("/api/invites/{token}/accept", handlers.InviteAccept(deps))

@@ -92,8 +92,7 @@
 			<a href="#como-funciona">Como funciona</a>
 			<a href="#exemplos">Exemplos</a>
 			<a href="#preco">Preço</a>
-			<!-- TODO: replace phone number -->
-			<a href="https://wa.me/5500000000000?text=Oi,%20quero%20saber%20mais%20sobre%20o%20Rekan" target="_blank" rel="noopener" class="btn btn-primary btn-sm">Começar</a>
+			<a href="https://wa.me/5511940699184?text=Oi,%20quero%20saber%20mais%20sobre%20o%20Rekan" target="_blank" rel="noopener" class="btn btn-primary btn-sm">Começar</a>
 		</div>
 	</div>
 </nav>
@@ -114,8 +113,7 @@
 			</p>
 			<p class="hero-tags">Padarias · Salões · Studios · Barbearias · Lojas · Academias</p>
 			<div class="hero-cta">
-				<!-- TODO: replace phone number -->
-				<a href="https://wa.me/5500000000000?text=Oi,%20quero%20saber%20mais%20sobre%20o%20Rekan" target="_blank" rel="noopener" class="btn btn-primary">Comece por R$ 69,90</a>
+					<a href="https://wa.me/5511940699184?text=Oi,%20quero%20saber%20mais%20sobre%20o%20Rekan" target="_blank" rel="noopener" class="btn btn-primary">Comece por R$ 69,90</a>
 				<a href="#como-funciona" class="btn btn-ghost">Como funciona</a>
 			</div>
 		</div>
@@ -238,8 +236,7 @@
 					<li>8 posts por mês</li>
 					<li>Legendas + hashtags</li>
 				</ul>
-				<!-- TODO: replace phone number -->
-				<a href="https://wa.me/5500000000000?text=Oi,%20quero%20o%20plano%20Básico%20{commitment}" target="_blank" rel="noopener" class="btn btn-ghost btn-block">Começar</a>
+					<a href="https://wa.me/5511940699184?text=Oi,%20quero%20o%20plano%20Básico%20{commitment}" target="_blank" rel="noopener" class="btn btn-ghost btn-block">Começar</a>
 			</div>
 			<div class="tier-card tier-card--featured">
 				<span class="tier-badge">Mais popular</span>
@@ -260,8 +257,7 @@
 					<li>Direção de foto e roteiro de reels</li>
 					<li>Melhor horário pra postar</li>
 				</ul>
-				<!-- TODO: replace phone number -->
-				<a href="https://wa.me/5500000000000?text=Oi,%20quero%20o%20plano%20Parceiro%20{commitment}" target="_blank" rel="noopener" class="btn btn-primary btn-block">Começar agora</a>
+					<a href="https://wa.me/5511940699184?text=Oi,%20quero%20o%20plano%20Parceiro%20{commitment}" target="_blank" rel="noopener" class="btn btn-primary btn-block">Começar agora</a>
 				<p class="tier-daily">{commitment === 'mensal' ? 'Menos de R$4 por dia' : 'Menos de R$3,50 por dia'}</p>
 			</div>
 			<div class="tier-card">
@@ -275,14 +271,13 @@
 					<p class="tier-total">R$ {fmt(prices.profissional.trimestral)} por trimestre</p>
 				{/if}
 				<ul class="tier-features">
-					<li>20 posts por mês</li>
+					<li>16 posts por mês</li>
 					<li>Tudo do Parceiro</li>
 					<li>Chamada mensal de estratégia</li>
 					<li>Calendário de stories</li>
 					<li>Resposta prioritária</li>
 				</ul>
-				<!-- TODO: replace phone number -->
-				<a href="https://wa.me/5500000000000?text=Oi,%20quero%20o%20plano%20Profissional%20{commitment}" target="_blank" rel="noopener" class="btn btn-ghost btn-block">Começar</a>
+					<a href="https://wa.me/5511940699184?text=Oi,%20quero%20o%20plano%20Profissional%20{commitment}" target="_blank" rel="noopener" class="btn btn-ghost btn-block">Começar</a>
 			</div>
 		</div>
 	</div>
@@ -292,8 +287,7 @@
 <section class="final-cta">
 	<div class="final-cta-inner">
 		<h2>Bora <em>postar?</em></h2>
-		<!-- TODO: replace phone number -->
-		<a href="https://wa.me/5500000000000?text=Oi,%20quero%20saber%20mais%20sobre%20o%20Rekan" target="_blank" rel="noopener" class="btn btn-white">Comece agora</a>
+		<a href="https://wa.me/5511940699184?text=Oi,%20quero%20saber%20mais%20sobre%20o%20Rekan" target="_blank" rel="noopener" class="btn btn-white">Comece agora</a>
 	</div>
 </section>
 
@@ -304,6 +298,7 @@
 			<LogoCombo height={24} />
 		</div>
 		<p>Feito no Brasil, para empreendedores brasileiros.</p>
+		<a href="/termos" class="footer-link">Termos de Uso</a>
 	</div>
 </footer>
 
@@ -904,6 +899,16 @@
 	.footer-inner p {
 		color: rgba(255, 255, 255, 0.28);
 		font-size: 0.78rem;
+	}
+	.footer-link {
+		color: rgba(255, 255, 255, 0.28);
+		font-size: 0.72rem;
+		text-decoration: underline;
+		margin-top: 8px;
+		display: inline-block;
+	}
+	.footer-link:hover {
+		color: rgba(255, 255, 255, 0.45);
 	}
 
 	/* ============ ANIMATIONS ============ */

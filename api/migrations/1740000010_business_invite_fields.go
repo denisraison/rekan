@@ -23,6 +23,7 @@ func init() {
 			},
 			&core.DateField{Name: "invite_sent_at"},
 			&core.DateField{Name: "terms_accepted_at"},
+			&core.TextField{Name: "terms_accepted_text"},
 			&core.TextField{Name: "authorization_id"},
 			&core.TextField{Name: "customer_id"},
 			&core.SelectField{
@@ -49,6 +50,7 @@ func init() {
 && @request.body.invite_status:isset = false
 && @request.body.invite_sent_at:isset = false
 && @request.body.terms_accepted_at:isset = false
+&& @request.body.terms_accepted_text:isset = false
 && @request.body.authorization_id:isset = false
 && @request.body.customer_id:isset = false
 && @request.body.tier:isset = false
@@ -71,6 +73,7 @@ func init() {
 		collection.Fields.RemoveByName("invite_status")
 		collection.Fields.RemoveByName("invite_sent_at")
 		collection.Fields.RemoveByName("terms_accepted_at")
+		collection.Fields.RemoveByName("terms_accepted_text")
 		collection.Fields.RemoveByName("authorization_id")
 		collection.Fields.RemoveByName("customer_id")
 		collection.Fields.RemoveByName("tier")

@@ -11,6 +11,7 @@ import (
 	asaasclient "github.com/denisraison/rekan/api/internal/asaas"
 	"github.com/denisraison/rekan/api/internal/domain"
 	"github.com/denisraison/rekan/api/internal/pricing"
+	"github.com/denisraison/rekan/api/internal/terms"
 	"github.com/pocketbase/pocketbase/core"
 	"go.mau.fi/whatsmeow/proto/waE2E"
 	"go.mau.fi/whatsmeow/types"
@@ -199,6 +200,7 @@ func InviteAccept(deps Deps) func(*core.RequestEvent) error {
 			}
 			fresh.Set("invite_status", domain.InviteStatusAccepted)
 			fresh.Set("terms_accepted_at", time.Now().UTC().Format(time.RFC3339))
+			fresh.Set("terms_accepted_text", terms.Snapshot(tier, commitment, price))
 			return txApp.Save(fresh)
 		})
 		if errors.Is(err, errAlreadyClaimed) {
