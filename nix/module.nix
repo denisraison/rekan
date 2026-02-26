@@ -66,16 +66,18 @@ in
     };
 
     services.caddy.virtualHosts.${cfg.domain}.extraConfig = ''
-      root * ${cfg.webRoot}
-      try_files {path} /index.html
-      file_server
-
       handle /api/* {
         reverse_proxy localhost:${toString cfg.port}
       }
 
       handle /_/* {
         reverse_proxy localhost:${toString cfg.port}
+      }
+
+      handle {
+        root * ${cfg.webRoot}
+        try_files {path} /index.html
+        file_server
       }
     '';
   };
