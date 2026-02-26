@@ -6,12 +6,59 @@
     flake-utils.url = "github:numtide/flake-utils";
   };
 
-  outputs = { nixpkgs, flake-utils, ... }:
+  outputs = { self, nixpkgs, flake-utils, ... }:
+    {
+      nixosModules.default = import ./nix/module.nix self;
+    }
+    //
     flake-utils.lib.eachDefaultSystem (system:
       let
         pkgs = nixpkgs.legacyPackages.${system};
       in
       {
+        packages.api = (pkgs.buildGoModule.override { go = pkgs.go_1_26; }) {
+          pname = "rekan-api";
+          version = "0.1.0";
+          src = pkgs.lib.fileset.toSource {
+            root = ./.;
+            fileset = pkgs.lib.fileset.unions [
+              ./api
+              ./eval
+            ];
+          };
+          modRoot = "api";
+          subPackages = [ "." ];
+          vendorHash = "sha256-D0Xg/YeCTxKPmRb79YWlry2+BoIu1xAbP6sGOmyLN84=";
+          # BAML runtime panics in sandbox (no $HOME/.cache)
+          doCheck = false;
+          meta.mainProgram = "api";
+        };
+
+        packages.web = pkgs.stdenvNoCC.mkDerivation {
+          pname = "rekan-web";
+          version = "0.1.0";
+          src = ./web;
+          nativeBuildInputs = [ pkgs.nodejs pkgs.pnpm pkgs.pnpmConfigHook ];
+          pnpmDeps = pkgs.fetchPnpmDeps {
+            pname = "rekan-web";
+            version = "0.1.0";
+            src = ./web;
+            hash = "sha256-NEDrn34DMoN5CpYLhosCD8rUvs3yj+RToNTqZPgTZUo=";
+            fetcherVersion = 3;
+          };
+          buildPhase = ''
+            runHook preBuild
+            pnpm exec svelte-kit sync
+            pnpm build
+            runHook postBuild
+          '';
+          installPhase = ''
+            runHook preInstall
+            cp -r build $out
+            runHook postInstall
+          '';
+        };
+
         devShells.default = pkgs.mkShell {
           packages = with pkgs; [
             go_1_26
