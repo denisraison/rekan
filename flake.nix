@@ -3,106 +3,137 @@
 
   inputs = {
     nixpkgs.url = "github:NixOS/nixpkgs/nixpkgs-unstable";
-    flake-utils.url = "github:numtide/flake-utils";
   };
 
-  outputs = { self, nixpkgs, flake-utils, ... }:
+  outputs = { self, nixpkgs, ... }:
+    let
+      version = self.shortRev or self.dirtyShortRev or "dev";
+      systems = [ "x86_64-linux" "aarch64-linux" ];
+      forEachSystem = nixpkgs.lib.genAttrs systems;
+    in
     {
       nixosModules.default = import ./nix/module.nix self;
-    }
-    //
-    flake-utils.lib.eachDefaultSystem (system:
-      let
-        pkgs = nixpkgs.legacyPackages.${system};
-      in
-      {
-        packages.api = (pkgs.buildGoModule.override { go = pkgs.go_1_26; }) {
-          pname = "rekan-api";
-          version = "0.1.0";
-          src = pkgs.lib.fileset.toSource {
-            root = ./.;
-            fileset = pkgs.lib.fileset.unions [
-              ./api
-              ./eval
-            ];
-          };
-          modRoot = "api";
-          subPackages = [ "." ];
-          vendorHash = "sha256-D0Xg/YeCTxKPmRb79YWlry2+BoIu1xAbP6sGOmyLN84=";
-          # BAML runtime panics in sandbox (no $HOME/.cache)
-          doCheck = false;
-          meta.mainProgram = "api";
-        };
 
-        packages.web = pkgs.stdenvNoCC.mkDerivation {
-          pname = "rekan-web";
-          version = "0.1.0";
-          src = ./web;
-          nativeBuildInputs = [ pkgs.nodejs pkgs.pnpm pkgs.pnpmConfigHook ];
-          pnpmDeps = pkgs.fetchPnpmDeps {
+      packages = forEachSystem (system:
+        let
+          pkgs = nixpkgs.legacyPackages.${system};
+
+          # BAML downloads a native .so at init; pre-fetch it for the Nix sandbox
+          bamlVersion = "0.219.0";
+          bamlLib = pkgs.fetchurl {
+            url = "https://github.com/boundaryml/baml/releases/download/${bamlVersion}/libbaml_cffi-${bamlArch}.so";
+            hash = bamlHash;
+          };
+          bamlArch = {
+            x86_64-linux = "x86_64-unknown-linux-gnu";
+            aarch64-linux = "aarch64-unknown-linux-gnu";
+          }.${system} or (throw "unsupported system for BAML: ${system}");
+          bamlHash = {
+            x86_64-linux = "sha256-MG+gS6pVAQ0jhr5hOwt2gbVmXh9c+0QcMjyaL86gfJc=";
+            aarch64-linux = "sha256-xVRWDvIsvWPOy94BzUolVzs/wX2k/goTzedvxS+x+s0=";
+          }.${system} or (throw "unsupported system for BAML: ${system}");
+        in
+        {
+          api = (pkgs.buildGoModule.override { go = pkgs.go_1_26; }) {
+            pname = "rekan-api";
+            version = version;
+            src = pkgs.lib.fileset.toSource {
+              root = ./.;
+              fileset = pkgs.lib.fileset.unions [
+                ./api
+                ./eval
+              ];
+            };
+            modRoot = "api";
+            subPackages = [ "." ];
+            vendorHash = "sha256-JdSotTL3E3RWz/2lzUf2eXKf23tuhV1W6BcHvD9+2x8=";
+            proxyVendor = true;
+            preCheck = "export BAML_LIBRARY_PATH=${bamlLib}";
+            meta.mainProgram = "api";
+          };
+
+          web = pkgs.stdenvNoCC.mkDerivation {
             pname = "rekan-web";
-            version = "0.1.0";
+            version = version;
             src = ./web;
-            hash = "sha256-NEDrn34DMoN5CpYLhosCD8rUvs3yj+RToNTqZPgTZUo=";
-            fetcherVersion = 3;
+            nativeBuildInputs = [ pkgs.nodejs pkgs.pnpm pkgs.pnpmConfigHook ];
+            pnpmDeps = pkgs.fetchPnpmDeps {
+              pname = "rekan-web";
+              version = "0.1.0";
+              src = ./web;
+              hash = "sha256-NEDrn34DMoN5CpYLhosCD8rUvs3yj+RToNTqZPgTZUo=";
+              fetcherVersion = 3;
+            };
+            buildPhase = ''
+              runHook preBuild
+              pnpm exec svelte-kit sync
+              pnpm build
+              runHook postBuild
+            '';
+            installPhase = ''
+              runHook preInstall
+              cp -r build $out
+              runHook postInstall
+            '';
           };
-          buildPhase = ''
-            runHook preBuild
-            pnpm exec svelte-kit sync
-            pnpm build
-            runHook postBuild
-          '';
-          installPhase = ''
-            runHook preInstall
-            cp -r build $out
-            runHook postInstall
-          '';
-        };
+        }
+      );
 
-        devShells.default = pkgs.mkShell {
-          packages = with pkgs; [
-            go_1_26
-            gopls
-            nodejs
-            pnpm
-            netcat-gnu
-            playwright-driver.browsers
-          ];
-
-          LD_LIBRARY_PATH = pkgs.lib.makeLibraryPath (with pkgs; [
-            nss
-            nspr
-            atk
-            at-spi2-atk
-            libx11
-            libxcomposite
-            libxdamage
-            libxext
-            libxfixes
-            libxrandr
-            libxcb
-            mesa
-            expat
-            libxkbcommon
-            alsa-lib
-            dbus
-            glib
-            at-spi2-core
-            cups
-            pango
-            cairo
-            udev
-          ]);
-
-          shellHook = ''
-            export PATH="''${GOPATH:-$HOME/go}/bin:$PATH"
-            export PLAYWRIGHT_BROWSERS_PATH="${pkgs.playwright-driver.browsers}"
-            export PLAYWRIGHT_SKIP_BROWSER_DOWNLOAD=1
-            echo "rekan dev shell"
-            echo "  go    $(go version | cut -d' ' -f3)"
-            echo "  node  $(node --version)"
-            echo "  pnpm  $(pnpm --version)"
-          '';
-        };
+      checks = forEachSystem (system: {
+        inherit (self.packages.${system}) api web;
       });
+
+      devShells = forEachSystem (system:
+        let
+          pkgs = nixpkgs.legacyPackages.${system};
+        in
+        {
+          default = pkgs.mkShell {
+            packages = with pkgs; [
+              go_1_26
+              gopls
+              nodejs
+              pnpm
+              netcat-gnu
+              playwright-driver.browsers
+            ];
+
+            LD_LIBRARY_PATH = pkgs.lib.makeLibraryPath (with pkgs; [
+              nss
+              nspr
+              atk
+              at-spi2-atk
+              libx11
+              libxcomposite
+              libxdamage
+              libxext
+              libxfixes
+              libxrandr
+              libxcb
+              mesa
+              expat
+              libxkbcommon
+              alsa-lib
+              dbus
+              glib
+              at-spi2-core
+              cups
+              pango
+              cairo
+              udev
+            ]);
+
+            shellHook = ''
+              export PATH="''${GOPATH:-$HOME/go}/bin:$PATH"
+              export PLAYWRIGHT_BROWSERS_PATH="${pkgs.playwright-driver.browsers}"
+              export PLAYWRIGHT_SKIP_BROWSER_DOWNLOAD=1
+              echo "rekan dev shell"
+              echo "  go    $(go version | cut -d' ' -f3)"
+              echo "  node  $(node --version)"
+              echo "  pnpm  $(pnpm --version)"
+            '';
+          };
+        }
+      );
+    };
 }
