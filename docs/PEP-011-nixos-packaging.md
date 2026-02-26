@@ -2,7 +2,7 @@
 
 | Field       | Value            |
 | ----------- | ---------------- |
-| **Status**  | In Progress      |
+| **Status**  | Done             |
 | **Created** | 2026-02-26       |
 
 ## Context
@@ -90,7 +90,7 @@ Strip the placeholder scaffolding from the infra repo. Once Rekan brings its own
 - [x] Import `rekan.nixosModules.default` and configure `services.rekan`
 - [x] Rename hostname from `postador-prod` to `prod`
 - [x] Update `CLAUDE.md` to reflect the new structure
-- [ ] `nixos-rebuild switch` on the VPS, verify Rekan is running
+- [x] `nixos-rebuild switch` on the VPS, verify Rekan is running
 
 ### Gate
 
@@ -99,8 +99,12 @@ Infra repo has no app-specific build logic. `configuration.nix` has no PocketBas
 ## Consequences
 
 - Rekan owns its own deployment definition. The infra repo stays generic, it just imports app modules and sets options. Adding a new app to the VPS means adding a flake input and `services.foo.enable = true`, not writing systemd units and Caddy configs by hand.
-- Deployment is `nix flake update rekan && nixos-rebuild switch` in the infra repo. No build scripts, no rsync of binaries, no Docker.
+- Deployment is `nix flake lock --update-input rekan && git push` then `ssh root@server "nixos-rebuild switch --flake github:denisraison/infra#prod --refresh"`. No build scripts, no rsync, no Docker.
 - The frontend is served by Caddy as static files, no Node process in production.
 - The Go binary is built by Nix with the exact same toolchain every time. Reproducible across machines.
 - The `adapter-auto` to `adapter-static` switch means SSR is gone. All rendering happens client-side. This is fine because the app is behind auth and not SEO-sensitive, except for the terms/landing pages. Those can use `prerender = true` on specific routes if needed.
 - Cross-compilation from x86_64 to aarch64 is not possible because BAML's Go bindings require CGO with native code. The Go binary must be built natively on aarch64. `nixos-rebuild switch` on the VPS handles this (builds locally on the target). First build will be slow (~2 min on CAX11), subsequent builds are cached.
+- `nixos-rebuild --flake .#prod --target-host --build-host` does not work cross-arch because it tries to build `nixos-rebuild` itself locally for the target architecture. The workaround is to build on the server: `ssh root@server "nixos-rebuild switch --flake github:user/repo#host --refresh"`.
+- BAML runtime panics if neither `$HOME` nor `$XDG_CACHE_HOME` are set. `DynamicUser=true` does not set `$HOME`, so the NixOS module sets `CacheDirectory = "rekan"` and `XDG_CACHE_HOME = /var/cache/rekan`.
+- The server caches flake metadata aggressively. Always pass `--refresh` when deploying after pushing changes, otherwise `nixos-rebuild` may resolve a stale flake lockfile from cache.
+- App secrets live in `/etc/<app>.env` on the server (not in git, not in `/run/secrets` which is tmpfs). Edit directly via SSH and restart the service.
