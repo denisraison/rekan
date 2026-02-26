@@ -5,7 +5,7 @@
 
 ## Context
 
-Rekan is a boutique content partner for Brazilian MEIs, delivered via WhatsApp. Three tiers: Basico R$69.90, Parceiro R$108.90 (founder discount from R$149.90), Profissional R$249.90. All plans include a 30-day money-back guarantee. For ad-sourced leads, the R$19.90 first month survives as a coupon on trimestral plans only (see PEP-010). Organic growth through Elenice's network will get the first 5-10 clients, but paid acquisition through Meta Ads is the scalable channel.
+Rekan is a boutique content partner for Brazilian MEIs, delivered via WhatsApp. Three tiers: Basico R$69.90, Parceiro R$108.90 (founder discount from R$149.90), Profissional R$249.90. All plans include a 30-day money-back guarantee. Everyone gets the same offer, no special coupons for any channel. Organic growth through Elenice's network will get the first 5-10 clients, but paid acquisition through Meta Ads is the scalable channel.
 
 The opportunity: Meta's click-to-WhatsApp ad objective sends people directly into a WhatsApp conversation with Elenice. No landing page, no funnel, no friction. The ad IS the top of funnel, WhatsApp IS the sales floor.
 
@@ -43,7 +43,7 @@ Launch, measure, iterate over 2-3 weeks.
 - [ ] Week 2: add 1-2 new creatives to replace killed ones. Test different angles (pain vs. demonstration vs. social proof).
 - [ ] Week 3: if 20+ WhatsApp contacts collected, build 1% Lookalike audience from their phone numbers. Add as Ad Set C.
 
-**Gate:** Cost per WhatsApp conversation consistently under R$8. At least 15 conversations started. Elenice has converted at least 2 into R$19.90 trials.
+**Gate:** Cost per WhatsApp conversation consistently under R$8. At least 15 conversations started. Elenice has converted at least 2 into paying clients (full price + 30-day guarantee).
 
 ## Wave 3: Playbook + Niche Expansion
 
@@ -128,13 +128,13 @@ A confeiteira isn't comparing R$108.90 to GalilAI's R$28. She's comparing it to 
 
 4. **Peer stories in WhatsApp.** When delivering content, Elenice occasionally adds: "Esse tipo de post funcionou muito bem pra outra confeiteira, teve muita mensagem no direct." Informal, peer-based, costs nothing.
 
-### The R$19.90 to R$108.90 transition
+### The day-20 check-in
 
-This is the churn danger zone. Around day 20 of the first month, Elenice sends:
+No price transition to manage (client pays full price from day 1 with 30-day guarantee). The check-in reinforces value and nudges toward trimestral:
 
-> "Oi [nome], esse mes voce postou [X] vezes no Instagram. Mes que vem o plano renova por R$108,90. Isso da menos de R$4 por dia pra nunca mais ficar sem post. Quer continuar?"
+> "Oi [nome], esse mes voce postou [X] vezes no Instagram. Olha como seu perfil ta ficando consistente. Sabia que no plano trimestral o preco cai pra R$99,90/mes? Se quiser garantir, e so me falar."
 
-Three things: reminds of value received, re-anchors price in daily terms (R$3.60/day), gives graceful opt-out instead of surprise charge.
+Three things: reminds of value received, shows the trimestral upgrade path, keeps it casual.
 
 ### The vergonha angle
 

@@ -118,7 +118,7 @@ Three tiers with a 30-day money-back guarantee. Full pricing strategy in `docs/P
 |---|---|---|
 | Basico | R$69,90 | 8 posts/mês, legendas + hashtags |
 | **Parceiro** | **~~R$149,90~~ R$108,90** (preço de lançamento) | 12 posts/mês, legendas + hashtags + direção de foto/vídeo + roteiros de reels + melhor horário |
-| Profissional | R$249,90 | 20 posts/mês, tudo do Parceiro + chamada mensal + calendário de stories + resposta prioritária |
+| Profissional | R$249,90 | 16 posts/mês, tudo do Parceiro + chamada mensal + calendário de stories + resposta prioritária |
 
 This positions Rekan:
 
@@ -131,7 +131,7 @@ The 30-day money-back guarantee replaces the R$19.90 first month. Charge full pr
 
 At R$108.90/month (Parceiro), Elenice needs ~21 clients to hit R$2,000/month net (after overhead). With a mix of tiers (some Profissional at R$249.90), the number drops. Each client requires roughly 15 to 20 minutes per month of Elenice's time once onboarded.
 
-Commitment plans (trimestral/semestral) are introduced after Wave 1 validation. See PEP-010 Wave 2.
+Commitment plans (mensal/trimestral) are part of the launch. See PEP-010 Wave 1.
 
 ### Monthly Cost Structure
 
@@ -287,7 +287,7 @@ All clients are paying full price from day 1 (with 30-day money-back guarantee).
 
 **Continue prospecting.** Never stop. Even with 10 clients, keep the pipeline active because churn will happen.
 
-**Ask for referrals.** "Você conhece alguma [confeiteira/cabeleireira] que também precisa de ajuda com Instagram? Se indicar alguém e ela assinar, você ganha 1 mês grátis."
+**Ask for referrals.** "Você conhece alguém que também precisa de ajuda com Instagram? Se você indicar e a pessoa assinar e ficar depois dos 30 dias, você ganha 1 mês grátis." Referrer's free month is applied by pushing `next_charge_date` forward in PocketBase admin. No code, no coupons.
 
 **Increase prices gradually** as demand grows. First clients at introductory price, new clients at full price.
 

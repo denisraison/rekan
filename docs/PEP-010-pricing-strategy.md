@@ -44,7 +44,7 @@ Everything needed to go live. Three tiers, commitment plans, automatic payments 
 | | Basico | **Parceiro** | Profissional |
 |---|---|---|---|
 | Monthly (listed) | R$69,90 | ~~R$149,90~~ **R$108,90** | R$249,90 |
-| Posts/month | 8 | 12 | 20 |
+| Posts/month | 8 | 12 | 16 |
 | Legendas + hashtags | Yes | Yes | Yes |
 | Direcao de foto/video | No | **Yes** | Yes |
 | Roteiros de reels | No | **Yes** | Yes |
@@ -89,7 +89,7 @@ Charge full price from day 1. Offer a 30-day money-back guarantee via Pix (insta
 
 **The pitch:** "O Parceiro custa R$108,90 por mes. Menos de R$4 por dia. E se em 30 dias voce nao sentir a diferenca no seu Instagram, devolvo tudo pelo Pix na hora. Pode testar sem risco."
 
-**What about ad-sourced leads?** Strangers from Meta ads don't have the personal trust from Elenice's conversation yet. For these, the R$19.90 first month survives as a coupon on trimestral plans only (see Wave 2). This keeps a low barrier for cold traffic while locking them into 3 months.
+**What about ad-sourced leads?** Strangers from Meta ads don't have the personal trust from Elenice's conversation yet. But the 30-day money-back guarantee serves the same purpose: it removes risk without devaluing the service. Elenice qualifies them via WhatsApp first, then offers the standard deal. The guarantee is the low barrier; no special coupon needed.
 
 ### Payment infrastructure: Pix Automatico
 
@@ -198,27 +198,27 @@ Use pricing structure to amplify acquisition channels from PEP-009.
 Current plan (BUSINESS.md): "indica alguem, 1 semana gratis pra voces duas." This is weak. Cohen says pay affiliates a lot because it's worth it.
 
 New structure:
-- Referrer gets 1 month free added to their current plan (not 1 week).
-- Referred person gets the standard 30-day money-back guarantee on monthly, OR a R$19.90 first month if they commit to the trimestral plan (R$19.90 + R$99.90 + R$99.90 = R$219.70 total). The R$19.90 coupon only works on trimestral, pushing referred clients toward the longer commitment.
-- Elenice tracks referrals manually in a spreadsheet. No tech needed.
+- Referred person gets the standard offer: full price + 30-day money-back guarantee. No special discount. The friend's recommendation + the guarantee is enough trust.
+- Referrer gets 1 free month, but only after the referred person stays past the 30-day guarantee window. This aligns incentives: the referrer recommends Rekan to people who'll actually use it, not just anyone.
+- Implementation: Elenice tracks "Client A referred Client B" in a spreadsheet. After 30 days, if B is still active, Elenice opens PocketBase admin and pushes Client A's `next_charge_date` forward by one month. The billing cron skips the cycle automatically (it only picks up businesses where `next_charge_date` is within 7 days). Zero code changes, zero complexity.
 
-This gives Elenice two pitches for referrals: "sua amiga pode testar por 30 dias com garantia de devolucao, ou se ela quiser o trimestral, o primeiro mes sai por R$19,90."
+Elenice's pitch: "Voce conhece alguem que tambem precisa de ajuda com Instagram? Se voce indicar e a pessoa assinar e ficar, voce ganha 1 mes gratis."
 
 ### Ad coupons (PEP-009 integration)
 
-Meta ads drive click-to-WhatsApp conversations. Ad-sourced leads are strangers with no prior relationship, so they get the R$19.90 first month coupon (which warm/referral leads don't need because they get the 30-day guarantee instead).
+Meta ads drive click-to-WhatsApp conversations. Ad-sourced leads are strangers with no prior relationship. They get the same offer as everyone: full price + 30-day money-back guarantee. Elenice qualifies them first via WhatsApp, then pushes toward trimestral for the better per-month price.
 
 - [ ] Elenice qualifies them ("Voce e confeiteira? Me conta do seu trabalho.").
-- [ ] If qualified, offers: "Tenho uma condicao especial pra quem veio pelo Instagram: primeiro mes por R$19,90 no plano trimestral." The coupon only works on trimestral.
-- [ ] This means the ad-sourced client pays R$19,90 + R$99,90 + R$99,90 = R$219,70 for 3 months. Cost per WhatsApp conversation target from PEP-009 is R$5-8. At 15% conversion, acquisition cost is ~R$40-55 per trial. Lifetime value of a trimestral client is at minimum R$219,70. Payback on ad spend within the first trimester.
-- [ ] For ad leads who don't want to commit to trimestral, fall back to the standard 30-day money-back guarantee on monthly. Still better than R$19.90 trial.
+- [ ] If qualified, offers the standard deal: full price + 30-day money-back guarantee. Same offer as everyone else. No special coupon.
+- [ ] Push toward trimestral: "O plano trimestral sai por R$99,90/mes. E se em 30 dias voce nao gostar, devolvo tudo." The guarantee removes risk for strangers; the trimestral discount rewards commitment.
+- [ ] Economics: cost per WhatsApp conversation target from PEP-009 is R$5-8. At 15% conversion, acquisition cost is ~R$40-55 per client. Trimestral Parceiro pays R$299,70 upfront, covering acquisition cost on day 1.
 
 ### Pricing in ad creatives
 
 - [ ] Update PEP-009 copy guidelines: prospecting ads never show price. Retargeting ads show the anchor: "Social media manager: R$590/mes. Rekan: a partir de R$69,90/mes." The "a partir de" is the Basico price, which makes even the Parceiro tier feel mid-range.
 - [ ] For retargeting ads specifically, test showing the trimestral price: "R$99,90/mes no plano trimestral" with a CTA to WhatsApp.
 
-**Gate:** Referral program has generated at least 5 referred clients. Ad-sourced clients are converting to trimestral at >50% rate. Track acquisition cost per channel and payback period.
+**Gate:** Referral program has generated at least 5 referred clients. Ad-sourced clients are converting to trimestral at >30% rate. Track acquisition cost per channel and payback period.
 
 ## Wave 3: Price testing and iteration
 
@@ -251,7 +251,7 @@ Cohen's rule: "double it and see what happens. If signups don't change, double i
 ## Consequences
 
 - Elenice's sales conversations become slightly more complex (3 tiers + commitment options vs. one price). The cardapio must be clear enough that it doesn't slow down the WhatsApp flow. If it confuses prospects, simplify back to 2 tiers.
-- The R$19.90 first month is no longer the default entry point. It survives only as a coupon for ad-sourced leads on trimestral plans (Wave 2). The default entry is full price + 30-day money-back guarantee. This means the barrier to trying Rekan monthly is now R$69.90 (Basico) or R$108.90 (Parceiro with founder discount), not R$19.90. Some prospects who would have tried at R$19.90 won't try at R$69.90. The trade-off is worth it: the guarantee removes risk without devaluing the service, there's no month-2 price shock, and Rekan collects 5.5x more cash on day 1.
+- The R$19.90 first month is gone entirely. Everyone gets the same offer: full price + 30-day money-back guarantee. The barrier to trying Rekan is now R$69.90 (Basico) or R$108.90 (Parceiro with founder discount). Some prospects who would have tried at R$19.90 won't try at R$69.90. The trade-off is worth it: the guarantee removes risk without devaluing the service, there's no month-2 price shock, and Rekan collects 5.5x more cash on day 1.
 - **Payments are invisible after signup.** Pix Automatico means the customer authorizes once and never thinks about payment again. This eliminates the biggest churn vector for MEIs with irregular schedules: forgetting or postponing a manual Pix payment. Every renewal that would have been a "do I still want this?" moment becomes a non-event.
 - Trimestral clients give Rekan 3 months of runway per sign-up. With 15 trimestral Parceiro clients, that's R$4,495 in the bank covering 3 months. This changes the business from "will we make rent this month" to "we have a quarter of visibility." That psychological shift matters enormously for Elenice's confidence and for reinvesting in ads.
 - The Profissional tier creates a natural upsell path. A confeiteira who's been on Parceiro for 3 months and seeing results is a warm lead for "quer levar pro proximo nivel?" at R$249.90. No new acquisition cost, just more revenue from existing clients.

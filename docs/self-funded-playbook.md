@@ -92,7 +92,7 @@ Give 2 months free on annual. You collect 16% less over a year but you get all t
 
 Capital Factory hack: raise the monthly price, make the annual discount absurdly large. $49/month but annual at half off. "Signups didn't change at all. Everyone was perfectly happy to see a higher monthly price and get a much bigger annual discount."
 
-**Rekan:** Annual is too large for MEIs (~R$1,300). Adapted to trimestral (R$299.70). See PEP-010 Wave 2.
+**Rekan:** Annual is too large for MEIs (~R$1,300). Adapted to trimestral (R$299.70). See PEP-010 Wave 1.
 
 ### 3.2 Coupons that only work on longer commitments
 
@@ -100,7 +100,7 @@ Capital Factory hack: raise the monthly price, make the annual discount absurdly
 
 Give affiliates a coupon: "3 months free if you sign up annual." The coupon only works on annual. You're giving 2 months free anyway (the normal annual discount), so 3 months is barely more. But it's a big incentive to commit long-term and a big cash bump.
 
-**Rekan:** Referral and ad coupons (R$19.90 first month) only on trimestral. See PEP-010 Wave 3.
+**Rekan:** No coupons. Everyone gets the same offer: full price + 30-day guarantee. Referrer gets 1 free month (charge skipped) only after the referred person stays past 30 days. Simplicity over coupon mechanics. See PEP-010 Wave 2.
 
 ---
 
@@ -116,7 +116,7 @@ WP Engine switched from 15-day free trial to 60-day money-back guarantee. Charge
 
 Key insight: more time = more signups. And you collect real money on day 1.
 
-**Rekan:** Adopted the 30-day money-back guarantee as the default entry (PEP-010). Full price from day 1, "devolvo tudo pelo Pix" if not satisfied. 30 days (not 60) because Rekan's value is visible within the first week (content delivered in days, not weeks like hosting migration). The R$19.90 first month survives only as a coupon for cold ad traffic on trimestral plans.
+**Rekan:** Adopted the 30-day money-back guarantee as the default entry (PEP-010). Full price from day 1, "devolvo tudo pelo Pix" if not satisfied. 30 days (not 60) because Rekan's value is visible within the first week (content delivered in days, not weeks like hosting migration). No coupons for any channel; the guarantee is the universal low-barrier entry.
 
 ### 4.2 Daily price reframing
 
