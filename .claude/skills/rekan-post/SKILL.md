@@ -78,7 +78,66 @@ Avoid: "authentic feel", "natural", "casual" as generic modifiers. These don't w
 
 Generate 4 prompt variations per post, present to user before generating.
 
-### Stage 3: Flash Generation (screening only)
+### Stage 3: Image Compositing
+
+All grid images are rendered locally via Playwright. Never use Gemini for text rendering.
+
+```bash
+cd /home/denis/workspace/rekan/web && node ../scripts/create-post-image.mjs --config /path/to/posts.json
+```
+
+**Two template types:**
+
+| Template | Use for | Config |
+|----------|---------|--------|
+| `overlay` | Quick drafts, iterating on photo + hook text | JSON with hook, emphasis, backgroundImage |
+| `custom` | Final posts, any post needing unique design | Standalone HTML file |
+
+Use `overlay` to quickly test hook text on a photo. Use `custom` for everything final. Every final grid post should go through `/frontend-design` for unique visual treatment.
+
+**Overlay config:**
+```json
+{
+  "type": "overlay",
+  "hook": "Hook text",
+  "emphasis": ["words"],
+  "emphasisColor": "coral",
+  "backgroundImage": "path/to/photo.png",
+  "overlayOpacity": 0.5,
+  "output": "path/to/output.png"
+}
+```
+
+**Custom config:**
+```json
+{
+  "type": "custom",
+  "htmlFile": "rekan-posts/{date}/templates/post-name.html",
+  "backgroundImage": "path/to/photo.png",
+  "output": "path/to/output.png"
+}
+```
+Available placeholders in HTML: `{{logo}}` (SVG markup), `{{backgroundImage}}` (base64 data URI, requires `backgroundImage` in config). CSS variables: `--coral`, `--green`, `--charcoal`, `--off-white`. Font: Urbanist (300/400/600/700/800) auto-loaded.
+
+Store templates in `rekan-posts/{date}/templates/`. See `rekan-posts/2026-02-24/templates/` for examples.
+
+**Design principles (not rules):**
+
+- Each post on the grid must look like it was designed individually, not stamped from a template. Vary background, layout, typography, and accent style across posts.
+- The grid should have visual rhythm when viewed as a whole: alternate light/dark, photo/graphic, centered/left-aligned.
+- Match the design energy to the message. A provocative tip needs different energy than an encouraging one. A CTA needs different energy than a BTS story.
+- The logo SVG has inline fills (coral + green). On colored backgrounds use `!important` to override to monochrome or adjust opacity for the context.
+- Gemini generates raw photos only. All text rendering goes through the local HTML pipeline for consistent fonts and brand colors.
+
+**Workflow:** Use Gemini for atmospheric photos (Stage 4-6). All text compositing goes through custom HTML.
+
+**Content principles:**
+
+- **Message first, design second.** Validate the message before designing. Would a MEI understand this instantly, without marketing vocabulary? No "template", "agência", "content strategy". Write in words they use daily.
+- **Hook must work with the image**, not against it. Never put dismissive text on someone's work.
+- **All text in pt-BR, no exceptions.** Badge labels, CTAs, niche tags, everything.
+
+### Stage 4: Flash Generation (screening only)
 
 Flash images will be too polished. Use them only to screen compositions and concepts, not as final candidates.
 
@@ -95,23 +154,27 @@ $SCRIPT --prompt "..." --model flash --output "${OUTDIR}/flash/post1-v4.png" &
 wait
 ```
 
-### Stage 4: Evaluation
+### Stage 5: Evaluation
 
 Read all images. Score on: Authenticity, Brand fit, Scene match, Scroll stop, Text quality (1-5 each).
 
-**Disqualify** images with: garbled text, uncanny faces, plastic textures, visual artifacts, English text.
+**Disqualify** images with: garbled text, uncanny faces, plastic textures, visual artifacts, English text (watch for English product labels like "WHEAT FLOUR" on bags).
 
 Be honest about AI slop. If every image looks too clean, too warm, too perfectly arranged, say so. The user will notice.
 
+**Grid uniqueness check:** Before picking winners, compare against ALL existing grid photos. No two posts can share the same background photo or look similar as thumbnails. Each row of 3 must be visually distinct.
+
 Pick top 2 compositions for Pro refinement.
 
-### Stage 5: Pro Refinement
+### Stage 6: Pro Refinement
 
 For raw photos, rewrite prompts from scratch with aggressive imperfection:
 - Replace "warm lighting" with specific light source ("single bare-bulb desk lamp", "harsh overhead fluorescent")
 - Replace "wooden table" with "scratched formica table with water rings"
 - Add random real-life objects ("bag of bread", "dish rack", "charging cable")
 - Add camera imperfections ("slight grain from low light", "slightly off-center framing")
+- NEVER include notebooks or paper with handwritten text. AI always generates gibberish.
+- Check for English text on product labels, packaging, or screens. Brazilian scenes should have Portuguese or no text.
 
 For branded graphics, use `--input-image` with the logo PNG to maintain mark accuracy.
 
@@ -127,7 +190,7 @@ $SCRIPT --input-image "${OUTDIR}/pro/post1-r1.png" \
     --model pro --output "${OUTDIR}/pro/post1-r2.png" --image-size 2K
 ```
 
-### Stage 6: User Review
+### Stage 7: User Review
 
 Show each final candidate. Ask user to pick or request changes. Iterate as needed.
 
@@ -137,7 +200,7 @@ mkdir -p "${OUTDIR}/final"
 cp "${OUTDIR}/pro/post1-r1.png" "${OUTDIR}/final/post1.png"
 ```
 
-### Stage 7: Post Summary
+### Stage 8: Post Summary
 
 Write a markdown file per post with caption, hashtags, and image reference ready to copy-paste.
 

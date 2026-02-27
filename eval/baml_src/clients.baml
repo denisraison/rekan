@@ -18,20 +18,10 @@ client<llm> JudgeClientClaude {
   }
 }
 
-client<llm> JudgeClientGemini25 {
-  provider openrouter
-  options {
-    model "google/gemini-2.5-flash"
-    api_key env.OPENROUTER_API_KEY
-    temperature 0.1
-    max_tokens 1024
-  }
-}
-
 client<llm> GeneratorClient {
   provider openrouter
   options {
-    model "google/gemini-3-flash-preview"
+    model "anthropic/claude-opus-4-6"
     api_key env.OPENROUTER_API_KEY
     temperature 0.7
     max_tokens 4096
