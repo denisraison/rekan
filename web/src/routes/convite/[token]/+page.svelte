@@ -1,10 +1,10 @@
 <script lang="ts">
-	import { onMount, onDestroy } from 'svelte';
-	import { page } from '$app/stores';
 	import QRCode from 'qrcode';
+	import { onDestroy, onMount } from 'svelte';
+	import { page } from '$app/stores';
 	import LogoCombo from '$lib/components/LogoCombo.svelte';
-	import { pb } from '$lib/pb';
 	import { maskCpfCnpj, validateCpfCnpj } from '$lib/cpf-cnpj';
+	import { pb } from '$lib/pb';
 
 	type InviteData = {
 		business_name: string;

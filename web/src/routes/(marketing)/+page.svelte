@@ -1,6 +1,6 @@
 <script lang="ts">
 	import LogoCombo from '$lib/components/LogoCombo.svelte';
-	import { SectionLabel, PhoneFrame, IgPost } from '$lib/components/marketing';
+	import { IgPost, PhoneFrame, SectionLabel } from '$lib/components/marketing';
 
 	let commitment: 'mensal' | 'trimestral' = $state('mensal');
 

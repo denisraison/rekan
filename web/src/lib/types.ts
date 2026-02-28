@@ -12,7 +12,13 @@ export interface Service {
 	price_brl: number;
 }
 
-export type InviteStatus = 'draft' | 'invited' | 'accepted' | 'active' | 'payment_failed' | 'cancelled';
+export type InviteStatus =
+	| 'draft'
+	| 'invited'
+	| 'accepted'
+	| 'active'
+	| 'payment_failed'
+	| 'cancelled';
 export type Tier = 'basico' | 'parceiro' | 'profissional';
 export type Commitment = 'mensal' | 'trimestral';
 
