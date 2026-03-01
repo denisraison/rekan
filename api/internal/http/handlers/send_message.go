@@ -120,6 +120,18 @@ func SendMessage(deps Deps) func(*core.RequestEvent) error {
 		deps.WhatsApp.SendMessage(ctx, jid, &waE2E.Message{
 			Conversation: &tipText,
 		})
+		if collection != nil {
+			tipRecord := core.NewRecord(collection)
+			tipRecord.Set("business", body.BusinessID)
+			tipRecord.Set("phone", phone)
+			tipRecord.Set("type", domain.MsgTypeText)
+			tipRecord.Set("content", tipText)
+			tipRecord.Set("direction", domain.DirectionOutgoing)
+			tipRecord.Set("wa_timestamp", time.Now().UTC().Format(time.RFC3339))
+			if err := e.App.Save(tipRecord); err != nil {
+				log.Printf("send_message: failed to save tip message: %v", err)
+			}
+		}
 
 		// Clear typing indicator
 		deps.WhatsApp.SendChatPresence(ctx, jid, types.ChatPresencePaused, "")

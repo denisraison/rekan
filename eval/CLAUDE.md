@@ -7,10 +7,10 @@ Development tool for measuring Instagram content quality. Not part of the produc
 ```bash
 make eval                # heuristics only (~5s)
 make eval-judges         # heuristics + LLM judges (~25s)
-make test-judges         # integration tests for judge verdicts (needs OPENROUTER_API_KEY)
+make test-judges         # integration tests for judge verdicts (needs CLAUDE_API_KEY + GEMINI_API_KEY)
 ```
 
-Requires `OPENROUTER_API_KEY` in `.env` at the project root.
+Requires `CLAUDE_API_KEY` and `GEMINI_API_KEY` in `.env` at the project root.
 
 ## CLI flags
 

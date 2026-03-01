@@ -61,7 +61,7 @@ func run(ctx context.Context, getenv func(string) string) error {
 			log.Printf("warning: whatsapp client failed to init: %v", err)
 		} else {
 			var whisperClient *transcribe.Client
-			if key := getenv("OPENAI_API_KEY"); key != "" {
+			if key := getenv("GEMINI_API_KEY"); key != "" {
 				whisperClient = transcribe.NewClient(key)
 			}
 			whatsapp.RegisterMessageHandler(whatsapp.HandlerDeps{

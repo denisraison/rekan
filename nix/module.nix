@@ -22,7 +22,7 @@ in
 
         envFile = lib.mkOption {
           type = lib.types.path;
-          description = "Environment file with secrets (ASAAS_API_KEY, OPENROUTER_API_KEY, etc.).";
+          description = "Environment file with secrets (ASAAS_API_KEY, CLAUDE_API_KEY, GEMINI_API_KEY, etc.).";
         };
 
         package = lib.mkOption {

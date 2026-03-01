@@ -131,6 +131,7 @@
               export PATH="''${GOPATH:-$HOME/go}/bin:$PATH"
               export PLAYWRIGHT_BROWSERS_PATH="${pkgs.playwright-driver.browsers}"
               export PLAYWRIGHT_SKIP_BROWSER_DOWNLOAD=1
+              export GOOGLE_CLOUD_PROJECT="rekan-488909"
               echo "rekan dev shell"
               echo "  go    $(go version | cut -d' ' -f3)"
               echo "  node  $(node --version)"

@@ -17,7 +17,7 @@ import (
 type HandlerDeps struct {
 	Client     *Client
 	App        core.App
-	Transcribe *transcribe.Client // nil if OPENAI_API_KEY not set
+	Transcribe *transcribe.Client // nil if GEMINI_API_KEY not set
 }
 
 // RegisterMessageHandler wires incoming WhatsApp messages to PocketBase storage.
