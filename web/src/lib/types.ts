@@ -65,6 +65,11 @@ export interface Message {
 	collectionId: string;
 }
 
+export interface WAStatus {
+	connected: boolean;
+	qr?: string;
+}
+
 export interface Post {
 	id: string;
 	business: string;

@@ -88,7 +88,7 @@
           pkgs = nixpkgs.legacyPackages.${system};
           # Rebuild golangci-lint with go_1_26 — the nixpkgs binary is built
           # with go1.25 and refuses to analyse a go1.26 module.
-          golangci-lint = pkgs.golangci-lint.override { buildGo125Module = pkgs.buildGo126Module; };
+          golangci-lint = pkgs.golangci-lint.override { buildGo126Module = pkgs.buildGo126Module; };
         in
         {
           default = pkgs.mkShell {

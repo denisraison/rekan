@@ -3,6 +3,7 @@
 	import { onDestroy, onMount } from 'svelte';
 	import { pb } from '$lib/pb';
 	import { readSSE } from '$lib/sse';
+	import type { WAStatus } from '$lib/types';
 
 	type Status = 'loading' | 'not_configured' | 'disconnected' | 'waiting_qr' | 'connected';
 
@@ -22,13 +23,14 @@
 				return;
 			}
 			if (!res.body) return;
-			await readSSE(res.body, async (data: any) => {
-				if (data.connected) {
+			await readSSE(res.body, async (data) => {
+				const s = data as WAStatus;
+				if (s.connected) {
 					status = 'connected';
 					qrDataUrl = '';
-				} else if (data.qr) {
+				} else if (s.qr) {
 					status = 'waiting_qr';
-					qrDataUrl = await QRCode.toDataURL(data.qr, { width: 280, margin: 2 });
+					qrDataUrl = await QRCode.toDataURL(s.qr, { width: 280, margin: 2 });
 				} else {
 					status = 'disconnected';
 					qrDataUrl = '';

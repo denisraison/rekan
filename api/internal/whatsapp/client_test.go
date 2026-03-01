@@ -9,7 +9,7 @@ import (
 
 func newTestClient(t *testing.T) *Client {
 	t.Helper()
-	c, err := New(context.Background(), filepath.Join(t.TempDir(), "wa.db"))
+	c, err := New(context.Background(), filepath.Join(t.TempDir(), "wa.db"), "")
 	if err != nil {
 		t.Fatalf("New: %v", err)
 	}

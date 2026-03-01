@@ -100,7 +100,7 @@ func handleMessage(deps HandlerDeps, evt *events.Message) {
 	// Find or create a business for this phone number.
 	businessID := findOrCreateBusiness(deps, phone, pushName)
 
-	collection, err := deps.App.FindCollectionByNameOrId(domain.CollMessages)
+	collection, err := deps.App.FindCachedCollectionByNameOrId(domain.CollMessages)
 	if err != nil {
 		log.Printf("whatsapp: messages collection not found: %v", err)
 		return
@@ -143,7 +143,7 @@ func findOrCreateBusiness(deps HandlerDeps, phone, pushName string) string {
 		return business.Id
 	}
 
-	collection, err := deps.App.FindCollectionByNameOrId(domain.CollBusinesses)
+	collection, err := deps.App.FindCachedCollectionByNameOrId(domain.CollBusinesses)
 	if err != nil {
 		log.Printf("whatsapp: businesses collection not found: %v", err)
 		return ""

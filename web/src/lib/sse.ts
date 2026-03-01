@@ -3,7 +3,7 @@
 // swallowed so callers can abort without special-casing.
 export async function readSSE(
 	body: ReadableStream<Uint8Array>,
-	onData: (data: unknown) => void,
+	onData: (data: unknown) => void | Promise<void>,
 ): Promise<void> {
 	const reader = body.getReader();
 	const decoder = new TextDecoder();
@@ -18,7 +18,7 @@ export async function readSSE(
 			for (const line of lines) {
 				if (!line.startsWith('data: ')) continue;
 				try {
-					onData(JSON.parse(line.slice(6)));
+					await onData(JSON.parse(line.slice(6)));
 				} catch {}
 			}
 		}

@@ -5,8 +5,10 @@ import (
 	"fmt"
 	"log"
 	"sync"
+	"time"
 
 	"go.mau.fi/whatsmeow"
+	"go.mau.fi/whatsmeow/appstate"
 	"go.mau.fi/whatsmeow/proto/waE2E"
 	"go.mau.fi/whatsmeow/store/sqlstore"
 	"go.mau.fi/whatsmeow/types"
@@ -20,6 +22,7 @@ type EventHandler func(evt any)
 type Client struct {
 	wac       *whatsmeow.Client
 	container *sqlstore.Container
+	name      string // push name to set on first pairing
 
 	mu     sync.RWMutex
 	qrCode string // current QR code string, empty when connected or expired
@@ -35,8 +38,9 @@ type Status struct {
 }
 
 // New creates a whatsmeow client backed by a SQLite session store.
+// name is the WhatsApp push name set on first QR pairing (e.g. "Rekan").
 // The client is not connected yet; call Connect to start.
-func New(ctx context.Context, dbPath string) (*Client, error) {
+func New(ctx context.Context, dbPath, name string) (*Client, error) {
 	dsn := fmt.Sprintf("file:%s?_pragma=foreign_keys(1)&_pragma=journal_mode(WAL)", dbPath)
 	container, err := sqlstore.New(ctx, "sqlite", dsn, nil)
 	if err != nil {
@@ -53,6 +57,7 @@ func New(ctx context.Context, dbPath string) (*Client, error) {
 	c := &Client{
 		wac:       wac,
 		container: container,
+		name:      name,
 		subs:      make(map[chan Status]struct{}),
 	}
 
@@ -140,9 +145,7 @@ func (c *Client) notify() {
 
 // AddEventHandler registers a handler for WhatsApp events (messages, receipts, etc.).
 func (c *Client) AddEventHandler(handler EventHandler) {
-	c.wac.AddEventHandler(func(evt any) {
-		handler(evt)
-	})
+	c.wac.AddEventHandler(whatsmeow.EventHandler(handler))
 }
 
 // SendMessage sends a message to the given JID.
@@ -189,5 +192,13 @@ func (c *Client) handleQR(ch <-chan whatsmeow.QRChannelItem) {
 		c.mu.Unlock()
 		c.notify()
 		log.Printf("whatsapp qr event: %s", evt.Event)
+
+		if evt == whatsmeow.QRChannelSuccess && c.name != "" {
+			ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
+			if err := c.wac.SendAppState(ctx, appstate.BuildSettingPushName(c.name)); err != nil {
+				log.Printf("whatsapp: failed to set push name %q: %v", c.name, err)
+			}
+			cancel()
+		}
 	}
 }

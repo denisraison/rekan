@@ -56,7 +56,7 @@ func run(ctx context.Context, getenv func(string) string) error {
 
 		// Start WhatsApp client, store session alongside PocketBase data
 		dbPath := filepath.Join(app.DataDir(), "whatsapp.db")
-		wac, err := whatsapp.New(ctx, dbPath)
+		wac, err := whatsapp.New(ctx, dbPath, "Rekan")
 		if err != nil {
 			log.Printf("warning: whatsapp client failed to init: %v", err)
 		} else {

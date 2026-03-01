@@ -9,6 +9,7 @@
     Message,
     Post,
     Service,
+    WAStatus,
   } from "$lib/types";
 
   const BUSINESS_TYPES = [
@@ -501,9 +502,10 @@
         signal: waAbortController.signal,
       });
       if (!res.body) return;
-      await readSSE(res.body, (data: any) => {
-        waConnected = data.connected;
-        waQR = data.qr || "";
+      await readSSE(res.body, (data) => {
+        const s = data as WAStatus;
+        waConnected = s.connected;
+        waQR = s.qr ?? "";
         waChecking = false;
       });
     } catch (err) {
