@@ -2,9 +2,6 @@ export interface User {
 	id: string;
 	name: string;
 	email: string;
-	subscription_status: 'trial' | 'active' | 'past_due' | 'cancelled';
-	subscription_id: string;
-	generations_used: number;
 }
 
 export interface Service {
@@ -29,7 +26,6 @@ export interface Business {
 	type: string;
 	city: string;
 	state: string;
-	description: string;
 	services: Service[];
 	target_audience: string;
 	brand_vibe: string;

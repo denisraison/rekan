@@ -156,17 +156,19 @@ Starting niche helps because:
 
 ## Competition
 
-### GalilAI (primary competitor)
+### Brazilian AI content tools (direct competitors)
 
-Based in Florianópolis. Charges R$28 to R$99/month. Generates posts with captions, hashtags, brand colours, auto publishing. Strong reviews. Growing.
+**GalilAI** — Based in Florianópolis. Charges R$28 to R$99/month. Generates posts with captions, hashtags, brand colours, auto publishing. Strong reviews. Growing. What GalilAI proves: the market exists and people will pay for AI content in Brazil.
 
-**What GalilAI proves:** The market exists and people will pay for AI content in Brazil. This validates our idea.
+**Zenpost.ai** — "Marketing no Instagram 100% automatizado." Targets small business owners with no time or marketing knowledge, which is exactly our audience. Generates posts, stories, carousels via web dashboard. 20K Instagram followers.
 
-**What GalilAI doesn't do:** Content direction (what photo to take, how to frame it), reel scripting, human relationship, WhatsApp delivery. Their users still have to sit down, open the app, navigate it, and manage the process.
+**Publiko.me** — "94% dos posts prontos em até 2 minutos." Clearest problem-first framing in the Brazilian market. 31K Instagram followers. Active account. Closest in messaging to Rekan.
+
+All three require: create an account, fill an onboarding form, navigate a web dashboard, approve posts, copy to Instagram. None deliver via WhatsApp. This was validated by researching 10 tools (March 2026): no Brazilian or international tool found delivers Instagram content through WhatsApp.
 
 ### Generic AI Tools (Canva, ChatGPT, Predis.ai)
 
-These are general purpose. Not localised for Brazilian MEIs. Require the user to know what to ask for. No relationship, no guidance.
+General purpose. Not localised for Brazilian MEIs. Require the user to know what to ask for. No relationship, no guidance.
 
 ### Human Social Media Managers
 
@@ -174,7 +176,7 @@ Start at R$590/month. Too expensive for most MEIs. But they offer the human touc
 
 ### Our Moat
 
-The combination of human relationship + AI speed + content direction delivered through WhatsApp. Each piece alone isn't unique. The combination is. And Elenice's sales ability and genuine care for small business owners is the competitive advantage that can't be copied by a tool.
+WhatsApp delivery with zero onboarding. Every competitor requires a new app, a new login, a new interface. Rekan requires none of that — the client already has WhatsApp open 14 hours a day. This is not a feature; it is the entire product decision, and no competitor offers it. Combined with human relationship (Elenice) and content direction (what photo to take, reel scripts), the combination cannot be copied by a tool.
 
 ---
 

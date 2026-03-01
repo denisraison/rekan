@@ -9,7 +9,6 @@ test('nav links are visible', async ({ page }) => {
 	await page.goto('/');
 	const nav = page.locator('nav');
 	await expect(nav).toBeVisible();
-	await expect(nav.getByRole('link', { name: 'Como funciona' })).toBeVisible();
 	await expect(nav.getByRole('link', { name: 'Exemplos' })).toBeVisible();
 });
 
@@ -18,10 +17,10 @@ test('hero section renders', async ({ page }) => {
 	await expect(page.locator('h1')).toContainText('Post pronto');
 });
 
-test('examples section has 3 phone frames', async ({ page }) => {
+test('examples section has 3 posts', async ({ page }) => {
 	await page.goto('/');
-	const phones = page.locator('#exemplos .phone-slot');
-	await expect(phones).toHaveCount(3);
+	const posts = page.locator('#exemplos .post-item');
+	await expect(posts).toHaveCount(3);
 });
 
 test('pricing shows all three tiers', async ({ page }) => {

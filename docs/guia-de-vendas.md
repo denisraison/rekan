@@ -94,7 +94,7 @@ Não são falas prontas. São os fatos e a lógica pra usar do jeito que quiser.
 - Um social media cobra no mínimo R$590. O Rekan custa R$108,90. É 5x mais barato.
 - Dá menos de R$4 por dia. Menos que um cafezinho.
 - Se em 30 dias não sentir a diferença, devolvo tudo pelo Pix. Sem perguntas.
-- Cada semana sem postar é uma semana que a concorrência aparece no lugar.
+- Cada semana sem postar é uma semana que a concorrência aparece no lugar. Uma encomenda de bolo é R$180. Uma consulta, R$150. Um corte, R$80. Uma semana invisível no Instagram já custa mais que um mês inteiro de Rekan.
 - Se quiser economizar mais, o plano trimestral sai por R$99,90/mês.
 
 ### "Eu uso o ChatGPT"
@@ -132,10 +132,11 @@ Não são falas prontas. São os fatos e a lógica pra usar do jeito que quiser.
 
 Ter sempre pronto pra abrir na hora:
 
-1. **3 a 4 exemplos de posts** que o Rekan já criou pro nicho (confeitaria, barbearia, unha, cabelo). A mensagem que o/a cliente mandou e o post que voltou. Mostra em 10 segundos.
-2. **O perfil @chamaorekan** no Instagram. O grid mostra que o Rekan pratica o que prega.
-3. **Um antes e depois de grid** (quando tiver clientes). O perfil de um/a cliente antes do Rekan (posts espaçados, inconsistente) e depois (todo preenchido, 2x por semana).
-4. **Um print de conversa** (com permissão) de um/a cliente satisfeito/a. "Nossa, ficou perfeito, já postei."
+1. **O post do grid que mostra a conversa de WhatsApp** (`@chamaorekan`, post 09). Uma mensagem curta entra ("hoje fiz 60 brigadeiros e entreguei na casa de três clientes"), uma legenda completa com hashtags sai. A pessoa vê em 5 segundos o que o Rekan faz. Não precisa explicar nada.
+2. **3 a 4 exemplos de posts** que o Rekan já criou pro nicho (confeitaria, barbearia, unha, cabelo). A mensagem que o/a cliente mandou e o post que voltou. Mostra em 10 segundos.
+3. **O perfil @chamaorekan** no Instagram. O grid mostra que o Rekan pratica o que prega.
+4. **Um antes e depois de grid** (quando tiver clientes). O perfil de um/a cliente antes do Rekan (posts espaçados, inconsistente) e depois (todo preenchido, 2x por semana).
+5. **Um print de conversa** (com permissão) de um/a cliente satisfeito/a. "Nossa, ficou perfeito, já postei."
 
 Mostrar vale mais que explicar. 3 segundos olhando um exemplo convence mais que 5 minutos de conversa.
 

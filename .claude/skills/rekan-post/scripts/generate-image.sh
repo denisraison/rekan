@@ -39,7 +39,7 @@ if [[ -z "${GEMINI_API_KEY:-}" ]]; then
 fi
 
 case "$MODEL_ALIAS" in
-    flash) MODEL="gemini-2.5-flash-image" ;;
+    flash) MODEL="gemini-3.1-flash-image-preview" ;;
     pro)   MODEL="gemini-3-pro-image-preview" ;;
     *)     echo "Unknown model alias: $MODEL_ALIAS (use flash or pro)" >&2; exit 1 ;;
 esac

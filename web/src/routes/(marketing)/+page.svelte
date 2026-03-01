@@ -1,6 +1,6 @@
 <script lang="ts">
 	import LogoCombo from '$lib/components/LogoCombo.svelte';
-	import { IgPost, PhoneFrame, SectionLabel } from '$lib/components/marketing';
+	import { SectionLabel } from '$lib/components/marketing';
 
 	let commitment: 'mensal' | 'trimestral' = $state('mensal');
 
@@ -37,39 +37,21 @@
 	const examples = [
 		{
 			username: 'padaria.donaelza',
-			initial: 'D',
-			avatarBg: '#F97368',
-			postBg: 'linear-gradient(145deg, #F97368, #f9a088)',
-			postLine1: 'Bolo do dia',
-			postLine2: '',
-			postEmoji: '🎂',
-			caption: 'Bolo de cenoura com cobertura de chocolate saindo do forno agora. Quem garante o último pedaço? Passa aqui: Rua das Flores, 123',
-			hashtags: '#padaria #bolodecenoura #donaelza #feitocomamor',
-			likes: '87',
+			image: '/demo/demo-padaria.png',
+			caption: 'Semana passada o forno de baixo apagou no meio da madrugada. 4h da manhã, 3 formas de bolo de cenoura dentro, a resistência simplesmente parou. Dona Elza olhou pra mim e disse: "Tira tudo, passa pro de cima, e reza." Queimei o dedo. O bolo? Saiu perfeito.',
+			hashtags: '#bolodecenoura #padariaartesanal #lapasp #bastidores #vidadepadeiro',
 		},
 		{
 			username: 'studio.viva',
-			initial: 'V',
-			avatarBg: '#87AA8C',
-			postBg: 'linear-gradient(145deg, #87AA8C, #a8c49b)',
-			postLine1: '30 min mudam',
-			postLine2: 'seu dia',
-			postEmoji: '',
-			caption: 'Você não precisa de uma hora. 30 minutos de pilates já mudam seu dia: menos dor, mais disposição. Aula experimental grátis essa semana.',
-			hashtags: '#pilates #bemestar #aulagratis #vidasaudavel',
-			likes: '134',
+			image: '/demo/demo-studio.png',
+			caption: 'Semana passada uma aluna chegou aqui segurando a lombar com as duas mãos. Ela tinha 3 hérnias e já tinha desistido de academia, yoga, tudo. Depois de 2 meses no Studio Viva Pilates, ela me mandou esse áudio: "Ju, hoje eu amarrei meu tênis sem sentar." Parece pouco né? Mas quem convive com dor crônica sabe que isso é TUDO.',
+			hashtags: '#pilatespinheiros #dorlombar #reabilitação #herniaDeDisco #pilatesreabilitação',
 		},
 		{
 			username: 'lu.nails',
-			initial: 'L',
-			avatarBg: '#d4827f',
-			postBg: 'linear-gradient(145deg, #d4827f, #F97368)',
-			postLine1: 'Agenda aberta',
-			postLine2: 'essa semana',
-			postEmoji: '💅',
-			caption: 'Francesinha nunca sai de moda. Essa aqui ficou um arraso na @carol.santos ontem. Agenda de quinta tem horário. Chama no whats!',
-			hashtags: '#manicure #francesinha #nailart #lunails',
-			likes: '56',
+			image: '/demo/demo-nails.png',
+			caption: 'Ontem uma cliente sentou na cadeira e disse: "Lu, eu quero aquela francesinha que ninguém faz direito". Eu ouço isso pelo menos 3 vezes por semana. A real é que francesinha parece simples mas é técnica pura. Eu me formei em nail design justamente porque queria dominar esse detalhe. R$45 e sai com acabamento que parece filtro, mas é real.',
+			hashtags: '#Francesinha #NailDesigner #EsmalteriaSantoAndré #NailArt #LuNails',
 		},
 	];
 </script>
@@ -87,9 +69,8 @@
 <!-- Nav -->
 <nav class="nav">
 	<div class="nav-inner">
-		<LogoCombo height={26} />
+		<LogoCombo height={44} />
 		<div class="nav-links">
-			<a href="#como-funciona">Como funciona</a>
 			<a href="#exemplos">Exemplos</a>
 			<a href="#preco">Preço</a>
 			<a href="https://wa.me/5511940699184?text=Oi,%20quero%20saber%20mais%20sobre%20o%20Rekan" target="_blank" rel="noopener" class="btn btn-primary btn-sm">Começar</a>
@@ -113,26 +94,38 @@
 			</p>
 			<p class="hero-tags">Padarias · Salões · Studios · Barbearias · Lojas · Academias</p>
 			<div class="hero-cta">
-					<a href="https://wa.me/5511940699184?text=Oi,%20quero%20saber%20mais%20sobre%20o%20Rekan" target="_blank" rel="noopener" class="btn btn-primary">Comece por R$ 69,90</a>
-				<a href="#como-funciona" class="btn btn-ghost">Como funciona</a>
+				<a href="https://wa.me/5511940699184?text=Oi,%20quero%20saber%20mais%20sobre%20o%20Rekan" target="_blank" rel="noopener" class="btn btn-primary">Comece por R$ 69,90</a>
+				<a href="#exemplos" class="btn btn-ghost">Ver exemplos</a>
 			</div>
 		</div>
 		<div class="hero-visual">
-			<div class="hero-glow" aria-hidden="true"></div>
-			<div class="hero-phone">
-				<PhoneFrame width="300px">
-					<IgPost
-						username="padaria.donaelza"
-						initial="D"
-						avatarBg="#F97368"
-						postBg="linear-gradient(145deg, #F97368, #f9a088)"
-						postLine1="Bolo do dia"
-						postEmoji="🎂"
-						caption="Bolo de cenoura com cobertura de chocolate saindo do forno agora. Quem garante o último pedaço? Passa aqui: Rua das Flores, 123"
-						hashtags="#padaria #bolodecenoura #donaelza #feitocomamor"
-						likes="87"
-					/>
-				</PhoneFrame>
+			<div class="wa-window">
+				<div class="wa-header">
+					<div class="wa-avatar" aria-hidden="true">
+						<img src="/brand/logo-mark.svg" alt="" />
+					</div>
+					<div class="wa-header-text">
+						<span class="wa-contact-name">Rekan</span>
+						<span class="wa-contact-status">online</span>
+					</div>
+				</div>
+				<div class="wa-body">
+					<div class="wa-body-bg" aria-hidden="true"></div>
+					<div class="wa-date-chip">hoje</div>
+					<div class="wa-bubble wa-bubble--out">
+						<p>hoje fiz 60 brigadeiros e entreguei na casa de três clientes 🍫</p>
+						<span class="wa-time">14:32 <span class="wa-ticks">✓✓</span></span>
+					</div>
+					<div class="wa-bubble wa-bubble--in">
+						<div class="wa-post-label">POST PRONTO +</div>
+						<p>60 brigadeiros saindo da cozinha da Doces da Flavinha hoje 🍫</p>
+						<p>Um por um, enrolado na mão, sem conservante nenhum. Separei em três encomendas e fui eu mesma entregar na casa de cada cliente aqui em BH.</p>
+						<p>Tem dia que a cozinha fica assim: panela suja, bancada cheia de forminha e eu já pensando na próxima leva. Mas quando a cliente abre a porta e já sente o cheiro do chocolate, vale cada brigadeiro.</p>
+						<p>Quer encomendar? Chama no zap, link tá na bio 📱</p>
+						<p class="wa-hashtags">#DocesdaFlavinha #BrigadeiroArtesanal #DoceriaEmBH #Savassi #BeloHorizonte #SemConservantes #FeitoEmCasa</p>
+						<span class="wa-time">14:33</span>
+					</div>
+				</div>
 			</div>
 		</div>
 	</div>
@@ -149,59 +142,28 @@
 	</div>
 </section>
 
-<!-- How it works -->
-<section class="steps-section" id="como-funciona" use:_reveal>
-	<div class="steps-inner">
-		<SectionLabel>COMO FUNCIONA</SectionLabel>
-		<h2 class="steps-heading">Três passos.<br/>Dois minutos.</h2>
-		<div class="steps">
-			<div class="step-card">
-				<div class="step-accent"></div>
-				<span class="step-num">01</span>
-				<h3>Conta sobre seu negócio</h3>
-				<p>O que você faz, quem compra, como você fala. Preenche uma vez e pronto.</p>
-			</div>
-			<div class="step-card">
-				<div class="step-accent"></div>
-				<span class="step-num">02</span>
-				<h3>Escolhe o tipo de post</h3>
-				<p>Promoção, dica do dia, novidade, engajamento. Você decide o objetivo, a IA escreve.</p>
-			</div>
-			<div class="step-card">
-				<div class="step-accent"></div>
-				<span class="step-num">03</span>
-				<h3>Cola no Instagram</h3>
-				<p>Legenda, hashtags e story, tudo junto. Copia e publica.</p>
-			</div>
-		</div>
-	</div>
-</section>
-
 <!-- Content Showcase -->
 <section class="showcase" id="exemplos" use:_reveal>
 	<div class="showcase-inner">
 		<SectionLabel>EXEMPLOS REAIS</SectionLabel>
-		<h2 class="showcase-heading">Veja na prática.</h2>
-		<p class="showcase-sub">Conteúdo gerado pelo Rekan. Nada genérico, tudo com a cara do negócio.</p>
+		<h2 class="showcase-heading">Conteúdo com a<br/>cara do negócio.</h2>
+		<p class="showcase-sub">A padaria mandou uma foto do bolo. O Rekan escreveu. Ela só colou no Instagram.</p>
 
-		<div class="phones">
+		<div class="posts">
 			{#each examples as ex, i}
-				<div class="phone-slot" style="--i: {i}">
-					<PhoneFrame>
-						<IgPost
-							username={ex.username}
-							initial={ex.initial}
-							avatarBg={ex.avatarBg}
-							postBg={ex.postBg}
-							postLine1={ex.postLine1}
-							postLine2={ex.postLine2}
-							postEmoji={ex.postEmoji}
-							caption={ex.caption}
-							hashtags={ex.hashtags}
-							likes={ex.likes}
+				<article class="post-item">
+					<p class="post-username">@{ex.username}</p>
+					<div class="post-image-wrap">
+						<img
+							src={ex.image}
+							alt="Post gerado pelo Rekan para {ex.username}"
+							class="post-image"
+							loading="lazy"
 						/>
-					</PhoneFrame>
-				</div>
+					</div>
+					<p class="post-caption">{ex.caption}</p>
+					<p class="post-tags">{ex.hashtags}</p>
+				</article>
 			{/each}
 		</div>
 	</div>
@@ -236,7 +198,7 @@
 					<li>8 posts por mês</li>
 					<li>Legendas + hashtags</li>
 				</ul>
-					<a href="https://wa.me/5511940699184?text=Oi,%20quero%20o%20plano%20Básico%20{commitment}" target="_blank" rel="noopener" class="btn btn-ghost btn-block">Começar</a>
+				<a href="https://wa.me/5511940699184?text=Oi,%20quero%20o%20plano%20Básico%20{commitment}" target="_blank" rel="noopener" class="btn btn-ghost btn-block">Começar</a>
 			</div>
 			<div class="tier-card tier-card--featured">
 				<span class="tier-badge">Mais popular</span>
@@ -257,7 +219,7 @@
 					<li>Direção de foto e roteiro de reels</li>
 					<li>Melhor horário pra postar</li>
 				</ul>
-					<a href="https://wa.me/5511940699184?text=Oi,%20quero%20o%20plano%20Parceiro%20{commitment}" target="_blank" rel="noopener" class="btn btn-primary btn-block">Começar agora</a>
+				<a href="https://wa.me/5511940699184?text=Oi,%20quero%20o%20plano%20Parceiro%20{commitment}" target="_blank" rel="noopener" class="btn btn-primary btn-block">Começar agora</a>
 				<p class="tier-daily">{commitment === 'mensal' ? 'Menos de R$4 por dia' : 'Menos de R$3,50 por dia'}</p>
 			</div>
 			<div class="tier-card">
@@ -277,7 +239,7 @@
 					<li>Calendário de stories</li>
 					<li>Resposta prioritária</li>
 				</ul>
-					<a href="https://wa.me/5511940699184?text=Oi,%20quero%20o%20plano%20Profissional%20{commitment}" target="_blank" rel="noopener" class="btn btn-ghost btn-block">Começar</a>
+				<a href="https://wa.me/5511940699184?text=Oi,%20quero%20o%20plano%20Profissional%20{commitment}" target="_blank" rel="noopener" class="btn btn-ghost btn-block">Começar</a>
 			</div>
 		</div>
 	</div>
@@ -470,38 +432,16 @@
 		gap: 12px;
 	}
 
-	/* Hero visual column */
+	/* Hero visual: WhatsApp window */
 	.hero-visual {
-		position: relative;
 		display: flex;
 		align-items: center;
 		justify-content: center;
-		min-height: 420px;
 		animation: fadeUp 0.6s ease 0.15s both;
 	}
-	.hero-glow {
-		position: absolute;
-		width: 420px;
-		height: 420px;
-		background: radial-gradient(circle,
-			rgba(249, 115, 104, 0.25) 0%,
-			rgba(253, 220, 218, 0.18) 30%,
-			rgba(135, 170, 140, 0.1) 55%,
-			transparent 70%
-		);
-		border-radius: 50%;
-		top: 50%;
-		left: 50%;
-		transform: translate(-50%, -50%);
-		filter: blur(40px);
-	}
-	.hero-phone {
-		position: relative;
-		z-index: 1;
-		transform: rotate(2deg);
-	}
-	.hero-phone :global(.phone-frame) {
-		box-shadow: 0 24px 64px rgba(17, 17, 22, 0.14), 0 4px 12px rgba(17, 17, 22, 0.06);
+	.hero-visual .wa-window {
+		width: 100%;
+		box-shadow: 0 32px 80px rgba(17, 17, 22, 0.18), 0 8px 24px rgba(17, 17, 22, 0.1);
 	}
 
 	/* ============ EMPATHY ============ */
@@ -556,76 +496,129 @@
 		color: var(--coral-light);
 	}
 
-	/* ============ STEPS ============ */
-	.steps-section {
-		padding: 100px 24px;
-		background: var(--sage-pale);
-		transform: translateY(16px);
-		transition: transform 0.6s ease;
-	}
-	.steps-section:global(.visible) {
-		transform: none;
-	}
-	.steps-inner {
-		max-width: 1000px;
-		margin: 0 auto;
-	}
-	.steps-heading {
-		font-size: clamp(1.8rem, 4vw, 2.8rem);
-		font-weight: 300;
-		text-align: center;
-		margin-bottom: 60px;
-		line-height: 1.15;
-		letter-spacing: -0.02em;
-	}
-	.steps {
-		display: grid;
-		grid-template-columns: repeat(3, 1fr);
-		gap: 20px;
-	}
-	.step-card {
-		position: relative;
-		background: white;
-		border: 1px solid rgba(135, 170, 140, 0.2);
-		border-radius: var(--radius-lg);
-		padding: 36px 28px;
+	/* ============ WHATSAPP WINDOW ============ */
+	.wa-window {
+		width: 100%;
+		max-width: 560px;
+		border-radius: 16px;
 		overflow: hidden;
-		transition: transform 300ms ease, box-shadow 300ms ease;
+		box-shadow: 0 32px 80px rgba(0, 0, 0, 0.5), 0 8px 24px rgba(0, 0, 0, 0.3);
 	}
-	.step-card:hover {
-		transform: translateY(-4px);
-		box-shadow: var(--shadow-lg);
+	.wa-header {
+		background: #0d4f43;
+		padding: 14px 20px;
+		display: flex;
+		align-items: center;
+		gap: 14px;
 	}
-	.step-accent {
-		position: absolute;
-		top: 0;
-		left: 0;
-		right: 0;
-		height: 3px;
+	.wa-avatar {
+		width: 46px;
+		height: 46px;
+		border-radius: 50%;
+		overflow: hidden;
+		flex-shrink: 0;
+		background: #F5F2ED;
+		display: flex;
+		align-items: center;
+		justify-content: center;
+		padding: 8px;
 	}
-	.step-card:nth-child(1) .step-accent { background: var(--coral); }
-	.step-card:nth-child(2) .step-accent { background: var(--sage); }
-	.step-card:nth-child(3) .step-accent { background: var(--coral-light); }
-	.step-num {
-		font-size: 3rem;
-		font-weight: 200;
-		line-height: 1;
-		display: block;
-		margin-bottom: 20px;
+	.wa-avatar img {
+		width: 100%;
+		height: 100%;
+		object-fit: contain;
 	}
-	.step-card:nth-child(1) .step-num { color: var(--coral); }
-	.step-card:nth-child(2) .step-num { color: var(--sage); }
-	.step-card:nth-child(3) .step-num { color: var(--coral-light); }
-	.step-card h3 {
+	.wa-header-text {
+		display: flex;
+		flex-direction: column;
+		gap: 2px;
+	}
+	.wa-contact-name {
 		font-size: 1.05rem;
 		font-weight: 600;
-		margin-bottom: 8px;
-		color: var(--text);
+		color: white;
+		letter-spacing: 0.01em;
 	}
-	.step-card p {
-		font-size: 0.9rem;
-		color: var(--text-secondary);
-		line-height: 1.6;
+	.wa-contact-status {
+		font-size: 0.8rem;
+		color: rgba(255, 255, 255, 0.6);
+	}
+	.wa-body {
+		background: #ece5dd;
+		padding: 16px 12px 20px;
+		position: relative;
+		display: flex;
+		flex-direction: column;
+		gap: 6px;
+	}
+	.wa-body-bg {
+		position: absolute;
+		inset: 0;
+		opacity: 0.04;
+		background-image: url("data:image/svg+xml,%3Csvg width='20' height='20' viewBox='0 0 20 20' xmlns='http://www.w3.org/2000/svg'%3E%3Ccircle cx='10' cy='10' r='1' fill='%23000'/%3E%3C/svg%3E");
+		background-size: 20px 20px;
+		pointer-events: none;
+	}
+	.wa-date-chip {
+		align-self: center;
+		background: rgba(255, 255, 255, 0.75);
+		color: #555;
+		font-size: 0.7rem;
+		font-weight: 500;
+		padding: 3px 10px;
+		border-radius: 6px;
+		margin-bottom: 4px;
+		position: relative;
+	}
+	.wa-bubble {
+		max-width: 88%;
+		padding: 8px 10px 6px;
+		border-radius: 8px;
+		font-size: 0.82rem;
+		line-height: 1.5;
+		color: #111;
+		position: relative;
+	}
+	.wa-bubble p {
+		margin-bottom: 6px;
+		color: #111;
+		font-size: 0.82rem;
+	}
+	.wa-bubble p:last-of-type {
+		margin-bottom: 0;
+	}
+	.wa-bubble--out {
+		background: #d9fdd3;
+		align-self: flex-end;
+		border-bottom-right-radius: 2px;
+	}
+	.wa-bubble--in {
+		background: white;
+		align-self: flex-start;
+		border-bottom-left-radius: 2px;
+	}
+	.wa-post-label {
+		font-size: 0.65rem;
+		font-weight: 700;
+		letter-spacing: 0.08em;
+		color: var(--sage-dark, #6B8A61);
+		margin-bottom: 8px;
+		text-transform: uppercase;
+	}
+	.wa-hashtags {
+		color: #128c7e;
+		font-size: 0.76rem;
+		margin-top: 6px;
+	}
+	.wa-time {
+		display: block;
+		text-align: right;
+		font-size: 0.65rem;
+		color: #999;
+		margin-top: 4px;
+	}
+	.wa-ticks {
+		color: #4fc3f7;
 	}
 
 	/* ============ SHOWCASE ============ */
@@ -656,31 +649,61 @@
 		margin: 0 auto 56px;
 		font-size: 0.95rem;
 	}
-	.phones {
-		display: flex;
-		justify-content: center;
-		align-items: flex-start;
-		padding: 20px 0;
+
+	/* Editorial post grid */
+	.posts {
+		display: grid;
+		grid-template-columns: repeat(3, 1fr);
+		gap: 32px;
+		align-items: start;
+		padding: 8px 0 24px;
 	}
-	.phone-slot {
-		transition: transform 0.4s ease;
+	.post-item {
+		transition: transform 0.35s ease;
 	}
-	.phone-slot:nth-child(1) {
-		transform: rotate(-5deg) translateY(32px);
-		z-index: 1;
-		margin-right: -16px;
+	.post-item:nth-child(1) { transform: rotate(-1.5deg) translateY(12px); }
+	.post-item:nth-child(2) { transform: scale(1.03); }
+	.post-item:nth-child(3) { transform: rotate(1.5deg) translateY(12px); }
+	.post-item:hover { transform: scale(1.02) translateY(-4px); }
+	.post-username {
+		font-size: 0.75rem;
+		font-weight: 600;
+		color: var(--text-muted);
+		margin-bottom: 10px;
+		letter-spacing: 0.02em;
 	}
-	.phone-slot:nth-child(2) {
-		z-index: 3;
-		transform: scale(1.04);
+	.post-image-wrap {
+		border-radius: 12px;
+		overflow: hidden;
+		box-shadow: 0 8px 32px rgba(17, 17, 22, 0.1), 0 2px 8px rgba(17, 17, 22, 0.06);
+		margin-bottom: 16px;
+		transition: box-shadow 0.35s ease;
 	}
-	.phone-slot:nth-child(3) {
-		transform: rotate(5deg) translateY(32px);
-		z-index: 1;
-		margin-left: -16px;
+	.post-item:hover .post-image-wrap {
+		box-shadow: 0 20px 56px rgba(17, 17, 22, 0.18);
 	}
-	.phone-slot:hover :global(.phone-frame) {
-		box-shadow: 0 20px 60px rgba(17, 17, 22, 0.16);
+	.post-image {
+		width: 100%;
+		aspect-ratio: 4 / 5;
+		object-fit: cover;
+		display: block;
+	}
+	.post-caption {
+		font-size: 0.82rem;
+		line-height: 1.6;
+		color: var(--text-secondary);
+		display: -webkit-box;
+		line-clamp: 3;
+		-webkit-line-clamp: 3;
+		-webkit-box-orient: vertical;
+		overflow: hidden;
+		margin-bottom: 8px;
+	}
+	.post-tags {
+		font-size: 0.73rem;
+		color: var(--coral);
+		font-weight: 500;
+		opacity: 0.85;
 	}
 
 	/* ============ PRICING ============ */
@@ -921,11 +944,9 @@
 		33% { transform: translate(30px, -20px); }
 		66% { transform: translate(-20px, 15px); }
 	}
-	@keyframes floatCard {
-		0%, 100% { transform: translateY(0) rotate(var(--r, 2deg)); }
-		50% { transform: translateY(-10px) rotate(var(--r, 2deg)); }
+	@media (prefers-reduced-motion: reduce) {
+		.hero-mesh-1, .hero-mesh-2 { animation: none; }
 	}
-
 	/* ============ RESPONSIVE ============ */
 	@media (max-width: 768px) {
 		.nav-links a:not(.btn) { display: none; }
@@ -938,34 +959,20 @@
 		.hero-sub { margin-left: auto; margin-right: auto; }
 		.hero-cta { justify-content: center; flex-wrap: wrap; }
 		.empathy { padding: 56px 24px 64px; }
-		.steps-section { padding: 72px 24px; }
-		.steps-heading { margin-bottom: 40px; }
-		.steps {
-			grid-template-columns: 1fr;
-			gap: 16px;
-		}
+		.wa-window { border-radius: 12px; }
 		.showcase { padding: 72px 0; }
 		.showcase-heading,
 		.showcase-sub { padding: 0 24px; }
-		.phones {
-			justify-content: flex-start;
-			overflow-x: auto;
-			scroll-snap-type: x mandatory;
-			gap: 16px;
-			padding: 20px 24px;
-			-webkit-overflow-scrolling: touch;
+		.posts {
+			grid-template-columns: 1fr;
+			gap: 40px;
+			padding: 8px 24px 24px;
+			max-width: 380px;
+			margin: 0 auto;
 		}
-		.phone-slot {
-			flex: 0 0 256px;
-			scroll-snap-align: center;
-		}
-		.phone-slot:nth-child(1),
-		.phone-slot:nth-child(2),
-		.phone-slot:nth-child(3) {
-			transform: none;
-			margin: 0;
-		}
-		.phone-slot :global(.phone-frame) { width: 256px; }
+		.post-item:nth-child(1),
+		.post-item:nth-child(2),
+		.post-item:nth-child(3) { transform: none; }
 		.pricing { padding: 72px 24px; }
 		.pricing-grid {
 			grid-template-columns: 1fr;

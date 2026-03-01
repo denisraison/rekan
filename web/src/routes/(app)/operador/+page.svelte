@@ -849,14 +849,15 @@
     >
       Rekan — Operador
     </span>
-    <span
+    <a
+      href="/operador/whatsapp"
       class="text-xs px-2 py-1 rounded-full"
       style="background: {waConnected
         ? '#DEF7EC'
         : '#FDE8E8'}; color: {waConnected ? '#03543F' : '#9B1C1C'}"
     >
       WhatsApp {waConnected ? "conectado" : "desconectado"}
-    </span>
+    </a>
   </header>
 
   {#if loading}

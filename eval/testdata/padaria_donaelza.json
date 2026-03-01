@@ -1,0 +1,14 @@
+{
+  "businessName": "Padaria Dona Elza",
+  "businessType": "padaria artesanal",
+  "city": "São Paulo",
+  "neighbourhood": "Lapa",
+  "services": [
+    {"name": "Bolo de cenoura com cobertura de chocolate", "priceBRL": 45},
+    {"name": "Pão francês (un.)", "priceBRL": 1},
+    {"name": "Salgados sortidos (dúzia)", "priceBRL": 28}
+  ],
+  "targetAudience": "moradores do bairro, famílias e trabalhadores que passam na padaria todo dia",
+  "brandVibe": "caseiro e afetivo",
+  "quirks": ["aberta desde 1987", "tudo feito na madrugada, ainda quente de manhã", "a Dona Elza ainda amassa o pão todo dia com as próprias mãos"]
+}

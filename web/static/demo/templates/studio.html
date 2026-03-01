@@ -1,0 +1,116 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Urbanist:wght@300;400;600;800&display=swap');
+
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  body {
+    width: 1080px;
+    height: 1350px;
+    font-family: 'Urbanist', system-ui, sans-serif;
+    overflow: hidden;
+    position: relative;
+    background: #0d1410;
+  }
+
+  .bg {
+    position: absolute;
+    inset: 0;
+    background: url('{{backgroundImage}}') center/cover no-repeat;
+  }
+
+  .overlay {
+    position: absolute;
+    inset: 0;
+    background: linear-gradient(
+      to top,
+      rgba(8, 18, 12, 0.92) 0%,
+      rgba(8, 18, 12, 0.60) 35%,
+      rgba(8, 18, 12, 0.20) 65%,
+      transparent 100%
+    );
+  }
+
+  .content {
+    position: relative;
+    z-index: 1;
+    height: 100%;
+    display: flex;
+    flex-direction: column;
+    padding: 60px 68px;
+  }
+
+  .spacer { flex: 1; }
+
+  .eyebrow {
+    font-size: 20px;
+    font-weight: 600;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+    color: #87AA8C;
+    margin-bottom: 24px;
+  }
+
+  .hook {
+    font-size: 72px;
+    font-weight: 800;
+    line-height: 1.0;
+    color: #ffffff;
+    margin-bottom: 24px;
+    letter-spacing: -0.025em;
+  }
+
+  .sub {
+    font-size: 26px;
+    font-weight: 300;
+    color: rgba(255,255,255,0.58);
+    line-height: 1.5;
+    margin-bottom: 52px;
+    max-width: 740px;
+  }
+
+  .business-line {
+    display: flex;
+    align-items: center;
+    gap: 20px;
+    border-top: 1px solid rgba(135,170,140,0.22);
+    padding-top: 28px;
+  }
+
+  .badge {
+    font-size: 18px;
+    font-weight: 600;
+    color: #87AA8C;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    border: 1px solid rgba(135,170,140,0.35);
+    padding: 6px 16px;
+    border-radius: 100px;
+  }
+
+  .business-name {
+    font-size: 24px;
+    font-weight: 400;
+    color: rgba(255,255,255,0.7);
+    letter-spacing: 0.01em;
+  }
+</style>
+</head>
+<body>
+  <div class="bg"></div>
+  <div class="overlay"></div>
+  <div class="content">
+    <div class="spacer"></div>
+    <div class="eyebrow">pilates · reabilitação</div>
+    <div class="hook">Ela amarrou<br/>o tênis<br/>sem sentar.</div>
+    <div class="sub">2 meses de pilates de reabilitação. Só isso.</div>
+    <div class="business-line">
+      <span class="badge">Studio Viva</span>
+      <span class="business-name">Pinheiros, São Paulo</span>
+    </div>
+  </div>
+</body>
+</html>

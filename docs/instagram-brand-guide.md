@@ -84,7 +84,7 @@ Three tiers: Basico (R$69,90), Parceiro (R$108,90, founder discount from R$149,9
 
 1. **Founder stories** (raw photos): real conversations with MEIs, building the product late at night, empathy moments
 2. **Value tips** (branded cards): practical Instagram advice MEIs can use without Rekan ("poste o video real", "nao copie agencia grande")
-3. **How it works** (branded infographic): the WhatsApp flow (manda mensagem > recebe post pronto > copia e posta)
+3. **How it works** (branded infographic or WhatsApp screenshot): the WhatsApp flow shown two ways — (a) the 3-step graphic (manda mensagem > recebe post pronto > copia e posta), or (b) a real WhatsApp conversation screenshot: one casual message from the client, the full caption + hashtags coming back. Format (b) is more powerful because no competitor can post it — none of them deliver via WhatsApp. The conversation screenshot uses the real AI output from the production pipeline, not a mockup.
 4. **MEI reality** (raw photos): scenes from workshops, kitchens, salons. The texture of small business life.
 5. **Social proof** (raw or branded): concrete, visual, no metrics dashboards
    - Before/after grid screenshots: the client's Instagram profile 1 month ago vs. now. The difference is visible without any analytics.
