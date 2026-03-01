@@ -86,16 +86,20 @@
       devShells = forEachSystem (system:
         let
           pkgs = nixpkgs.legacyPackages.${system};
+          # Rebuild golangci-lint with go_1_26 — the nixpkgs binary is built
+          # with go1.25 and refuses to analyse a go1.26 module.
+          golangci-lint = pkgs.golangci-lint.override { buildGo125Module = pkgs.buildGo126Module; };
         in
         {
           default = pkgs.mkShell {
-            packages = with pkgs; [
-              go_1_26
-              gopls
-              nodejs
-              pnpm
-              netcat-gnu
-              playwright-driver.browsers
+            packages = [
+              pkgs.go_1_26
+              pkgs.gopls
+              golangci-lint
+              pkgs.nodejs
+              pkgs.pnpm
+              pkgs.netcat-gnu
+              pkgs.playwright-driver.browsers
             ];
 
             LD_LIBRARY_PATH = pkgs.lib.makeLibraryPath (with pkgs; [

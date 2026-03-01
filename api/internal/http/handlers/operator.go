@@ -20,10 +20,6 @@ func OperatorGenerate(deps Deps) func(*core.RequestEvent) error {
 			return e.JSON(http.StatusNotFound, map[string]string{"message": "negócio não encontrado"})
 		}
 
-		if business.GetString("user") != e.Auth.Id {
-			return e.JSON(http.StatusForbidden, map[string]string{"message": "acesso negado"})
-		}
-
 		var body struct {
 			Message   string `json:"message"`
 			MessageID string `json:"message_id"` // optional: link to source message record

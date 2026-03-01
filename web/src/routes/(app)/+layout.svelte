@@ -5,13 +5,22 @@
 
 	let { children } = $props();
 
+	let isAuth = $state(false);
+
 	onMount(() => {
 		if (!pb.authStore.isValid) {
 			goto('/entrar');
+			return;
 		}
+		isAuth = true;
+
+		return pb.authStore.onChange(() => {
+			isAuth = pb.authStore.isValid;
+			if (!isAuth) goto('/entrar');
+		});
 	});
 </script>
 
-{#if pb.authStore.isValid}
+{#if isAuth}
 	{@render children()}
 {/if}

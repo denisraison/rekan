@@ -1,4 +1,4 @@
-.PHONY: dev dev-api dev-web eval eval-judges eval-fast test-judges
+.PHONY: dev dev-api dev-web eval eval-judges eval-fast test-judges lint
 
 dev:
 	$(MAKE) dev-api &
@@ -8,7 +8,7 @@ dev:
 	$(MAKE) dev-web
 
 dev-api:
-	cd api && go run . serve --http=0.0.0.0:8090
+	set -a && . ./.env && set +a && cd api && go run . serve --http=0.0.0.0:8090
 
 dev-web:
 	cd web && pnpm dev --host 0.0.0.0
@@ -24,3 +24,6 @@ eval-fast:
 
 test-judges:
 	set -a && . ./.env && set +a && cd eval && go test -tags integration -v -run TestJudge
+
+lint:
+	cd api && golangci-lint run ./...

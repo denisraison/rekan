@@ -11,7 +11,7 @@ func init() {
 		settings.Meta.AppName = "Rekan"
 		settings.Meta.AppURL = "https://rekan.com.br"
 		return app.Save(settings)
-	}, func(app core.App) error {
+	}, func(_ core.App) error {
 		return nil
 	})
 }

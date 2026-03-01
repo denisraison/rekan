@@ -21,8 +21,8 @@ func TestOperatorNotFound(t *testing.T) {
 		Method: http.MethodPost,
 		URL:    "/api/businesses/nonexistent/posts:generateFromMessage",
 		Body:   strings.NewReader(`{"message":"test"}`),
-		TestAppFactory: func(tb testing.TB) *tests.TestApp { return app },
-		BeforeTestFunc: func(t testing.TB, app *tests.TestApp, e *core.ServeEvent) {
+		TestAppFactory: func(_ testing.TB) *tests.TestApp { return app },
+		BeforeTestFunc: func(_ testing.TB, app *tests.TestApp, e *core.ServeEvent) {
 			registerHandlerRoutes(app, e, handlers.Deps{
 				App:                 app,
 				GenerateFromMessage: stubGenerateFromMessage,
@@ -38,38 +38,6 @@ func TestOperatorNotFound(t *testing.T) {
 	s.Test(t)
 }
 
-func TestOperatorForbidden(t *testing.T) {
-	app, _, bizID := newHandlerApp(t)
-	defer app.Cleanup()
-
-	users, _ := app.FindCollectionByNameOrId("users")
-	other := core.NewRecord(users)
-	other.SetEmail("operator-other@rekan.com.br")
-	other.SetPassword(testUserPassword)
-	if err := app.Save(other); err != nil {
-		t.Fatalf("save other user: %v", err)
-	}
-
-	s := &tests.ApiScenario{
-		Method: http.MethodPost,
-		URL:    "/api/businesses/" + bizID + "/posts:generateFromMessage",
-		Body:   strings.NewReader(`{"message":"test"}`),
-		TestAppFactory: func(tb testing.TB) *tests.TestApp { return app },
-		BeforeTestFunc: func(t testing.TB, app *tests.TestApp, e *core.ServeEvent) {
-			registerHandlerRoutes(app, e, handlers.Deps{
-				App:                 app,
-				GenerateFromMessage: stubGenerateFromMessage,
-			})
-		},
-		Headers: map[string]string{
-			"Authorization": authHeader(app, other.Id),
-			"Content-Type":  "application/json",
-		},
-		ExpectedStatus:  http.StatusForbidden,
-		ExpectedContent: []string{`"message"`},
-	}
-	s.Test(t)
-}
 
 func TestOperatorEmptyMessage(t *testing.T) {
 	app, userID, bizID := newHandlerApp(t)
@@ -79,8 +47,8 @@ func TestOperatorEmptyMessage(t *testing.T) {
 		Method: http.MethodPost,
 		URL:    "/api/businesses/" + bizID + "/posts:generateFromMessage",
 		Body:   strings.NewReader(`{"message":""}`),
-		TestAppFactory: func(tb testing.TB) *tests.TestApp { return app },
-		BeforeTestFunc: func(t testing.TB, app *tests.TestApp, e *core.ServeEvent) {
+		TestAppFactory: func(_ testing.TB) *tests.TestApp { return app },
+		BeforeTestFunc: func(_ testing.TB, app *tests.TestApp, e *core.ServeEvent) {
 			registerHandlerRoutes(app, e, handlers.Deps{
 				App:                 app,
 				GenerateFromMessage: stubGenerateFromMessage,
@@ -104,8 +72,8 @@ func TestOperatorSuccess(t *testing.T) {
 		Method: http.MethodPost,
 		URL:    "/api/businesses/" + bizID + "/posts:generateFromMessage",
 		Body:   strings.NewReader(`{"message":"Fiz um bolo hoje"}`),
-		TestAppFactory: func(tb testing.TB) *tests.TestApp { return app },
-		BeforeTestFunc: func(t testing.TB, app *tests.TestApp, e *core.ServeEvent) {
+		TestAppFactory: func(_ testing.TB) *tests.TestApp { return app },
+		BeforeTestFunc: func(_ testing.TB, app *tests.TestApp, e *core.ServeEvent) {
 			registerHandlerRoutes(app, e, handlers.Deps{
 				App:                 app,
 				GenerateFromMessage: stubGenerateFromMessage,
@@ -115,7 +83,7 @@ func TestOperatorSuccess(t *testing.T) {
 			"Authorization": authHeader(app, userID),
 			"Content-Type":  "application/json",
 		},
-		AfterTestFunc: func(t testing.TB, app *tests.TestApp, res *http.Response) {
+		AfterTestFunc: func(t testing.TB, app *tests.TestApp, _ *http.Response) {
 			posts, err := app.FindAllRecords("posts")
 			if err != nil {
 				t.Fatalf("find posts: %v", err)
@@ -146,8 +114,8 @@ func TestOperatorGenerateError(t *testing.T) {
 		Method: http.MethodPost,
 		URL:    "/api/businesses/" + bizID + "/posts:generateFromMessage",
 		Body:   strings.NewReader(`{"message":"Fiz um bolo hoje"}`),
-		TestAppFactory: func(tb testing.TB) *tests.TestApp { return app },
-		BeforeTestFunc: func(t testing.TB, app *tests.TestApp, e *core.ServeEvent) {
+		TestAppFactory: func(_ testing.TB) *tests.TestApp { return app },
+		BeforeTestFunc: func(_ testing.TB, app *tests.TestApp, e *core.ServeEvent) {
 			registerHandlerRoutes(app, e, handlers.Deps{
 				App:                 app,
 				GenerateFromMessage: failGenerate,

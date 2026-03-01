@@ -21,7 +21,6 @@ export type Commitment = 'mensal' | 'trimestral';
 
 export interface Business {
 	id: string;
-	user: string;
 	name: string;
 	type: string;
 	city: string;

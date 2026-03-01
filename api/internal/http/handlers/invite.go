@@ -26,10 +26,6 @@ func InviteSend(deps Deps) func(*core.RequestEvent) error {
 		if err != nil {
 			return e.JSON(http.StatusNotFound, map[string]string{"message": "negócio não encontrado"})
 		}
-		if business.GetString("user") != e.Auth.Id {
-			return e.JSON(http.StatusForbidden, map[string]string{"message": "acesso negado"})
-		}
-
 		phone := business.GetString("phone")
 		if phone == "" {
 			return e.JSON(http.StatusBadRequest, map[string]string{"message": "cliente sem telefone cadastrado"})
@@ -101,7 +97,7 @@ func InviteSend(deps Deps) func(*core.RequestEvent) error {
 	}
 }
 
-func InviteGet(deps Deps) func(*core.RequestEvent) error {
+func InviteGet(_ Deps) func(*core.RequestEvent) error {
 	return func(e *core.RequestEvent) error {
 		token := e.Request.PathValue("token")
 
@@ -300,10 +296,6 @@ func AuthorizationCancel(deps Deps) func(*core.RequestEvent) error {
 		if err != nil {
 			return e.JSON(http.StatusNotFound, map[string]string{"message": "negócio não encontrado"})
 		}
-		if business.GetString("user") != e.Auth.Id {
-			return e.JSON(http.StatusForbidden, map[string]string{"message": "acesso negado"})
-		}
-
 		authID := business.GetString("authorization_id")
 		if authID == "" || business.GetString("invite_status") != domain.InviteStatusActive {
 			return e.JSON(http.StatusBadRequest, map[string]string{"message": "nenhuma assinatura ativa"})

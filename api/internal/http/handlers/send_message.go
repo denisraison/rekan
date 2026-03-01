@@ -45,9 +45,6 @@ func SendMessage(deps Deps) func(*core.RequestEvent) error {
 			return e.JSON(http.StatusNotFound, map[string]string{"message": "Negócio não encontrado"})
 		}
 
-		if business.GetString("user") != e.Auth.Id {
-			return e.JSON(http.StatusForbidden, map[string]string{"message": "Acesso negado"})
-		}
 
 		phone := business.GetString("phone")
 		if phone == "" {

@@ -16,7 +16,7 @@ function GenerateContent(profile: BusinessProfile, roles: ContentRole[], previou
 
     Cada post precisa ter:
     - Legenda (máximo 700 caracteres)
-    - Hashtags do nicho e da região (mínimo 5)
+    - Hashtags do nicho e da região (sempre 5)
     - Um convite pra ação (chama no zap, link na bio, comenta, etc.)
     - Nota de produção com mini-roteiro de foto/vídeo para celular (3-4 frases):
       1. O que montar na cena (objeto, fundo, elementos visuais)
@@ -27,6 +27,7 @@ function GenerateContent(profile: BusinessProfile, roles: ContentRole[], previou
     Como você escreve:
     - Do jeito que você falaria com um cliente no balcão
     - Descreva cenas que dá pra montar e fotografar: preparando um produto, arrumando o espaço, um resultado de serviço. A legenda acompanha a foto.
+    - NUNCA use travessão (—). Se precisar separar uma ideia, use vírgula ou ponto.
     - Emojis só quando você usaria de verdade no WhatsApp
     - Os 3 posts devem ter papéis diferentes. Misture estes tipos (em qualquer ordem):
     {% for r in roles %}  {{ r.name }}: {{ r.description }}
@@ -71,7 +72,7 @@ function GenerateFromMessage(profile: BusinessProfile, clientMessage: string, pr
 
     O post precisa ter:
     - Legenda (máximo 700 caracteres)
-    - Hashtags do nicho e da região (mínimo 5)
+    - Hashtags do nicho e da região (sempre 5)
     - Um convite pra ação (chama no zap, link na bio, comenta, etc.)
     - Nota de produção com mini-roteiro de foto/vídeo para celular (3-4 frases):
       1. O que montar na cena (objeto, fundo, elementos visuais)
@@ -87,6 +88,7 @@ function GenerateFromMessage(profile: BusinessProfile, clientMessage: string, pr
     Como você escreve:
     - Do jeito que você falaria com um cliente no balcão
     - Descreva uma cena que dá pra montar e fotografar, ligada ao que o cliente descreveu
+    - NUNCA use travessão (—). Se precisar separar uma ideia, use vírgula ou ponto.
     - Emojis só quando você usaria de verdade no WhatsApp
     - Abra com um micro-momento concreto: uma cena específica, um número real, um detalhe sensorial. Nada de declarações genéricas.
     - NUNCA termine com pergunta genérica de engajamento ("qual seu favorito?", "comenta aqui", "marca um amigo", "quem concorda?"). Se quiser provocar interação, faça isso dentro da história.

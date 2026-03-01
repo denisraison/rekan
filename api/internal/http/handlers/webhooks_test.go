@@ -139,7 +139,7 @@ func TestWebhookInvalidToken(t *testing.T) {
 		TestAppFactory: func(tb testing.TB) *tests.TestApp {
 			return newWebhookApp(tb)
 		},
-		BeforeTestFunc: func(t testing.TB, app *tests.TestApp, e *core.ServeEvent) {
+		BeforeTestFunc: func(_ testing.TB, app *tests.TestApp, e *core.ServeEvent) {
 			registerRoutes(app, e)
 		},
 		ExpectedStatus:  http.StatusUnauthorized,
@@ -159,7 +159,7 @@ func TestWebhookNoTokenValidation(t *testing.T) {
 		TestAppFactory: func(tb testing.TB) *tests.TestApp {
 			return newWebhookApp(tb)
 		},
-		BeforeTestFunc: func(t testing.TB, app *tests.TestApp, e *core.ServeEvent) {
+		BeforeTestFunc: func(_ testing.TB, app *tests.TestApp, e *core.ServeEvent) {
 			apphttp.RegisterRoutes(e.Router, handlers.Deps{
 				App:          app,
 				WebhookToken: "",
@@ -183,7 +183,7 @@ func TestWebhookUnknownEvent(t *testing.T) {
 		TestAppFactory: func(tb testing.TB) *tests.TestApp {
 			return newWebhookApp(tb)
 		},
-		BeforeTestFunc: func(t testing.TB, app *tests.TestApp, e *core.ServeEvent) {
+		BeforeTestFunc: func(_ testing.TB, app *tests.TestApp, e *core.ServeEvent) {
 			registerRoutes(app, e)
 		},
 		ExpectedStatus:  http.StatusOK,
@@ -206,7 +206,7 @@ func TestWebhookAuthorizationActivated(t *testing.T) {
 			app = newWebhookApp(tb)
 			return app
 		},
-		BeforeTestFunc: func(t testing.TB, a *tests.TestApp, e *core.ServeEvent) {
+		BeforeTestFunc: func(_ testing.TB, a *tests.TestApp, e *core.ServeEvent) {
 			registerRoutes(a, e)
 		},
 		AfterTestFunc: func(t testing.TB, _ *tests.TestApp, _ *http.Response) {
@@ -246,7 +246,7 @@ func TestWebhookAuthorizationRefused(t *testing.T) {
 			app = newWebhookApp(tb)
 			return app
 		},
-		BeforeTestFunc: func(t testing.TB, a *tests.TestApp, e *core.ServeEvent) {
+		BeforeTestFunc: func(_ testing.TB, a *tests.TestApp, e *core.ServeEvent) {
 			registerRoutes(a, e)
 		},
 		AfterTestFunc: func(t testing.TB, _ *tests.TestApp, _ *http.Response) {
@@ -276,7 +276,7 @@ func TestWebhookAuthorizationExpired(t *testing.T) {
 			app = newWebhookApp(tb)
 			return app
 		},
-		BeforeTestFunc: func(t testing.TB, a *tests.TestApp, e *core.ServeEvent) {
+		BeforeTestFunc: func(_ testing.TB, a *tests.TestApp, e *core.ServeEvent) {
 			registerRoutes(a, e)
 		},
 		AfterTestFunc: func(t testing.TB, _ *tests.TestApp, _ *http.Response) {
@@ -315,7 +315,7 @@ func TestWebhookPaymentConfirmed(t *testing.T) {
 			}
 			return app
 		},
-		BeforeTestFunc: func(t testing.TB, a *tests.TestApp, e *core.ServeEvent) {
+		BeforeTestFunc: func(_ testing.TB, a *tests.TestApp, e *core.ServeEvent) {
 			registerRoutes(a, e)
 		},
 		AfterTestFunc: func(t testing.TB, _ *tests.TestApp, _ *http.Response) {
@@ -364,7 +364,7 @@ func TestWebhookPaymentInstructionRefused(t *testing.T) {
 			}
 			return app
 		},
-		BeforeTestFunc: func(t testing.TB, a *tests.TestApp, e *core.ServeEvent) {
+		BeforeTestFunc: func(_ testing.TB, a *tests.TestApp, e *core.ServeEvent) {
 			registerRoutes(a, e)
 		},
 		AfterTestFunc: func(t testing.TB, _ *tests.TestApp, _ *http.Response) {
@@ -404,7 +404,7 @@ func TestWebhookAuthorizationActivatedIdempotent(t *testing.T) {
 			}
 			return app
 		},
-		BeforeTestFunc: func(t testing.TB, a *tests.TestApp, e *core.ServeEvent) {
+		BeforeTestFunc: func(_ testing.TB, a *tests.TestApp, e *core.ServeEvent) {
 			registerRoutes(a, e)
 		},
 		AfterTestFunc: func(t testing.TB, _ *tests.TestApp, _ *http.Response) {
@@ -454,7 +454,7 @@ func TestWebhookPaymentConfirmedNotPending(t *testing.T) {
 			}
 			return app
 		},
-		BeforeTestFunc: func(t testing.TB, a *tests.TestApp, e *core.ServeEvent) {
+		BeforeTestFunc: func(_ testing.TB, a *tests.TestApp, e *core.ServeEvent) {
 			registerRoutes(a, e)
 		},
 		AfterTestFunc: func(t testing.TB, _ *tests.TestApp, _ *http.Response) {
@@ -493,7 +493,7 @@ func TestWebhookUnknownAuthorizationID(t *testing.T) {
 		TestAppFactory: func(tb testing.TB) *tests.TestApp {
 			return newWebhookApp(tb)
 		},
-		BeforeTestFunc: func(t testing.TB, app *tests.TestApp, e *core.ServeEvent) {
+		BeforeTestFunc: func(_ testing.TB, app *tests.TestApp, e *core.ServeEvent) {
 			registerRoutes(app, e)
 		},
 		ExpectedStatus:  http.StatusOK,

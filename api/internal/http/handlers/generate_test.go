@@ -19,8 +19,8 @@ func TestGenerateNotFound(t *testing.T) {
 	s := &tests.ApiScenario{
 		Method: http.MethodPost,
 		URL:    "/api/businesses/nonexistent/posts:generate",
-		TestAppFactory: func(tb testing.TB) *tests.TestApp { return app },
-		BeforeTestFunc: func(t testing.TB, app *tests.TestApp, e *core.ServeEvent) {
+		TestAppFactory: func(_ testing.TB) *tests.TestApp { return app },
+		BeforeTestFunc: func(_ testing.TB, app *tests.TestApp, e *core.ServeEvent) {
 			registerHandlerRoutes(app, e, handlers.Deps{
 				App:      app,
 				Generate: stubGenerate,
@@ -35,37 +35,6 @@ func TestGenerateNotFound(t *testing.T) {
 	s.Test(t)
 }
 
-func TestGenerateForbidden(t *testing.T) {
-	app, _, bizID := newHandlerApp(t)
-	defer app.Cleanup()
-
-	// Create a second user who doesn't own the business
-	users, _ := app.FindCollectionByNameOrId("users")
-	other := core.NewRecord(users)
-	other.SetEmail("other@rekan.com.br")
-	other.SetPassword(testUserPassword)
-	if err := app.Save(other); err != nil {
-		t.Fatalf("save other user: %v", err)
-	}
-
-	s := &tests.ApiScenario{
-		Method: http.MethodPost,
-		URL:    "/api/businesses/" + bizID + "/posts:generate",
-		TestAppFactory: func(tb testing.TB) *tests.TestApp { return app },
-		BeforeTestFunc: func(t testing.TB, app *tests.TestApp, e *core.ServeEvent) {
-			registerHandlerRoutes(app, e, handlers.Deps{
-				App:      app,
-				Generate: stubGenerate,
-			})
-		},
-		Headers: map[string]string{
-			"Authorization": authHeader(app, other.Id),
-		},
-		ExpectedStatus:  http.StatusForbidden,
-		ExpectedContent: []string{`"message"`},
-	}
-	s.Test(t)
-}
 
 func TestGenerateSuccess(t *testing.T) {
 	app, userID, bizID := newHandlerApp(t)
@@ -74,8 +43,8 @@ func TestGenerateSuccess(t *testing.T) {
 	s := &tests.ApiScenario{
 		Method: http.MethodPost,
 		URL:    "/api/businesses/" + bizID + "/posts:generate",
-		TestAppFactory: func(tb testing.TB) *tests.TestApp { return app },
-		BeforeTestFunc: func(t testing.TB, app *tests.TestApp, e *core.ServeEvent) {
+		TestAppFactory: func(_ testing.TB) *tests.TestApp { return app },
+		BeforeTestFunc: func(_ testing.TB, app *tests.TestApp, e *core.ServeEvent) {
 			registerHandlerRoutes(app, e, handlers.Deps{
 				App:      app,
 				Generate: stubGenerate,
@@ -84,7 +53,7 @@ func TestGenerateSuccess(t *testing.T) {
 		Headers: map[string]string{
 			"Authorization": authHeader(app, userID),
 		},
-		AfterTestFunc: func(t testing.TB, app *tests.TestApp, res *http.Response) {
+		AfterTestFunc: func(t testing.TB, app *tests.TestApp, _ *http.Response) {
 			posts, err := app.FindAllRecords("posts")
 			if err != nil {
 				t.Fatalf("find posts: %v", err)
@@ -110,8 +79,8 @@ func TestGenerateError(t *testing.T) {
 	s := &tests.ApiScenario{
 		Method: http.MethodPost,
 		URL:    "/api/businesses/" + bizID + "/posts:generate",
-		TestAppFactory: func(tb testing.TB) *tests.TestApp { return app },
-		BeforeTestFunc: func(t testing.TB, app *tests.TestApp, e *core.ServeEvent) {
+		TestAppFactory: func(_ testing.TB) *tests.TestApp { return app },
+		BeforeTestFunc: func(_ testing.TB, app *tests.TestApp, e *core.ServeEvent) {
 			registerHandlerRoutes(app, e, handlers.Deps{
 				App:      app,
 				Generate: failGenerate,

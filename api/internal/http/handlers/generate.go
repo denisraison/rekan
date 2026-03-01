@@ -28,9 +28,6 @@ func GeneratePosts(deps Deps) func(*core.RequestEvent) error {
 			return e.JSON(http.StatusNotFound, map[string]string{"message": "negócio não encontrado"})
 		}
 
-		if business.GetString("user") != e.Auth.Id {
-			return e.JSON(http.StatusForbidden, map[string]string{"message": "acesso negado"})
-		}
 
 		profile, err := businessToProfile(business)
 		if err != nil {

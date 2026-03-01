@@ -10,6 +10,7 @@ import (
 	"go.mau.fi/whatsmeow/proto/waE2E"
 	"go.mau.fi/whatsmeow/store/sqlstore"
 	"go.mau.fi/whatsmeow/types"
+	"go.mau.fi/whatsmeow/types/events"
 )
 
 // EventHandler is called for each incoming WhatsApp event.
@@ -22,6 +23,9 @@ type Client struct {
 
 	mu     sync.RWMutex
 	qrCode string // current QR code string, empty when connected or expired
+
+	subsMu sync.Mutex
+	subs   map[chan Status]struct{}
 }
 
 // Status represents the current WhatsApp connection state.
@@ -46,10 +50,22 @@ func New(ctx context.Context, dbPath string) (*Client, error) {
 
 	wac := whatsmeow.NewClient(device, nil)
 
-	return &Client{
+	c := &Client{
 		wac:       wac,
 		container: container,
-	}, nil
+		subs:      make(map[chan Status]struct{}),
+	}
+
+	// Notify subscribers on connect/disconnect events.
+	// Use a goroutine to avoid blocking the whatsmeow event loop.
+	wac.AddEventHandler(func(evt any) {
+		switch evt.(type) {
+		case *events.Connected, *events.Disconnected, *events.LoggedOut:
+			go c.notify()
+		}
+	})
+
+	return c, nil
 }
 
 // Connect starts the WhatsApp connection. If no session exists, it begins
@@ -87,9 +103,39 @@ func (c *Client) Status() Status {
 	qr := c.qrCode
 	c.mu.RUnlock()
 	return Status{
-		Connected: c.wac.IsConnected(),
+		Connected: c.wac.IsLoggedIn(),
 		QRCode:    qr,
 	}
+}
+
+// Subscribe returns a channel that receives a Status push on every state change.
+// The caller must call Unsubscribe when done to avoid leaking the channel.
+func (c *Client) Subscribe() chan Status {
+	ch := make(chan Status, 1)
+	c.subsMu.Lock()
+	c.subs[ch] = struct{}{}
+	c.subsMu.Unlock()
+	return ch
+}
+
+// Unsubscribe removes ch from the subscriber list and closes it.
+func (c *Client) Unsubscribe(ch chan Status) {
+	c.subsMu.Lock()
+	delete(c.subs, ch)
+	c.subsMu.Unlock()
+	close(ch)
+}
+
+func (c *Client) notify() {
+	s := c.Status()
+	c.subsMu.Lock()
+	for ch := range c.subs {
+		select {
+		case ch <- s:
+		default: // drop if reader is slow
+		}
+	}
+	c.subsMu.Unlock()
 }
 
 // AddEventHandler registers a handler for WhatsApp events (messages, receipts, etc.).
@@ -114,6 +160,22 @@ func (c *Client) Download(ctx context.Context, msg whatsmeow.DownloadableMessage
 	return c.wac.Download(ctx, msg)
 }
 
+// ResolveLID resolves a LID JID to its phone number JID, or returns the input unchanged
+// if it is not a LID or cannot be resolved.
+func (c *Client) ResolveLID(ctx context.Context, jid types.JID) types.JID {
+	if jid.Server != types.HiddenUserServer {
+		return jid
+	}
+	if c == nil {
+		return types.EmptyJID
+	}
+	pn, err := c.wac.Store.GetAltJID(ctx, jid)
+	if err != nil || pn.IsEmpty() {
+		return types.EmptyJID
+	}
+	return pn
+}
+
 func (c *Client) handleQR(ch <-chan whatsmeow.QRChannelItem) {
 	for evt := range ch {
 		c.mu.Lock()
@@ -125,6 +187,7 @@ func (c *Client) handleQR(ch <-chan whatsmeow.QRChannelItem) {
 			c.qrCode = ""
 		}
 		c.mu.Unlock()
+		c.notify()
 		log.Printf("whatsapp qr event: %s", evt.Event)
 	}
 }

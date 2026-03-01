@@ -207,7 +207,7 @@ func TestCreatePendingChargesRollbackOnFailure(t *testing.T) {
 	dueDate := time.Now().AddDate(0, 0, 3).Format("2006-01-02 00:00:00.000Z")
 	biz := createBusiness(t, app, "fail_charge", "active", "parceiro", "mensal", dueDate, false)
 
-	mockAsaas := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+	mockAsaas := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
 		w.Header().Set("Content-Type", "application/json")
 		w.WriteHeader(http.StatusBadRequest)
 		json.NewEncoder(w).Encode(map[string]any{

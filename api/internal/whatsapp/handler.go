@@ -31,9 +31,6 @@ func RegisterMessageHandler(deps HandlerDeps) {
 }
 
 func handleMessage(deps HandlerDeps, evt *events.Message) {
-	if evt.Info.IsFromMe {
-		return
-	}
 	if evt.Info.IsGroup {
 		return
 	}
@@ -46,7 +43,28 @@ func handleMessage(deps HandlerDeps, evt *events.Message) {
 	ctx, cancel := context.WithTimeout(context.Background(), 60*time.Second)
 	defer cancel()
 
-	phone := evt.Info.Sender.User // phone number without @s.whatsapp.net
+	// For messages sent from self, the conversation partner is in Chat.
+	// LID JIDs (server == "lid") must be resolved to phone numbers via the LID map.
+	direction := domain.DirectionIncoming
+	var phone, pushName string
+	if evt.Info.IsFromMe {
+		jid := deps.Client.ResolveLID(ctx, evt.Info.Chat)
+		if jid.IsEmpty() {
+			log.Printf("whatsapp: skipping unresolvable LID outgoing event (chat=%s)", evt.Info.Chat)
+			return
+		}
+		direction = domain.DirectionOutgoing
+		phone = jid.User
+	} else {
+		jid := deps.Client.ResolveLID(ctx, evt.Info.Sender)
+		if jid.IsEmpty() {
+			log.Printf("whatsapp: skipping unresolvable LID incoming event (sender=%s)", evt.Info.Sender)
+			return
+		}
+		phone = jid.User
+		pushName = evt.Info.PushName
+	}
+
 	waMessageID := string(evt.Info.ID)
 	waTimestamp := evt.Info.Timestamp
 
@@ -79,12 +97,8 @@ func handleMessage(deps HandlerDeps, evt *events.Message) {
 		return
 	}
 
-	// Match phone to business
-	businessID := ""
-	business, _ := deps.App.FindFirstRecordByFilter(domain.CollBusinesses, "phone = {:phone}", map[string]any{"phone": phone})
-	if business != nil {
-		businessID = business.Id
-	}
+	// Find or create a business for this phone number.
+	businessID := findOrCreateBusiness(deps, phone, pushName)
 
 	collection, err := deps.App.FindCollectionByNameOrId(domain.CollMessages)
 	if err != nil {
@@ -99,7 +113,7 @@ func handleMessage(deps HandlerDeps, evt *events.Message) {
 	record.Set("phone", phone)
 	record.Set("type", msgType)
 	record.Set("content", content)
-	record.Set("direction", domain.DirectionIncoming)
+	record.Set("direction", direction)
 	record.Set("wa_timestamp", waTimestamp.UTC().Format(time.RFC3339))
 	record.Set("wa_message_id", waMessageID)
 
@@ -110,6 +124,51 @@ func handleMessage(deps HandlerDeps, evt *events.Message) {
 	if err := deps.App.Save(record); err != nil {
 		log.Printf("whatsapp: failed to save message: %v", err)
 	}
+}
+
+// findOrCreateBusiness returns the business ID for the given phone number,
+// creating a placeholder business if none exists yet. pushName is the sender's
+// WhatsApp display name (empty for outgoing messages).
+func findOrCreateBusiness(deps HandlerDeps, phone, pushName string) string {
+	business, _ := deps.App.FindFirstRecordByFilter(domain.CollBusinesses, "phone = {:phone}", map[string]any{"phone": phone})
+	if business != nil {
+		// Update name if the placeholder still uses the raw phone and we now have a real name.
+		if pushName != "" && business.GetString("name") == "+"+phone {
+			business.Set("name", pushName)
+			business.Set("client_name", pushName)
+			if err := deps.App.Save(business); err != nil {
+				log.Printf("whatsapp: failed to update placeholder name for %s: %v", phone, err)
+			}
+		}
+		return business.Id
+	}
+
+	collection, err := deps.App.FindCollectionByNameOrId(domain.CollBusinesses)
+	if err != nil {
+		log.Printf("whatsapp: businesses collection not found: %v", err)
+		return ""
+	}
+
+	name := "+" + phone
+	if pushName != "" {
+		name = pushName
+	}
+
+	record := core.NewRecord(collection)
+	record.Set("phone", phone)
+	record.Set("name", name)
+	record.Set("client_name", pushName)
+	record.Set("type", "Desconhecido")
+	record.Set("city", "-")
+	record.Set("state", "-")
+
+	if err := deps.App.Save(record); err != nil {
+		log.Printf("whatsapp: failed to create placeholder business for %s: %v", phone, err)
+		return ""
+	}
+
+	log.Printf("whatsapp: created placeholder business for %s (%s)", phone, name)
+	return record.Id
 }
 
 func transcribeAudio(ctx context.Context, deps HandlerDeps, evt *events.Message) string {
@@ -150,11 +209,11 @@ func downloadImage(ctx context.Context, deps HandlerDeps, evt *events.Message) *
 		return nil
 	}
 
-	mime := img.GetMimetype()
 	ext := ".jpg"
-	if mime == "image/png" {
+	switch img.GetMimetype() {
+	case "image/png":
 		ext = ".png"
-	} else if mime == "image/webp" {
+	case "image/webp":
 		ext = ".webp"
 	}
 

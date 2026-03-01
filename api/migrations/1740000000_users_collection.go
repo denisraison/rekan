@@ -39,7 +39,7 @@ func init() {
 		collection.DeleteRule = nil // users cannot self-delete
 
 		return app.Save(collection)
-	}, func(app core.App) error {
+	}, func(_ core.App) error {
 		return nil
 	})
 }

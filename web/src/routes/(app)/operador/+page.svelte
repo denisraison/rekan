@@ -2,6 +2,7 @@
   import QRCode from "qrcode";
   import { onDestroy, onMount } from "svelte";
   import { pb } from "$lib/pb";
+  import { readSSE } from "$lib/sse";
   import type {
     Business,
     GeneratedPost,
@@ -223,6 +224,8 @@
   let messages = $state<Message[]>([]);
   let messagesLoading = $state(false);
   let unsubscribeMessages: (() => void) | null = null;
+  let unsubscribeBusinesses: (() => void) | null = null;
+  let unsubscribePosts: (() => void) | null = null;
 
   // Client form
   let showForm = $state(false);
@@ -384,7 +387,7 @@
   let nudgeTier = $derived.by(() => {
     if (!selected) return null;
     const h = clientHealth[selected.id];
-    if (!h || h.daysSinceMsg < 5) return null;
+    if (!h || h.daysSinceMsg < 5 || h.daysSinceMsg === 999) return null;
     return (
       NUDGE_TEMPLATES.find(
         (t) => h.daysSinceMsg >= t.minDays && h.daysSinceMsg <= t.maxDays,
@@ -417,10 +420,8 @@
   });
 
   onMount(async () => {
-    // Load clients and check WhatsApp in parallel
     const [clientsRes] = await Promise.all([
       pb.collection("businesses").getList<Business>(1, 200, { sort: "name" }),
-      checkWhatsAppStatus(),
     ]);
     clients = clientsRes.items;
     loading = false;
@@ -428,7 +429,7 @@
     // Load all messages and posts
     await Promise.all([loadMessages(), loadPosts()]);
 
-    // Subscribe to realtime message updates
+    // Subscribe to realtime updates
     unsubscribeMessages = await pb
       .collection("messages")
       .subscribe<Message>("*", (e) => {
@@ -439,11 +440,40 @@
         }
       });
 
-    // Poll WhatsApp status every 5s
-    waInterval = setInterval(checkWhatsAppStatus, 5000);
+    unsubscribeBusinesses = await pb
+      .collection("businesses")
+      .subscribe<Business>("*", (e) => {
+        if (e.action === "create") {
+          if (!clients.some((c) => c.id === e.record.id)) {
+            clients = [...clients, e.record].sort((a, b) =>
+              a.name.localeCompare(b.name),
+            );
+          }
+        } else if (e.action === "update") {
+          clients = clients.map((c) => (c.id === e.record.id ? e.record : c));
+        } else if (e.action === "delete") {
+          clients = clients.filter((c) => c.id !== e.record.id);
+        }
+      });
+
+    unsubscribePosts = await pb
+      .collection("posts")
+      .subscribe<Post>("*", (e) => {
+        if (e.action === "create") {
+          if (!posts.some((p) => p.id === e.record.id)) {
+            posts = [e.record, ...posts];
+          }
+        } else if (e.action === "update") {
+          posts = posts.map((p) => (p.id === e.record.id ? e.record : p));
+        } else if (e.action === "delete") {
+          posts = posts.filter((p) => p.id !== e.record.id);
+        }
+      });
+
+    connectWhatsAppStream();
   });
 
-  let waInterval: ReturnType<typeof setInterval>;
+  let waAbortController: AbortController | null = null;
   let qrDataUrl = $state("");
 
   $effect(() => {
@@ -458,19 +488,30 @@
 
   onDestroy(() => {
     unsubscribeMessages?.();
-    clearInterval(waInterval);
+    unsubscribeBusinesses?.();
+    unsubscribePosts?.();
+    waAbortController?.abort();
   });
 
-  async function checkWhatsAppStatus() {
+  async function connectWhatsAppStream() {
+    waAbortController = new AbortController();
     try {
-      const res = await pb.send("/api/whatsapp/status", { method: "GET" });
-      waConnected = res.connected;
-      waQR = res.qr || "";
-    } catch {
+      const res = await fetch(`${pb.baseUrl}/api/whatsapp/stream`, {
+        headers: { Authorization: pb.authStore.token },
+        signal: waAbortController.signal,
+      });
+      if (!res.body) return;
+      await readSSE(res.body, (data: any) => {
+        waConnected = data.connected;
+        waQR = data.qr || "";
+        waChecking = false;
+      });
+    } catch (err) {
+      if (err instanceof Error && err.name === "AbortError") return;
       waConnected = false;
       waQR = "";
+      waChecking = false;
     }
-    waChecking = false;
   }
 
   async function loadMessages() {
@@ -507,7 +548,7 @@
     // Auto-populate nudge text for inactive clients
     const client = clients.find((c) => c.id === id);
     const health = clientHealth[id];
-    if (client && health && health.daysSinceMsg >= 5) {
+    if (client && health && health.daysSinceMsg >= 5 && health.daysSinceMsg !== 999) {
       const tier =
         NUDGE_TEMPLATES.find(
           (t) =>
@@ -581,14 +622,14 @@
   function openEditForm(biz: Business) {
     editingId = biz.id;
     formName = biz.name;
-    formType = biz.type;
-    formCity = biz.city;
-    formState = biz.state;
+    formType = biz.type === "Desconhecido" ? "" : biz.type;
+    formCity = biz.city === "-" ? "" : biz.city;
+    formState = biz.state === "-" ? "" : biz.state;
     formPhone = biz.phone || "";
     formClientName = biz.client_name || "";
     formClientEmail = biz.client_email || "";
     formServices =
-      biz.services.length > 0
+      biz.services?.length > 0
         ? [...biz.services]
         : [{ name: "", price_brl: 0 }];
     formTargetAudience = biz.target_audience || "";
@@ -1313,6 +1354,13 @@
               </p>
             </div>
             <div class="flex items-center gap-2">
+              {#if selected.type === 'Desconhecido'}
+                <button
+                  onclick={() => openEditForm(selected!)}
+                  class="text-xs px-3 py-1.5 rounded-full font-medium"
+                  style="background: #25D366; color: #fff"
+                >Criar conta</button>
+              {/if}
               {#if selected.invite_status === 'active'}
                 <button
                   onclick={cancelSubscription}

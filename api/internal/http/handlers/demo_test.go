@@ -23,8 +23,8 @@ func demoScenario(t *testing.T, body string, genFn eval.GenerateFromMessageFunc)
 		Method: http.MethodPost,
 		URL:    "/api/demo:generate",
 		Body:   strings.NewReader(body),
-		TestAppFactory: func(tb testing.TB) *tests.TestApp { return app },
-		BeforeTestFunc: func(t testing.TB, app *tests.TestApp, e *core.ServeEvent) {
+		TestAppFactory: func(_ testing.TB) *tests.TestApp { return app },
+		BeforeTestFunc: func(_ testing.TB, app *tests.TestApp, e *core.ServeEvent) {
 			registerHandlerRoutes(app, e, handlers.Deps{
 				App:                 app,
 				GenerateFromMessage: genFn,
@@ -75,7 +75,7 @@ func TestDemoSuccess(t *testing.T) {
 	defer app.Cleanup()
 	s.ExpectedStatus = http.StatusOK
 	s.ExpectedContent = []string{`"caption"`, `"Legenda do operador"`, `"hashtags"`, `"production_note"`}
-	s.AfterTestFunc = func(t testing.TB, app *tests.TestApp, res *http.Response) {
+	s.AfterTestFunc = func(t testing.TB, app *tests.TestApp, _ *http.Response) {
 		// Demo should NOT save posts
 		posts, err := app.FindAllRecords("posts")
 		if err != nil {

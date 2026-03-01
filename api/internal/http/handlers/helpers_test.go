@@ -56,7 +56,6 @@ func newHandlerApp(t testing.TB) (*tests.TestApp, string, string) {
 		&core.TextField{Name: "brand_vibe"},
 		&core.TextField{Name: "quirks"},
 		&core.JSONField{Name: "services"},
-		&core.TextField{Name: "user"},
 		&core.TextField{Name: "phone"},
 		&core.TextField{Name: "client_name"},
 		&core.TextField{Name: "client_email"},
@@ -112,7 +111,6 @@ func newHandlerApp(t testing.TB) (*tests.TestApp, string, string) {
 	biz.Set("target_audience", "moradores do bairro")
 	biz.Set("brand_vibe", "acolhedora")
 	biz.Set("services", []map[string]any{{"name": "Pão francês", "price_brl": 0.75}})
-	biz.Set("user", testUser.Id)
 	if err := app.Save(biz); err != nil {
 		t.Fatalf("save test business: %v", err)
 	}
@@ -121,6 +119,6 @@ func newHandlerApp(t testing.TB) (*tests.TestApp, string, string) {
 }
 
 // registerHandlerRoutes registers all routes with stub generate functions.
-func registerHandlerRoutes(app *tests.TestApp, e *core.ServeEvent, deps handlers.Deps) {
+func registerHandlerRoutes(_ *tests.TestApp, e *core.ServeEvent, deps handlers.Deps) {
 	apphttp.RegisterRoutes(e.Router, deps)
 }

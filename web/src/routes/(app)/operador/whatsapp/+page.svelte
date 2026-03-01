@@ -2,43 +2,48 @@
 	import QRCode from 'qrcode';
 	import { onDestroy, onMount } from 'svelte';
 	import { pb } from '$lib/pb';
+	import { readSSE } from '$lib/sse';
 
 	type Status = 'loading' | 'not_configured' | 'disconnected' | 'waiting_qr' | 'connected';
 
 	let status = $state<Status>('loading');
 	let qrDataUrl = $state('');
-	let pollInterval: ReturnType<typeof setInterval>;
+	let abortController: AbortController | null = null;
 
-	async function check() {
+	async function connect() {
+		abortController = new AbortController();
 		try {
-			const res = await pb.send('/api/whatsapp/status', { method: 'GET' });
-			if (res.connected) {
-				status = 'connected';
-				qrDataUrl = '';
-			} else if (res.qr) {
-				status = 'waiting_qr';
-				qrDataUrl = await QRCode.toDataURL(res.qr, { width: 280, margin: 2 });
-			} else {
-				status = 'disconnected';
-				qrDataUrl = '';
-			}
-		} catch (err: unknown) {
-			const e = err as { status?: number };
-			if (e?.status === 503) {
+			const res = await fetch(`${pb.baseUrl}/api/whatsapp/stream`, {
+				headers: { Authorization: pb.authStore.token },
+				signal: abortController.signal,
+			});
+			if (res.status === 503) {
 				status = 'not_configured';
-			} else {
-				status = 'disconnected';
+				return;
 			}
+			if (!res.body) return;
+			await readSSE(res.body, async (data: any) => {
+				if (data.connected) {
+					status = 'connected';
+					qrDataUrl = '';
+				} else if (data.qr) {
+					status = 'waiting_qr';
+					qrDataUrl = await QRCode.toDataURL(data.qr, { width: 280, margin: 2 });
+				} else {
+					status = 'disconnected';
+					qrDataUrl = '';
+				}
+			});
+		} catch (err) {
+			if (err instanceof Error && err.name === 'AbortError') return;
+			status = 'disconnected';
 		}
 	}
 
-	onMount(async () => {
-		await check();
-		pollInterval = setInterval(check, 5000);
-	});
+	onMount(connect);
 
 	onDestroy(() => {
-		clearInterval(pollInterval);
+		abortController?.abort();
 	});
 </script>
 
@@ -130,7 +135,7 @@
 				</ol>
 
 				<p class="text-xs" style="color: var(--text-muted)">
-					O código atualiza automaticamente a cada 5 segundos.
+					O código atualiza automaticamente quando um novo é gerado.
 				</p>
 			</div>
 
