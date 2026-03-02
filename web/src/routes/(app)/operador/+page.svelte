@@ -256,18 +256,25 @@
   let generating = $state(false);
   let generateError = $state("");
   let result = $state<GeneratedPost | null>(null);
-  let copied = $state<string | null>(null);
+  let captionCopied = $state(false);
+  let hashtagsCopied = $state(false);
+  let noteCopied = $state(false);
+  let captionCopyTimer: ReturnType<typeof setTimeout> | null = null;
+  let hashtagsCopyTimer: ReturnType<typeof setTimeout> | null = null;
+  let noteCopyTimer: ReturnType<typeof setTimeout> | null = null;
   let sending = $state(false);
   let sendError = $state("");
 
   // Nudge / engagement
   let clientFilter = $state<"todos" | "inativos">("todos");
   let nudgeText = $state("");
+  let nudgeOpen = $state(false);
   let sendingNudge = $state(false);
   let sendNudgeError = $state("");
 
   // Monthly summary
   let summaryText = $state("");
+  let summaryOpen = $state(false);
   let sendingSummary = $state(false);
   let sendSummaryError = $state("");
 
@@ -592,6 +599,8 @@
     generateError = "";
     sendNudgeError = "";
     sendSummaryError = "";
+    nudgeOpen = false;
+    summaryOpen = false;
     // Mark as seen
     lastSeen = { ...lastSeen, [id]: new Date().toISOString() };
     localStorage.setItem("rekan_operator_last_seen", JSON.stringify(lastSeen));
@@ -920,12 +929,25 @@
     nudgeText = template.replace("{name}", selected.client_name ? selected.client_name.split(" ")[0] : selected.name);
   }
 
-  async function copyText(text: string, label: string) {
+  async function copyCaption(text: string) {
     await navigator.clipboard.writeText(text);
-    copied = label;
-    setTimeout(() => {
-      copied = null;
-    }, 2000);
+    if (captionCopyTimer) clearTimeout(captionCopyTimer);
+    captionCopied = true;
+    captionCopyTimer = setTimeout(() => { captionCopied = false; }, 2000);
+  }
+
+  async function copyHashtags(text: string) {
+    await navigator.clipboard.writeText(text);
+    if (hashtagsCopyTimer) clearTimeout(hashtagsCopyTimer);
+    hashtagsCopied = true;
+    hashtagsCopyTimer = setTimeout(() => { hashtagsCopied = false; }, 2000);
+  }
+
+  async function copyNote(text: string) {
+    await navigator.clipboard.writeText(text);
+    if (noteCopyTimer) clearTimeout(noteCopyTimer);
+    noteCopied = true;
+    noteCopyTimer = setTimeout(() => { noteCopied = false; }, 2000);
   }
 </script>
 
@@ -1013,10 +1035,8 @@
               {@const health = clientHealth[client.id]}
               <button
                 onclick={() => selectClient(client.id)}
-                class="w-full text-left px-4 py-3 border-b transition-colors"
-                style="background: {selectedId === client.id
-                  ? 'var(--coral-pale)'
-                  : 'transparent'}; border-color: var(--border); color: var(--text)"
+                class="w-full text-left px-4 py-3 border-b transition-colors {selectedId === client.id ? 'bg-(--coral-pale)' : 'hover:bg-(--coral-pale)/40'}"
+                style="border-color: var(--border); color: var(--text)"
               >
                 <div class="flex items-center justify-between">
                   <div class="flex items-center gap-2 min-w-0">
@@ -1365,6 +1385,25 @@
               <p class="text-xs" style="color: var(--text-secondary)">
                 {selected.type} — {selected.city}/{selected.state}
               </p>
+              <div class="flex items-center gap-1.5 mt-1 flex-wrap">
+                {#if selected.tier}
+                  <span
+                    class="text-xs px-1.5 py-0.5 rounded-full font-medium"
+                    style="background: var(--border); color: var(--text-secondary)"
+                  >{selected.tier}</span>
+                {/if}
+                {#if selected.invite_status === 'active' && selected.next_charge_date}
+                  <span class="text-xs" style="color: var(--text-muted)">
+                    Próx. cobrança: {new Date(selected.next_charge_date).toLocaleDateString('pt-BR', { day: 'numeric', month: 'short' })}
+                  </span>
+                {/if}
+                {#if selected.charge_pending}
+                  <span
+                    class="text-xs px-1.5 py-0.5 rounded-full font-medium"
+                    style="background: #FEE2E2; color: #991B1B"
+                  >Pagamento pendente</span>
+                {/if}
+              </div>
             </div>
             <div class="flex items-center gap-2">
               {#if selected.type === 'Desconhecido'}
@@ -1396,57 +1435,64 @@
           <!-- Engagement panel (nudge + seasonal) -->
           {#if nudgeTier || upcomingDates.length > 0 || nudgeText || summaryText}
             <div
-              class="shrink-0 px-6 py-3 border-b"
-              style="border-color: var(--border); background: var(--bg)"
+              class="shrink-0 px-6 py-3 border-b overflow-y-auto"
+              style="border-color: var(--border); background: var(--bg); max-height: 38vh"
             >
               {#if nudgeTier || nudgeText}
                 <div class="mb-2">
-                  <span
-                    class="text-xs font-medium uppercase tracking-widest"
-                    style="color: var(--text-muted)"
+                  <button
+                    onclick={() => { nudgeOpen = !nudgeOpen; }}
+                    class="flex items-center gap-1 w-full text-left"
                   >
-                    {#if nudgeTier}
-                      Lembrete · {clientHealth[selected!.id]?.daysSinceMsg} dias sem
-                      mensagem
-                    {:else}
-                      Mensagem
-                    {/if}
-                  </span>
-                  <textarea
-                    bind:value={nudgeText}
-                    rows={2}
-                    class="w-full mt-1.5 px-3 py-2 rounded-xl text-sm outline-none border resize-none"
-                    style="border-color: var(--border-strong); background: var(--surface); color: var(--text)"
-                  ></textarea>
-                  <div class="flex items-center gap-2 mt-1.5">
-                    <button
-                      onclick={sendNudge}
-                      disabled={sendingNudge || !nudgeText.trim() || !!blockReason}
-                      title={blockReason ?? undefined}
-                      class="px-3 py-1.5 rounded-full text-xs font-medium transition-opacity"
-                      style="background: #25D366; color: #fff; opacity: {sendingNudge ||
-                      !nudgeText.trim() ||
-                      blockReason
-                        ? '0.6'
-                        : '1'}; cursor: {sendingNudge ||
-                      !nudgeText.trim() ||
-                      blockReason
-                        ? 'not-allowed'
-                        : 'pointer'}"
+                    <span
+                      class="text-xs font-medium uppercase tracking-widest"
+                      style="color: var(--text-muted)"
                     >
-                      {sendingNudge ? "Enviando..." : "Enviar lembrete"}
-                    </button>
-                    {#if blockReason && nudgeText.trim()}
-                      <span class="text-xs" style="color: var(--text-muted)"
-                        >{blockReason}</span
+                      {#if nudgeTier}
+                        Lembrete · {clientHealth[selected!.id]?.daysSinceMsg} dias sem mensagem
+                      {:else}
+                        Mensagem
+                      {/if}
+                    </span>
+                    <span class="text-xs ml-auto" style="color: var(--text-muted)">{nudgeOpen ? '▲' : '▼'}</span>
+                  </button>
+                  {#if nudgeOpen}
+                    <textarea
+                      bind:value={nudgeText}
+                      rows={2}
+                      class="w-full mt-1.5 px-3 py-2 rounded-xl text-sm outline-none border resize-none"
+                      style="border-color: var(--border-strong); background: var(--surface); color: var(--text)"
+                    ></textarea>
+                    <div class="flex items-center gap-2 mt-1.5">
+                      <button
+                        onclick={sendNudge}
+                        disabled={sendingNudge || !nudgeText.trim() || !!blockReason}
+                        title={blockReason ?? undefined}
+                        class="px-3 py-1.5 rounded-full text-xs font-medium transition-opacity"
+                        style="background: #25D366; color: #fff; opacity: {sendingNudge ||
+                        !nudgeText.trim() ||
+                        blockReason
+                          ? '0.6'
+                          : '1'}; cursor: {sendingNudge ||
+                        !nudgeText.trim() ||
+                        blockReason
+                          ? 'not-allowed'
+                          : 'pointer'}"
                       >
-                    {/if}
-                    {#if sendNudgeError}
-                      <span class="text-xs" style="color: var(--destructive)"
-                        >{sendNudgeError}</span
-                      >
-                    {/if}
-                  </div>
+                        {sendingNudge ? "Enviando..." : "Enviar lembrete"}
+                      </button>
+                      {#if blockReason && nudgeText.trim()}
+                        <span class="text-xs" style="color: var(--text-muted)"
+                          >{blockReason}</span
+                        >
+                      {/if}
+                      {#if sendNudgeError}
+                        <span class="text-xs" style="color: var(--destructive)"
+                          >{sendNudgeError}</span
+                        >
+                      {/if}
+                    </div>
+                  {/if}
                 </div>
               {/if}
 
@@ -1464,7 +1510,7 @@
                   <div class="flex flex-wrap gap-1.5 mt-1.5">
                     {#each upcomingDates as sd}
                       <button
-                        onclick={() => prefillSeasonalMessage(sd.template)}
+                        onclick={() => { prefillSeasonalMessage(sd.template); nudgeOpen = true; }}
                         class="text-xs px-2.5 py-1 rounded-full border transition-colors hover:bg-(--coral-pale)"
                         style="border-color: var(--border-strong); color: var(--text-secondary)"
                         title={sd.template.replace(
@@ -1486,48 +1532,55 @@
                     : ""}
                   style="border-color: var(--border)"
                 >
-                  <span
-                    class="text-xs font-medium uppercase tracking-widest"
-                    style="color: var(--text-muted)"
+                  <button
+                    onclick={() => { summaryOpen = !summaryOpen; }}
+                    class="flex items-center gap-1 w-full text-left"
                   >
-                    Resumo mensal · {clientHealth[selected!.id]
-                      ?.postsThisMonth ?? 0} posts este mês
-                  </span>
-                  <textarea
-                    bind:value={summaryText}
-                    rows={3}
-                    class="w-full mt-1.5 px-3 py-2 rounded-xl text-sm outline-none border resize-none"
-                    style="border-color: var(--border-strong); background: var(--surface); color: var(--text)"
-                  ></textarea>
-                  <div class="flex items-center gap-2 mt-1.5">
-                    <button
-                      onclick={sendSummary}
-                      disabled={sendingSummary || !summaryText.trim() || !!blockReason}
-                      title={blockReason ?? undefined}
-                      class="px-3 py-1.5 rounded-full text-xs font-medium transition-opacity"
-                      style="background: #25D366; color: #fff; opacity: {sendingSummary ||
-                      !summaryText.trim() ||
-                      blockReason
-                        ? '0.6'
-                        : '1'}; cursor: {sendingSummary ||
-                      !summaryText.trim() ||
-                      blockReason
-                        ? 'not-allowed'
-                        : 'pointer'}"
+                    <span
+                      class="text-xs font-medium uppercase tracking-widest"
+                      style="color: var(--text-muted)"
                     >
-                      {sendingSummary ? "Enviando..." : "Enviar resumo"}
-                    </button>
-                    {#if blockReason && summaryText.trim()}
-                      <span class="text-xs" style="color: var(--text-muted)"
-                        >{blockReason}</span
+                      Resumo mensal · {clientHealth[selected!.id]?.postsThisMonth ?? 0} posts este mês
+                    </span>
+                    <span class="text-xs ml-auto" style="color: var(--text-muted)">{summaryOpen ? '▲' : '▼'}</span>
+                  </button>
+                  {#if summaryOpen}
+                    <textarea
+                      bind:value={summaryText}
+                      rows={3}
+                      class="w-full mt-1.5 px-3 py-2 rounded-xl text-sm outline-none border resize-none"
+                      style="border-color: var(--border-strong); background: var(--surface); color: var(--text)"
+                    ></textarea>
+                    <div class="flex items-center gap-2 mt-1.5">
+                      <button
+                        onclick={sendSummary}
+                        disabled={sendingSummary || !summaryText.trim() || !!blockReason}
+                        title={blockReason ?? undefined}
+                        class="px-3 py-1.5 rounded-full text-xs font-medium transition-opacity"
+                        style="background: #25D366; color: #fff; opacity: {sendingSummary ||
+                        !summaryText.trim() ||
+                        blockReason
+                          ? '0.6'
+                          : '1'}; cursor: {sendingSummary ||
+                        !summaryText.trim() ||
+                        blockReason
+                          ? 'not-allowed'
+                          : 'pointer'}"
                       >
-                    {/if}
-                    {#if sendSummaryError}
-                      <span class="text-xs" style="color: var(--destructive)"
-                        >{sendSummaryError}</span
-                      >
-                    {/if}
-                  </div>
+                        {sendingSummary ? "Enviando..." : "Enviar resumo"}
+                      </button>
+                      {#if blockReason && summaryText.trim()}
+                        <span class="text-xs" style="color: var(--text-muted)"
+                          >{blockReason}</span
+                        >
+                      {/if}
+                      {#if sendSummaryError}
+                        <span class="text-xs" style="color: var(--destructive)"
+                          >{sendSummaryError}</span
+                        >
+                      {/if}
+                    </div>
+                  {/if}
                 </div>
               {/if}
             </div>
@@ -1610,8 +1663,8 @@
 
           <!-- Generate panel (bottom) -->
           <div
-            class="shrink-0 border-t px-6 py-4"
-            style="border-color: var(--border); background: var(--surface)"
+            class="shrink-0 border-t px-6 py-4 overflow-y-auto"
+            style="border-color: var(--border); background: var(--surface); max-height: 50vh"
           >
             <div class="flex gap-2 items-end">
               <div class="flex-1">
@@ -1667,11 +1720,11 @@
                       style="color: var(--text-muted)">Legenda</span
                     >
                     <button
-                      onclick={() => copyText(result!.caption, "caption")}
+                      onclick={() => copyCaption(result!.caption)}
                       class="text-xs"
                       style="color: var(--coral)"
                     >
-                      {copied === "caption" ? "Copiado!" : "Copiar"}
+                      {captionCopied ? "Copiado!" : "Copiar"}
                     </button>
                   </div>
                   <p
@@ -1689,12 +1742,11 @@
                       style="color: var(--text-muted)">Hashtags</span
                     >
                     <button
-                      onclick={() =>
-                        copyText(result!.hashtags.join(" "), "hashtags")}
+                      onclick={() => copyHashtags(result!.hashtags.join(" "))}
                       class="text-xs"
                       style="color: var(--coral)"
                     >
-                      {copied === "hashtags" ? "Copiado!" : "Copiar"}
+                      {hashtagsCopied ? "Copiado!" : "Copiar"}
                     </button>
                   </div>
                   <p class="text-xs" style="color: var(--text-secondary)">
@@ -1704,10 +1756,19 @@
 
                 {#if result.production_note}
                   <div>
-                    <span
-                      class="text-xs font-medium uppercase tracking-widest"
-                      style="color: var(--text-muted)">Nota de produção</span
-                    >
+                    <div class="flex items-center justify-between mb-1">
+                      <span
+                        class="text-xs font-medium uppercase tracking-widest"
+                        style="color: var(--text-muted)">Nota de produção</span
+                      >
+                      <button
+                        onclick={() => copyNote(result!.production_note!)}
+                        class="text-xs"
+                        style="color: var(--coral)"
+                      >
+                        {noteCopied ? "Copiado!" : "Copiar"}
+                      </button>
+                    </div>
                     <p
                       class="text-xs italic mt-1"
                       style="color: var(--text-secondary); border-left: 2px solid var(--border-strong); padding-left: 0.75rem"

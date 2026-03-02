@@ -1,6 +1,6 @@
 # PEP-012 — Operator Page UX Improvements
 
-**Status:** In Progress — Wave 1 complete
+**Status:** In Progress — Wave 2 complete
 **Date:** 2026-03-02
 
 ## Context
@@ -67,7 +67,7 @@ Fix: On `onMount`, initialize `lastSeen` from `localStorage.getItem('rekan_opera
 
 Gate: `cd web && pnpm check`. In browser: select a client, confirm thread scrolls to bottom on select and on new realtime message. Confirm date separators appear between days and "Hoje"/"Ontem" labels are correct. Confirm QR overlay appears over the client list without hiding it. Confirm disabled send buttons show the reason ("WhatsApp desconectado" or "Cliente sem telefone cadastrado"). Reload the page and confirm unread counts are preserved per client.
 
-### Wave 2 — Raise the Quality Bar
+### Wave 2 — Raise the Quality Bar ✓ Done (2026-03-02)
 
 **Goal:** Make the operator view more informative and the interface more polished.
 
