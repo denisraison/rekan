@@ -52,7 +52,7 @@
             meta.mainProgram = "api";
           };
 
-          web = pkgs.stdenvNoCC.mkDerivation {
+          web = pkgs.lib.makeOverridable ({ publicEnv ? { PUBLIC_WHATSAPP_NUMBER = ""; } }: pkgs.stdenvNoCC.mkDerivation {
             pname = "rekan-web";
             version = version;
             src = ./web;
@@ -64,8 +64,11 @@
               hash = "sha256-NEDrn34DMoN5CpYLhosCD8rUvs3yj+RToNTqZPgTZUo=";
               fetcherVersion = 3;
             };
-            buildPhase = ''
+            buildPhase = let
+              envLines = pkgs.lib.mapAttrsToList (k: v: "export ${k}=${pkgs.lib.escapeShellArg v}") publicEnv;
+            in ''
               runHook preBuild
+              ${pkgs.lib.concatStringsSep "\n" envLines}
               pnpm exec svelte-kit sync
               pnpm build
               runHook postBuild
@@ -75,7 +78,7 @@
               cp -r build $out
               runHook postInstall
             '';
-          };
+          }) {};
         }
       );
 

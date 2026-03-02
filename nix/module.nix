@@ -7,7 +7,7 @@ let
 in
 {
   options.services.rekan.instances = lib.mkOption {
-    type = lib.types.attrsOf (lib.types.submodule {
+    type = lib.types.attrsOf (lib.types.submodule ({ config, ... }: {
       options = {
         domain = lib.mkOption {
           type = lib.types.str;
@@ -25,6 +25,11 @@ in
           description = "Environment file with secrets (ASAAS_API_KEY, CLAUDE_API_KEY, GEMINI_API_KEY, etc.).";
         };
 
+        whatsappNumber = lib.mkOption {
+          type = lib.types.str;
+          description = "WhatsApp contact number in E.164 format without + (e.g. 5511999999999). Baked into the static frontend at build time.";
+        };
+
         package = lib.mkOption {
           type = lib.types.package;
           default = selfPkgs.api;
@@ -34,12 +39,14 @@ in
 
         webRoot = lib.mkOption {
           type = lib.types.package;
-          default = selfPkgs.web;
-          defaultText = lib.literalExpression "self.packages.\${system}.web";
+          default = selfPkgs.web.override {
+            publicEnv.PUBLIC_WHATSAPP_NUMBER = config.whatsappNumber;
+          };
+          defaultText = lib.literalExpression "self.packages.\${system}.web.override { ... }";
           description = "The static SvelteKit frontend files.";
         };
       };
-    });
+    }));
     default = {};
     description = "Named Rekan instances.";
   };
