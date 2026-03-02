@@ -54,8 +54,14 @@ func WhatsAppStatusStream(deps Deps) func(*core.RequestEvent) error {
 		}
 
 		// Send current status immediately.
-		if err := send(deps.WhatsApp.Status()); err != nil {
+		cur := deps.WhatsApp.Status()
+		if err := send(cur); err != nil {
 			return nil
+		}
+
+		// If disconnected with no active QR, start a new pairing flow.
+		if !cur.Connected && cur.QRCode == "" {
+			deps.WhatsApp.RequestQR()
 		}
 
 		ch := deps.WhatsApp.Subscribe()

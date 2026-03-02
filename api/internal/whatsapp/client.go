@@ -22,9 +22,11 @@ type Client struct {
 	wac       *whatsmeow.Client
 	container *sqlstore.Container
 	log       *slog.Logger
+	ctx       context.Context
 
-	mu     sync.RWMutex
-	qrCode string // current QR code string, empty when connected or expired
+	mu       sync.RWMutex
+	qrCode   string // current QR code string, empty when connected or expired
+	qrActive bool   // true while a QR pairing flow is running
 
 	subsMu sync.Mutex
 	subs   map[chan Status]struct{}
@@ -78,23 +80,58 @@ func New(ctx context.Context, dbPath, name string, log *slog.Logger) (*Client, e
 // QR code pairing (poll Status() for QR codes). If a session exists, it
 // reconnects automatically.
 func (c *Client) Connect(ctx context.Context) error {
+	c.ctx = ctx
+
 	if c.wac.Store.ID == nil {
-		// No session: start QR pairing flow
-		qrChan, err := c.wac.GetQRChannel(ctx)
-		if err != nil {
-			return fmt.Errorf("whatsapp qr channel: %w", err)
-		}
-		if err := c.wac.Connect(); err != nil {
-			return fmt.Errorf("whatsapp connect: %w", err)
-		}
-		go c.handleQR(qrChan)
-		return nil
+		return c.startQR()
 	}
 
 	// Existing session: reconnect
 	if err := c.wac.Connect(); err != nil {
 		return fmt.Errorf("whatsapp connect: %w", err)
 	}
+	return nil
+}
+
+// RequestQR starts a new QR pairing flow if the client is disconnected and
+// no QR session is already active. Safe to call from multiple goroutines.
+func (c *Client) RequestQR() {
+	c.mu.RLock()
+	active := c.qrActive
+	c.mu.RUnlock()
+
+	if active || c.wac.IsLoggedIn() {
+		return
+	}
+
+	if err := c.startQR(); err != nil {
+		c.log.Warn("whatsapp qr restart failed", "error", err)
+	}
+}
+
+func (c *Client) startQR() error {
+	c.mu.Lock()
+	if c.qrActive {
+		c.mu.Unlock()
+		return nil
+	}
+	c.qrActive = true
+	c.mu.Unlock()
+
+	qrChan, err := c.wac.GetQRChannel(c.ctx)
+	if err != nil {
+		c.mu.Lock()
+		c.qrActive = false
+		c.mu.Unlock()
+		return fmt.Errorf("whatsapp qr channel: %w", err)
+	}
+	if err := c.wac.Connect(); err != nil {
+		c.mu.Lock()
+		c.qrActive = false
+		c.mu.Unlock()
+		return fmt.Errorf("whatsapp connect: %w", err)
+	}
+	go c.handleQR(qrChan)
 	return nil
 }
 
@@ -181,6 +218,12 @@ func (c *Client) ResolveLID(ctx context.Context, jid types.JID) types.JID {
 }
 
 func (c *Client) handleQR(ch <-chan whatsmeow.QRChannelItem) {
+	defer func() {
+		c.mu.Lock()
+		c.qrActive = false
+		c.mu.Unlock()
+	}()
+
 	for evt := range ch {
 		c.mu.Lock()
 		switch evt.Event {
@@ -193,6 +236,5 @@ func (c *Client) handleQR(ch <-chan whatsmeow.QRChannelItem) {
 		c.mu.Unlock()
 		c.notify()
 		c.log.Info("whatsapp qr event", "event", evt.Event)
-
 	}
 }
