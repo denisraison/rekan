@@ -69,13 +69,13 @@
       minDays: 8,
       maxDays: 14,
       template:
-        "{name}, tudo bem? Faz um tempinho que a gente nao posta. Bora preparar algo novo?",
+        "{name}, tudo bem? Faz um tempinho que a gente não posta. Bora preparar algo novo?",
     },
     {
       minDays: 15,
       maxDays: Infinity,
       template:
-        "{name}, vi que faz um tempo! Quer retomar? Posso te mandar ideias de conteudo pra essa semana.",
+        "{name}, vi que faz um tempo! Quer retomar? Posso te mandar ideias de conteúdo pra essa semana.",
     },
   ];
 
@@ -98,7 +98,7 @@
         "Personal Trainer",
         "Nail Designer",
       ],
-      template: "{name}, Carnaval ta chegando! Vamos preparar posts especiais?",
+      template: "{name}, Carnaval tá chegando! Vamos preparar posts especiais?",
     },
     {
       month: 3,
@@ -119,7 +119,7 @@
       label: "Páscoa",
       niches: ["Confeitaria", "Restaurante", "Hamburgueria", "Loja de Açaí"],
       template:
-        "{name}, Pascoa ta chegando! Vamos montar os posts das encomendas?",
+        "{name}, Páscoa tá chegando! Vamos montar os posts das encomendas?",
     },
     {
       month: 5,
@@ -133,7 +133,7 @@
         "Restaurante",
       ],
       template:
-        "{name}, Dia das Maes daqui a pouco! Bora preparar posts de presente e promo?",
+        "{name}, Dia das Mães daqui a pouco! Bora preparar posts de presente e promo?",
     },
     {
       month: 6,
@@ -208,7 +208,7 @@
         "Loja de Roupas",
       ],
       template:
-        "{name}, Reveillon vem ai! Bora postar sobre agendamento e preparacao?",
+        "{name}, Réveillon vem aí! Bora postar sobre agendamento e preparação?",
     },
   ];
 
@@ -227,6 +227,7 @@
   let unsubscribeMessages: (() => void) | null = null;
   let unsubscribeBusinesses: (() => void) | null = null;
   let unsubscribePosts: (() => void) | null = null;
+  let threadEl = $state<HTMLDivElement | null>(null);
 
   // Client form
   let showForm = $state(false);
@@ -314,6 +315,35 @@
     return incoming.length > 0 ? incoming[incoming.length - 1] : null;
   });
   let latestIncomingText = $derived(latestIncoming?.content ?? "");
+
+  type MessageGroup = { date: Date; label: string; msgs: Message[] };
+  let groupedMessages = $derived.by(() => {
+    if (threadMessages.length === 0) return [];
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    const yesterday = new Date(today.getTime() - 86400000);
+    const groups: MessageGroup[] = [];
+    let current: MessageGroup | null = null;
+    for (const msg of threadMessages) {
+      const d = new Date(msg.wa_timestamp || msg.created);
+      d.setHours(0, 0, 0, 0);
+      if (!current || current.date.getTime() !== d.getTime()) {
+        let label: string;
+        if (d.getTime() === today.getTime()) label = "Hoje";
+        else if (d.getTime() === yesterday.getTime()) label = "Ontem";
+        else
+          label = d.toLocaleDateString("pt-BR", {
+            weekday: "short",
+            day: "numeric",
+            month: "short",
+          });
+        current = { date: d, label, msgs: [] };
+        groups.push(current);
+      }
+      current.msgs.push(msg);
+    }
+    return groups;
+  });
 
   // Health indicators per client
   type ClientHealth = {
@@ -420,7 +450,19 @@
       .sort((a, b) => a.daysUntil - b.daysUntil);
   });
 
+  let blockReason = $derived(
+    !waConnected
+      ? "WhatsApp desconectado"
+      : !selected?.phone
+        ? "Cliente sem telefone cadastrado"
+        : null,
+  );
+
   onMount(async () => {
+    lastSeen = JSON.parse(
+      localStorage.getItem("rekan_operator_last_seen") ?? "{}",
+    );
+
     const [clientsRes] = await Promise.all([
       pb.collection("businesses").getList<Business>(1, 200, { sort: "name" }),
     ]);
@@ -487,6 +529,11 @@
     }
   });
 
+  $effect(() => {
+    const _ = [threadMessages.length, selectedId];
+    if (threadEl) threadEl.scrollTop = threadEl.scrollHeight;
+  });
+
   onDestroy(() => {
     unsubscribeMessages?.();
     unsubscribeBusinesses?.();
@@ -547,6 +594,7 @@
     sendSummaryError = "";
     // Mark as seen
     lastSeen = { ...lastSeen, [id]: new Date().toISOString() };
+    localStorage.setItem("rekan_operator_last_seen", JSON.stringify(lastSeen));
     // Auto-populate nudge text for inactive clients
     const client = clients.find((c) => c.id === id);
     const health = clientHealth[id];
@@ -582,7 +630,7 @@
     if (lastMonth > 0) {
       text += ` (contra ${lastMonth} em ${new Date(now.getFullYear(), now.getMonth() - 1, 1).toLocaleDateString("pt-BR", { month: "long" })})`;
     }
-    text += `. Mes que vem vamos manter esse ritmo!`;
+    text += `. Mês que vem vamos manter esse ritmo!`;
     summaryText = text;
   }
 
@@ -905,43 +953,6 @@
 
   {#if loading}
     <p class="text-sm p-6" style="color: var(--text-muted)">Carregando...</p>
-  {:else if !waConnected && waQR}
-    <!-- QR Code pairing screen -->
-    <main class="flex-1 flex items-center justify-center p-6">
-      <div
-        class="rounded-2xl p-8 text-center max-w-sm"
-        style="background: var(--surface); border: 1px solid var(--border); box-shadow: var(--shadow-sm)"
-      >
-        <h2 class="text-lg font-semibold mb-2" style="color: var(--text)">
-          Conectar WhatsApp
-        </h2>
-        <p class="text-sm mb-6" style="color: var(--text-secondary)">
-          Escaneie o QR code com o WhatsApp Business do Rekan.
-        </p>
-        <div class="bg-white p-4 rounded-xl inline-block">
-          {#if qrDataUrl}
-            <img
-              src={qrDataUrl}
-              alt="QR Code WhatsApp"
-              width="256"
-              height="256"
-            />
-          {:else}
-            <div
-              style="width: 256px; height: 256px"
-              class="flex items-center justify-center"
-            >
-              <span class="text-sm" style="color: var(--text-muted)"
-                >Carregando...</span
-              >
-            </div>
-          {/if}
-        </div>
-        <p class="text-xs mt-4" style="color: var(--text-muted)">
-          O QR code atualiza automaticamente.
-        </p>
-      </div>
-    </main>
   {:else}
     <!-- Main operator layout -->
     <main class="flex-1 flex overflow-hidden">
@@ -1410,25 +1421,26 @@
                   <div class="flex items-center gap-2 mt-1.5">
                     <button
                       onclick={sendNudge}
-                      disabled={sendingNudge ||
-                        !nudgeText.trim() ||
-                        !waConnected ||
-                        !selected?.phone}
+                      disabled={sendingNudge || !nudgeText.trim() || !!blockReason}
+                      title={blockReason ?? undefined}
                       class="px-3 py-1.5 rounded-full text-xs font-medium transition-opacity"
                       style="background: #25D366; color: #fff; opacity: {sendingNudge ||
                       !nudgeText.trim() ||
-                      !waConnected ||
-                      !selected?.phone
+                      blockReason
                         ? '0.6'
                         : '1'}; cursor: {sendingNudge ||
                       !nudgeText.trim() ||
-                      !waConnected ||
-                      !selected?.phone
+                      blockReason
                         ? 'not-allowed'
                         : 'pointer'}"
                     >
                       {sendingNudge ? "Enviando..." : "Enviar lembrete"}
                     </button>
+                    {#if blockReason && nudgeText.trim()}
+                      <span class="text-xs" style="color: var(--text-muted)"
+                        >{blockReason}</span
+                      >
+                    {/if}
                     {#if sendNudgeError}
                       <span class="text-xs" style="color: var(--destructive)"
                         >{sendNudgeError}</span
@@ -1490,25 +1502,26 @@
                   <div class="flex items-center gap-2 mt-1.5">
                     <button
                       onclick={sendSummary}
-                      disabled={sendingSummary ||
-                        !summaryText.trim() ||
-                        !waConnected ||
-                        !selected?.phone}
+                      disabled={sendingSummary || !summaryText.trim() || !!blockReason}
+                      title={blockReason ?? undefined}
                       class="px-3 py-1.5 rounded-full text-xs font-medium transition-opacity"
                       style="background: #25D366; color: #fff; opacity: {sendingSummary ||
                       !summaryText.trim() ||
-                      !waConnected ||
-                      !selected?.phone
+                      blockReason
                         ? '0.6'
                         : '1'}; cursor: {sendingSummary ||
                       !summaryText.trim() ||
-                      !waConnected ||
-                      !selected?.phone
+                      blockReason
                         ? 'not-allowed'
                         : 'pointer'}"
                     >
                       {sendingSummary ? "Enviando..." : "Enviar resumo"}
                     </button>
+                    {#if blockReason && summaryText.trim()}
+                      <span class="text-xs" style="color: var(--text-muted)"
+                        >{blockReason}</span
+                      >
+                    {/if}
                     {#if sendSummaryError}
                       <span class="text-xs" style="color: var(--destructive)"
                         >{sendSummaryError}</span
@@ -1521,8 +1534,8 @@
           {/if}
 
           <!-- Message thread -->
-          <div class="flex-1 overflow-y-auto px-6 py-4 flex flex-col gap-3">
-            {#if threadMessages.length === 0}
+          <div bind:this={threadEl} class="flex-1 overflow-y-auto px-6 py-4 flex flex-col gap-3">
+            {#if groupedMessages.length === 0}
               <p
                 class="text-sm text-center py-8"
                 style="color: var(--text-muted)"
@@ -1530,58 +1543,67 @@
                 Nenhuma mensagem ainda.
               </p>
             {:else}
-              {#each threadMessages as msg (msg.id)}
-                <div
-                  class="flex {msg.direction === 'outgoing'
-                    ? 'justify-end'
-                    : 'justify-start'}"
-                >
-                  <div
-                    class="max-w-md rounded-2xl px-4 py-2.5 text-sm"
-                    style="background: {msg.direction === 'outgoing'
-                      ? 'var(--coral-pale)'
-                      : 'var(--surface)'}; border: 1px solid {msg.direction ===
-                    'outgoing'
-                      ? 'var(--coral-light)'
-                      : 'var(--border)'}; color: var(--text)"
+              {#each groupedMessages as group}
+                <div class="flex items-center gap-3 my-1">
+                  <hr class="flex-1" style="border-color: var(--border)" />
+                  <span class="text-xs shrink-0" style="color: var(--text-muted)"
+                    >{group.label}</span
                   >
-                    {#if msg.type === "audio"}
-                      <span
-                        class="text-xs font-medium block mb-1"
-                        style="color: var(--text-muted)">Áudio transcrito</span
-                      >
-                    {/if}
-
-                    {#if msg.type === "image" && msg.media}
-                      <img
-                        src={mediaUrl(msg)}
-                        alt="Imagem do cliente"
-                        class="rounded-xl mb-2 max-w-full"
-                        style="max-height: 300px"
-                      />
-                    {/if}
-
-                    {#if msg.content}
-                      <p class="whitespace-pre-wrap">{msg.content}</p>
-                    {:else if msg.type === "audio"}
-                      <p class="italic" style="color: var(--text-muted)">
-                        Transcrição indisponível
-                      </p>
-                    {/if}
-
-                    <span
-                      class="text-xs block mt-1"
-                      style="color: var(--text-muted)"
-                    >
-                      {new Date(
-                        msg.wa_timestamp || msg.created,
-                      ).toLocaleTimeString("pt-BR", {
-                        hour: "2-digit",
-                        minute: "2-digit",
-                      })}
-                    </span>
-                  </div>
+                  <hr class="flex-1" style="border-color: var(--border)" />
                 </div>
+                {#each group.msgs as msg (msg.id)}
+                  <div
+                    class="flex {msg.direction === 'outgoing'
+                      ? 'justify-end'
+                      : 'justify-start'}"
+                  >
+                    <div
+                      class="max-w-md rounded-2xl px-4 py-2.5 text-sm"
+                      style="background: {msg.direction === 'outgoing'
+                        ? 'var(--coral-pale)'
+                        : 'var(--surface)'}; border: 1px solid {msg.direction ===
+                      'outgoing'
+                        ? 'var(--coral-light)'
+                        : 'var(--border)'}; color: var(--text)"
+                    >
+                      {#if msg.type === "audio"}
+                        <span
+                          class="text-xs font-medium block mb-1"
+                          style="color: var(--text-muted)">Áudio transcrito</span
+                        >
+                      {/if}
+
+                      {#if msg.type === "image" && msg.media}
+                        <img
+                          src={mediaUrl(msg)}
+                          alt="Imagem do cliente"
+                          class="rounded-xl mb-2 max-w-full"
+                          style="max-height: 300px"
+                        />
+                      {/if}
+
+                      {#if msg.content}
+                        <p class="whitespace-pre-wrap">{msg.content}</p>
+                      {:else if msg.type === "audio"}
+                        <p class="italic" style="color: var(--text-muted)">
+                          Transcrição indisponível
+                        </p>
+                      {/if}
+
+                      <span
+                        class="text-xs block mt-1"
+                        style="color: var(--text-muted)"
+                      >
+                        {new Date(
+                          msg.wa_timestamp || msg.created,
+                        ).toLocaleTimeString("pt-BR", {
+                          hour: "2-digit",
+                          minute: "2-digit",
+                        })}
+                      </span>
+                    </div>
+                  </div>
+                {/each}
               {/each}
             {/if}
           </div>
@@ -1695,11 +1717,15 @@
                   </div>
                 {/if}
 
-                {#if waConnected && selected?.phone}
-                  <div
-                    class="flex items-center gap-2 mt-4 pt-3 border-t"
-                    style="border-color: var(--border)"
-                  >
+                <div
+                  class="flex items-center gap-2 mt-4 pt-3 border-t"
+                  style="border-color: var(--border)"
+                >
+                  {#if blockReason}
+                    <span class="text-xs" style="color: var(--text-muted)"
+                      >{blockReason} — não é possível enviar agora.</span
+                    >
+                  {:else}
                     <button
                       onclick={sendViaWhatsApp}
                       disabled={sending}
@@ -1715,8 +1741,8 @@
                         >{sendError}</span
                       >
                     {/if}
-                  </div>
-                {/if}
+                  {/if}
+                </div>
               </div>
             {/if}
           </div>
@@ -1729,5 +1755,47 @@
         {/if}
       </div>
     </main>
+
+    {#if !waConnected && waQR}
+      <!-- QR overlay: non-blocking, appears on top of the main layout -->
+      <div
+        class="fixed inset-0 z-50 flex items-center justify-center"
+        style="background: rgba(0,0,0,0.5)"
+      >
+        <div
+          class="rounded-2xl p-8 text-center max-w-sm"
+          style="background: var(--surface); border: 1px solid var(--border); box-shadow: var(--shadow-sm)"
+        >
+          <h2 class="text-lg font-semibold mb-2" style="color: var(--text)">
+            Conectar WhatsApp
+          </h2>
+          <p class="text-sm mb-6" style="color: var(--text-secondary)">
+            Escaneie o QR code com o WhatsApp Business do Rekan.
+          </p>
+          <div class="bg-white p-4 rounded-xl inline-block">
+            {#if qrDataUrl}
+              <img
+                src={qrDataUrl}
+                alt="QR Code WhatsApp"
+                width="256"
+                height="256"
+              />
+            {:else}
+              <div
+                style="width: 256px; height: 256px"
+                class="flex items-center justify-center"
+              >
+                <span class="text-sm" style="color: var(--text-muted)"
+                  >Conectando ao WhatsApp...</span
+                >
+              </div>
+            {/if}
+          </div>
+          <p class="text-xs mt-4" style="color: var(--text-muted)">
+            O QR code atualiza automaticamente.
+          </p>
+        </div>
+      </div>
+    {/if}
   {/if}
 </div>
