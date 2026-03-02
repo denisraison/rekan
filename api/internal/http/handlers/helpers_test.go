@@ -10,6 +10,7 @@ import (
 
 	apphttp "github.com/denisraison/rekan/api/internal/http"
 	"github.com/denisraison/rekan/api/internal/http/handlers"
+	_ "github.com/denisraison/rekan/api/migrations"
 )
 
 const (
@@ -37,8 +38,7 @@ func stubGenerateFromMessage(_ context.Context, _ eval.BusinessProfile, _ string
 	}, nil
 }
 
-// newHandlerApp creates a test PocketBase app with users,
-// businesses (including invite fields), and posts collections, plus a test user and business.
+// newHandlerApp creates a test PocketBase app using real migrations, plus a test user and business.
 func newHandlerApp(t testing.TB) (*tests.TestApp, string, string) {
 	t.Helper()
 	app, err := tests.NewTestApp()
@@ -46,52 +46,6 @@ func newHandlerApp(t testing.TB) (*tests.TestApp, string, string) {
 		t.Fatalf("new test app: %v", err)
 	}
 
-	// Create businesses collection
-	businesses := core.NewBaseCollection("businesses")
-	businesses.Fields.Add(
-		&core.TextField{Name: "name"},
-		&core.TextField{Name: "type"},
-		&core.TextField{Name: "city"},
-		&core.TextField{Name: "target_audience"},
-		&core.TextField{Name: "brand_vibe"},
-		&core.TextField{Name: "quirks"},
-		&core.JSONField{Name: "services"},
-		&core.TextField{Name: "phone"},
-		&core.TextField{Name: "client_name"},
-		&core.TextField{Name: "client_email"},
-		&core.TextField{Name: "invite_token"},
-		&core.SelectField{
-			Name:      "invite_status",
-			Values:    []string{"draft", "invited", "accepted", "active", "payment_failed", "cancelled"},
-			MaxSelect: 1,
-		},
-		&core.DateField{Name: "invite_sent_at"},
-		&core.TextField{Name: "subscription_id"},
-		&core.DateField{Name: "terms_accepted_at"},
-	)
-	if err := app.Save(businesses); err != nil {
-		t.Fatalf("save businesses collection: %v", err)
-	}
-
-	// Create posts collection
-	posts := core.NewBaseCollection("posts")
-	posts.Fields.Add(
-		&core.TextField{Name: "business"},
-		&core.TextField{Name: "caption"},
-		&core.JSONField{Name: "hashtags"},
-		&core.TextField{Name: "production_note"},
-		&core.BoolField{Name: "edited"},
-		&core.TextField{Name: "batch_id"},
-		&core.TextField{Name: "role"},
-		&core.TextField{Name: "hook"},
-		&core.TextField{Name: "source"},
-		&core.TextField{Name: "message"},
-	)
-	if err := app.Save(posts); err != nil {
-		t.Fatalf("save posts collection: %v", err)
-	}
-
-	// Create test user
 	users, err := app.FindCollectionByNameOrId("users")
 	if err != nil {
 		t.Fatalf("find users collection: %v", err)
@@ -103,11 +57,15 @@ func newHandlerApp(t testing.TB) (*tests.TestApp, string, string) {
 		t.Fatalf("save test user: %v", err)
 	}
 
-	// Create test business owned by the test user
+	businesses, err := app.FindCollectionByNameOrId("businesses")
+	if err != nil {
+		t.Fatalf("find businesses collection: %v", err)
+	}
 	biz := core.NewRecord(businesses)
 	biz.Set("name", "Padaria Teste")
 	biz.Set("type", "padaria")
 	biz.Set("city", "São Paulo")
+	biz.Set("state", "SP")
 	biz.Set("target_audience", "moradores do bairro")
 	biz.Set("brand_vibe", "acolhedora")
 	biz.Set("services", []map[string]any{{"name": "Pão francês", "price_brl": 0.75}})

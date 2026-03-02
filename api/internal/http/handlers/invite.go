@@ -97,7 +97,7 @@ func InviteSend(deps Deps) func(*core.RequestEvent) error {
 	}
 }
 
-func InviteGet(_ Deps) func(*core.RequestEvent) error {
+func InviteGet() func(*core.RequestEvent) error {
 	return func(e *core.RequestEvent) error {
 		token := e.Request.PathValue("token")
 

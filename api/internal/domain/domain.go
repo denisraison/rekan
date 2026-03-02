@@ -2,6 +2,7 @@ package domain
 
 // Collection names
 const (
+	CollUsers      = "users"
 	CollBusinesses = "businesses"
 	CollPosts      = "posts"
 	CollMessages   = "messages"
@@ -18,12 +19,12 @@ const (
 
 // Asaas webhook event names.
 const (
-	EventPixAuthActivated  = "PIX_AUTOMATIC_RECURRING_AUTHORIZATION_ACTIVATED"
-	EventPixAuthRefused    = "PIX_AUTOMATIC_RECURRING_AUTHORIZATION_REFUSED"
-	EventPixAuthCancelled  = "PIX_AUTOMATIC_RECURRING_AUTHORIZATION_CANCELLED"
-	EventPixAuthExpired    = "PIX_AUTOMATIC_RECURRING_AUTHORIZATION_EXPIRED"
-	EventPaymentConfirmed  = "PAYMENT_CONFIRMED"
-	EventPixPaymentRefused = "PIX_AUTOMATIC_RECURRING_PAYMENT_INSTRUCTION_REFUSED"
+	EventPixAuthActivated    = "PIX_AUTOMATIC_RECURRING_AUTHORIZATION_ACTIVATED"
+	EventPixAuthRefused      = "PIX_AUTOMATIC_RECURRING_AUTHORIZATION_REFUSED"
+	EventPixAuthCancelled    = "PIX_AUTOMATIC_RECURRING_AUTHORIZATION_CANCELLED"
+	EventPixAuthExpired      = "PIX_AUTOMATIC_RECURRING_AUTHORIZATION_EXPIRED"
+	EventPaymentConfirmed    = "PAYMENT_CONFIRMED"
+	EventPixPaymentRefused   = "PIX_AUTOMATIC_RECURRING_PAYMENT_INSTRUCTION_REFUSED"
 	EventPixPaymentCancelled = "PIX_AUTOMATIC_RECURRING_PAYMENT_INSTRUCTION_CANCELLED"
 )
 
@@ -47,5 +48,11 @@ const (
 
 // Post source values.
 const (
-	PostSourceOperator = "operator"
+	PostSourceOperator  = "operator"
+	PostSourceProactive = "proactive"
+)
+
+// Operator collection names.
+const (
+	CollScheduledMessages = "scheduled_messages"
 )

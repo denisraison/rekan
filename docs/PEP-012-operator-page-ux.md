@@ -1,6 +1,6 @@
 # PEP-012 — Operator Page UX Improvements
 
-**Status:** In Progress — Wave 2 complete
+**Status:** In Progress — Wave 3 in progress
 **Date:** 2026-03-02
 
 ## Context
@@ -195,21 +195,43 @@ Fix — frontend: A "Gerar 3 ideias" button in the engagement panel, visible whe
 
 The best flow: operator sends nudge ("Oi Ana, faz um tempo...") and simultaneously generates 3 ideas. If Ana replies "não sei o que postar," the operator immediately sends one of the ready ideas: "Fiz um post pra você, olha que ficou bom."
 
-**8. Automated operator prep — pre-caching and seasonal batch**
+**8. Inactivity list actions**
 
-Files: `api/` (cron jobs via PocketBase hooks), `web/src/routes/(app)/operador/+page.svelte`
+Files: `web/src/routes/(app)/operador/+page.svelte`
 
-Do NOT automate client-facing WhatsApp messages. The relationship between the operator and the client is personal and paid. An automated message that arrives at the wrong moment — client on vacation, bad week, shop closed — damages trust in a way that a human would have avoided. WhatsApp also has spam detection that can affect the entire number if clients report messages.
+Currently, to nudge an inactive client the operator must: click the client, wait for the thread to load, expand the nudge panel, and send. With 8 inactive clients that is 8 separate context switches. The list already sorts by days-inactive and has a filter tab, but offers no action at list level.
 
-Instead, automate the operator's prep work:
+Fix — inline nudge: In the inactive list view (`clientFilter === 'inativos'`), each client row gets a compact "Lembrar" button. Clicking it expands an inline textarea inside the row, pre-populated with the appropriate `NUDGE_TEMPLATES` template (same logic as `nudgeTier`). The operator can edit and send without opening the thread. Clicking the client name still opens the full conversation as usual.
 
-**Pre-caching ideas:** When a client hits 5 days without an incoming message, a PocketBase cron job (configured via `OnCronJobRun` hook in `api/`) calls `generateIdeas` for that business and stores the 3 draft posts in a new `idea_drafts` PocketBase collection with fields: `business`, `caption`, `hashtags`, `production_note`, `created`. Drafts are not in the `posts` collection — they are separate so they do not pollute health counts or hooks. When the operator opens a client that has cached drafts, the "Gerar 3 ideias" button changes to "Ver ideias prontas" and renders the cached cards immediately. Drafts older than 7 days are discarded by the cron job on its next run. When the operator selects a draft and sends it, it is saved to `posts` with `source: "proactive"` and the remaining drafts for that business are deleted.
+Fix — batch nudge: A "Lembrar todos" button at the top of the inactive list. Sends the appropriate template to every visible inactive client in sequence. Shows a confirmation before sending (count + example message). Progress indicator while sending. No per-client editing in batch mode.
 
-**Seasonal batch approval:** Seven days before a relevant seasonal date (Dia das Mães, Páscoa, etc.), the cron job queues a pre-filled seasonal nudge message for each eligible client into a new `scheduled_messages` PocketBase collection with fields: `business`, `text`, `scheduled_for`, `approved`, `dismissed`. The morning summary bar (feature 6) shows "3 mensagens sazonais prontas para aprovação" when any exist. Clicking that line opens an inline approval panel inside the left sidebar (not a new route, not a modal) — one compact card per client showing the business name, the message text (editable), and "Enviar" / "Descartar" buttons. Approved messages call `/api/messages:send` immediately and are removed from the queue. Nothing goes out without the operator seeing and approving it.
+This is a frontend-only feature. The existing `/api/messages:send` endpoint handles each send.
 
-This gives the operator the time savings of automation — ideas pre-generated, seasonal messages pre-written — without removing human judgment from the client relationship.
+**9. Seasonal batch approval**
 
-Gate for Wave 3: `cd web && pnpm check`. In browser: verify "Usar conversa recente" grabs all incoming messages since the last outgoing and joins them. Verify "Gerar 3 ideias" returns 3 draft cards and "Usar este" loads one into the result panel without saving the others. Verify sending via "Enviar pelo WhatsApp" saves the post with `source: "proactive"`. Verify the hook counter appears after 3+ posts and the count is correct. Verify the morning summary bar shows the right counts and each line navigates correctly. Verify pre-cached idea drafts appear instantly for a client with 5+ days inactive. Verify the seasonal batch approval panel appears in the sidebar and approved messages are sent; dismissed messages disappear from the queue.
+Files: `api/` (cron job via PocketBase hooks), `web/src/routes/(app)/operador/+page.svelte`
+
+Do NOT automate client-facing WhatsApp messages. The relationship between the operator and the client is personal and paid. An automated message that arrives at the wrong moment damages trust. WhatsApp spam detection can affect the entire number if clients report messages.
+
+Instead, automate the operator's prep: seven days before a relevant seasonal date (Dia das Mães, Páscoa, etc.), a cron job queues a pre-filled seasonal nudge for each eligible client into a `scheduled_messages` collection with fields: `business`, `text`, `scheduled_for`, `approved`, `dismissed`. The morning summary bar shows "3 mensagens sazonais prontas para aprovação" when any exist. Clicking opens an inline approval panel in the left sidebar — one compact card per client with the message text (editable) and "Enviar" / "Descartar" buttons. Nothing goes out without the operator approving it.
+
+Gate for Wave 3: `cd web && pnpm check`. In browser: verify "Usar conversa recente" grabs all incoming messages since the last outgoing and joins them. Verify "Gerar 3 ideias" returns 3 draft cards and "Usar este" loads one into the result panel without saving the others. Verify sending via "Enviar pelo WhatsApp" saves the post with `source: "proactive"`. Verify the hook counter appears after 3+ posts and the count is correct. Verify the morning summary bar shows the right counts and each line navigates correctly. Verify the inactive list shows inline nudge per row and "Lembrar todos" sends correctly. Verify the seasonal batch approval panel appears in the sidebar and approved messages are sent; dismissed messages disappear from the queue.
+
+## Dropped
+
+**Pre-caching ideas (was Feature 8, first half)**
+
+Verdict: not worth doing before validating the re-engagement workflow.
+
+The pre-caching cron job generates 3 ideas per inactive business daily and stores them in `idea_drafts`. The problem: it pays for speculative generation for every inactive client, most of whom an operator may never open. The daily cost scales with the number of inactive businesses regardless of whether any ideas are ever consumed. The on-demand "Gerar 3 ideias" button (Feature 7) already covers the use case with a short wait, and the inactivity list actions (Feature 8) reduce the friction of getting there.
+
+Code to delete:
+- `api/internal/operator/precache.go`
+- `api/migrations/1740000018_idea_drafts_collection.go`
+- `api/internal/http/handlers/idea_drafts.go`
+- Frontend: `cachedDrafts` state and all logic branching on it
+
+The `scheduled_messages` collection and the seasonal batch (Feature 9) are kept — that is a different automation target (prep work, not speculative generation).
 
 ## Consequences
 
@@ -219,6 +241,7 @@ Gate for Wave 3: `cd web && pnpm check`. In browser: verify "Usar conversa recen
 - Billing info surfaces a signal the operator previously had to guess at (who's at payment risk).
 - The engagement panel no longer dominates the layout — the message thread regains vertical space by default.
 - No new npm dependencies are introduced. All fixes and features use existing CSS variables, Tailwind utilities, and Svelte 5 primitives already in the project.
-- The operator is never stuck: active clients have "Usar conversa recente", quiet clients have "Gerar 3 ideias", and pre-caching means the ideas are ready before the operator even opens the thread.
+- The operator is never stuck: active clients have "Usar conversa recente", quiet clients have "Gerar 3 ideias" on-demand, and the inactive list lets them nudge without opening each conversation.
 - Client-facing messages remain human-reviewed. Automation targets the operator's prep, not the client relationship.
+- No speculative LLM spend: ideas are generated when the operator asks for them, not in daily batches for businesses that may never be opened.
 - The key metric to watch across all of Wave 3: posts generated per client per month. If clients who were stuck at 1–2 posts/month start reaching 4+, the features are working.

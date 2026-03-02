@@ -1,6 +1,7 @@
 package billing
 
 import (
+	"context"
 	"encoding/json"
 	"net/http"
 	"net/http/httptest"
@@ -106,7 +107,7 @@ func TestCreatePendingCharges(t *testing.T) {
 	defer mockAsaas.Close()
 
 	client := asaas.NewTestClient(mockAsaas.URL, "test-key")
-	CreatePendingCharges(app, client)
+	CreatePendingCharges(context.Background(), app, client)
 
 	if !chargeCreated {
 		t.Error("expected charge to be created for due_soon business")
@@ -141,7 +142,7 @@ func TestCreatePendingChargesSkipsPending(t *testing.T) {
 	defer mockAsaas.Close()
 
 	client := asaas.NewTestClient(mockAsaas.URL, "test-key")
-	CreatePendingCharges(app, client)
+	CreatePendingCharges(context.Background(), app, client)
 
 	if chargeCreated {
 		t.Error("should not create charge for business with charge_pending=true")
@@ -167,7 +168,7 @@ func TestCreatePendingChargesSkipsFarOut(t *testing.T) {
 	defer mockAsaas.Close()
 
 	client := asaas.NewTestClient(mockAsaas.URL, "test-key")
-	CreatePendingCharges(app, client)
+	CreatePendingCharges(context.Background(), app, client)
 
 	if chargeCreated {
 		t.Error("should not create charge for business with next_charge_date > 7 days out")
@@ -193,7 +194,7 @@ func TestCreatePendingChargesSkipsNonActive(t *testing.T) {
 	defer mockAsaas.Close()
 
 	client := asaas.NewTestClient(mockAsaas.URL, "test-key")
-	CreatePendingCharges(app, client)
+	CreatePendingCharges(context.Background(), app, client)
 
 	if chargeCreated {
 		t.Error("should not create charge for non-active business")
@@ -219,7 +220,7 @@ func TestCreatePendingChargesRollbackOnFailure(t *testing.T) {
 	defer mockAsaas.Close()
 
 	client := asaas.NewTestClient(mockAsaas.URL, "test-key")
-	CreatePendingCharges(app, client)
+	CreatePendingCharges(context.Background(), app, client)
 
 	updated, err := app.FindRecordById("businesses", biz.Id)
 	if err != nil {
@@ -235,5 +236,5 @@ func TestCreatePendingChargesNilClient(t *testing.T) {
 	defer app.Cleanup()
 
 	// Should not panic with nil client
-	CreatePendingCharges(app, nil)
+	CreatePendingCharges(context.Background(), app, nil)
 }

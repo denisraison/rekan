@@ -82,3 +82,9 @@ export interface Post {
 	edited: boolean;
 	created: string;
 }
+
+export interface ScheduledMessage {
+	id: string;
+	business: string;
+	text: string;
+}

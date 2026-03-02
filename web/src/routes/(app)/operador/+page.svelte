@@ -8,6 +8,7 @@
     GeneratedPost,
     Message,
     Post,
+    ScheduledMessage,
     Service,
     WAStatus,
   } from "$lib/types";
@@ -29,53 +30,25 @@
   ];
 
   const STATES = [
-    "AC",
-    "AL",
-    "AP",
-    "AM",
-    "BA",
-    "CE",
-    "DF",
-    "ES",
-    "GO",
-    "MA",
-    "MT",
-    "MS",
-    "MG",
-    "PA",
-    "PB",
-    "PR",
-    "PE",
-    "PI",
-    "RJ",
-    "RN",
-    "RS",
-    "RO",
-    "RR",
-    "SC",
-    "SP",
-    "SE",
-    "TO",
+    "AC","AL","AP","AM","BA","CE","DF","ES","GO","MA","MT","MS","MG",
+    "PA","PB","PR","PE","PI","RJ","RN","RS","RO","RR","SC","SP","SE","TO",
   ];
 
   const NUDGE_TEMPLATES = [
     {
       minDays: 5,
       maxDays: 7,
-      template:
-        "Oi {name}, como foi a semana? Tem algo legal pra gente postar?",
+      template: "Oi {name}, como foi a semana? Tem algo legal pra gente postar?",
     },
     {
       minDays: 8,
       maxDays: 14,
-      template:
-        "{name}, tudo bem? Faz um tempinho que a gente não posta. Bora preparar algo novo?",
+      template: "{name}, tudo bem? Faz um tempinho que a gente não posta. Bora preparar algo novo?",
     },
     {
       minDays: 15,
       maxDays: Infinity,
-      template:
-        "{name}, vi que faz um tempo! Quer retomar? Posso te mandar ideias de conteúdo pra essa semana.",
+      template: "{name}, vi que faz um tempo! Quer retomar? Posso te mandar ideias de conteúdo pra essa semana.",
     },
   ];
 
@@ -89,128 +62,69 @@
   // Moveable holidays (Carnaval, Páscoa, Dia das Mães) hardcoded for 2026
   const SEASONAL_DATES: SeasonalDate[] = [
     {
-      month: 2,
-      day: 14,
-      label: "Carnaval",
-      niches: [
-        "Salão de Beleza",
-        "Barbearia",
-        "Personal Trainer",
-        "Nail Designer",
-      ],
+      month: 2, day: 14, label: "Carnaval",
+      niches: ["Salão de Beleza", "Barbearia", "Personal Trainer", "Nail Designer"],
       template: "{name}, Carnaval tá chegando! Vamos preparar posts especiais?",
     },
     {
-      month: 3,
-      day: 8,
-      label: "Dia da Mulher",
-      niches: [
-        "Salão de Beleza",
-        "Nail Designer",
-        "Confeitaria",
-        "Loja de Roupas",
-      ],
-      template:
-        "{name}, Dia da Mulher vem ai! Que tal um post com promo especial?",
+      month: 3, day: 8, label: "Dia da Mulher",
+      niches: ["Salão de Beleza", "Nail Designer", "Confeitaria", "Loja de Roupas"],
+      template: "{name}, Dia da Mulher vem ai! Que tal um post com promo especial?",
     },
     {
-      month: 4,
-      day: 5,
-      label: "Páscoa",
+      month: 4, day: 5, label: "Páscoa",
       niches: ["Confeitaria", "Restaurante", "Hamburgueria", "Loja de Açaí"],
-      template:
-        "{name}, Páscoa tá chegando! Vamos montar os posts das encomendas?",
+      template: "{name}, Páscoa tá chegando! Vamos montar os posts das encomendas?",
     },
     {
-      month: 5,
-      day: 10,
-      label: "Dia das Mães",
-      niches: [
-        "Salão de Beleza",
-        "Confeitaria",
-        "Nail Designer",
-        "Loja de Roupas",
-        "Restaurante",
-      ],
-      template:
-        "{name}, Dia das Mães daqui a pouco! Bora preparar posts de presente e promo?",
+      month: 5, day: 10, label: "Dia das Mães",
+      niches: ["Salão de Beleza", "Confeitaria", "Nail Designer", "Loja de Roupas", "Restaurante"],
+      template: "{name}, Dia das Mães daqui a pouco! Bora preparar posts de presente e promo?",
     },
     {
-      month: 6,
-      day: 12,
-      label: "Dia dos Namorados",
-      niches: [
-        "Confeitaria",
-        "Restaurante",
-        "Hamburgueria",
-        "Salão de Beleza",
-        "Loja de Roupas",
-      ],
-      template:
-        "{name}, Dia dos Namorados vem ai! Vamos criar posts romanticos pro seu negocio?",
+      month: 6, day: 12, label: "Dia dos Namorados",
+      niches: ["Confeitaria", "Restaurante", "Hamburgueria", "Salão de Beleza", "Loja de Roupas"],
+      template: "{name}, Dia dos Namorados vem ai! Vamos criar posts romanticos pro seu negocio?",
     },
     {
-      month: 6,
-      day: 13,
-      label: "Festas Juninas",
+      month: 6, day: 13, label: "Festas Juninas",
       niches: ["Confeitaria", "Restaurante", "Hamburgueria", "Banda Musical"],
       template: "{name}, Junho ta ai! Vamos postar algo com tema junino?",
     },
     {
-      month: 9,
-      day: 1,
-      label: "Dia do Educador Físico",
+      month: 9, day: 1, label: "Dia do Educador Físico",
       niches: ["Personal Trainer"],
-      template:
-        "{name}, vem ai o Dia do Educador Fisico! Bora fazer um post especial?",
+      template: "{name}, vem ai o Dia do Educador Fisico! Bora fazer um post especial?",
     },
     {
-      month: 10,
-      day: 1,
-      label: "Início do Verão",
+      month: 10, day: 1, label: "Início do Verão",
       niches: ["Personal Trainer", "Loja de Açaí"],
-      template:
-        "{name}, verao chegando! Momento perfeito pra postar sobre preparacao e resultados.",
+      template: "{name}, verao chegando! Momento perfeito pra postar sobre preparacao e resultados.",
     },
     {
-      month: 10,
-      day: 12,
-      label: "Dia das Crianças",
+      month: 10, day: 12, label: "Dia das Crianças",
       niches: ["Confeitaria", "Pet Shop", "Loja de Roupas"],
-      template:
-        "{name}, Dia das Criancas ta perto! Vamos criar posts com ofertas kids?",
+      template: "{name}, Dia das Criancas ta perto! Vamos criar posts com ofertas kids?",
     },
     {
-      month: 12,
-      day: 19,
-      label: "Dia do Cabeleireiro",
+      month: 12, day: 19, label: "Dia do Cabeleireiro",
       niches: ["Salão de Beleza", "Barbearia"],
-      template:
-        "{name}, Dia do Cabeleireiro chegando! Que tal um post especial celebrando a profissao?",
+      template: "{name}, Dia do Cabeleireiro chegando! Que tal um post especial celebrando a profissao?",
     },
     {
-      month: 12,
-      day: 25,
-      label: "Natal",
+      month: 12, day: 25, label: "Natal",
       niches: [],
-      template:
-        "{name}, Natal chegando! Vamos preparar posts com ofertas e mensagem de final de ano?",
+      template: "{name}, Natal chegando! Vamos preparar posts com ofertas e mensagem de final de ano?",
     },
     {
-      month: 12,
-      day: 31,
-      label: "Réveillon",
-      niches: [
-        "Salão de Beleza",
-        "Barbearia",
-        "Nail Designer",
-        "Personal Trainer",
-        "Loja de Roupas",
-      ],
-      template:
-        "{name}, Réveillon vem aí! Bora postar sobre agendamento e preparação?",
+      month: 12, day: 31, label: "Réveillon",
+      niches: ["Salão de Beleza", "Barbearia", "Nail Designer", "Personal Trainer", "Loja de Roupas"],
+      template: "{name}, Réveillon vem aí! Bora postar sobre agendamento e preparação?",
     },
   ];
+  const SEASONAL_DATES_SORTED = [...SEASONAL_DATES].sort((a, b) =>
+    a.month !== b.month ? a.month - b.month : a.day - b.day
+  );
 
   let clients = $state<Business[]>([]);
   let selectedId = $state<string | null>(null);
@@ -227,6 +141,7 @@
   let unsubscribeMessages: (() => void) | null = null;
   let unsubscribeBusinesses: (() => void) | null = null;
   let unsubscribePosts: (() => void) | null = null;
+  let unsubscribeScheduledMessages: (() => void) | null = null;
   let threadEl = $state<HTMLDivElement | null>(null);
 
   // Client form
@@ -265,8 +180,33 @@
   let sending = $state(false);
   let sendError = $state("");
 
+  // Feature 1 — quick reply
+  let quickReply = $state("");
+  let sendingQuick = $state(false);
+  let quickReplyError = $state("");
+
+  // Feature 3 — client context card
+  let profileOpen = $state(false);
+
+  // Feature 4 — post history
+  let historyOpen = $state(false);
+  let historyLimit = $state(10);
+  let expandedPosts = $state(new Set<string>());
+
+  // Feature 7 — proactive idea generation
+  let ideaDrafts = $state<GeneratedPost[] | null>(null);
+  let generatingIdeas = $state(false);
+  let ideaError = $state("");
+  let isProactive = $state(false);
+
+  let scheduledMessages = $state<ScheduledMessage[]>([]);
+  let scheduledMessageCount = $derived(scheduledMessages.length);
+  let showApprovalPanel = $state(false);
+  let approvingId = $state<string | null>(null);
+  let dismissingId = $state<string | null>(null);
+
   // Nudge / engagement
-  let clientFilter = $state<"todos" | "inativos">("todos");
+  let clientFilter = $state<"todos" | "inativos" | "com_mensagens" | "sazonal" | "cobranca">("todos");
   let nudgeText = $state("");
   let nudgeOpen = $state(false);
   let sendingNudge = $state(false);
@@ -314,14 +254,25 @@
       : [],
   );
 
-  // Latest incoming message for "Gerar post" pre-fill
+  // Feature 1 — recentContext: all incoming since last outgoing
+  let recentContext = $derived.by(() => {
+    const lastOut = [...threadMessages].reverse().find(m => m.direction === 'outgoing');
+    const cutoff = lastOut
+      ? lastOut.created
+      : new Date(Date.now() - 86400000).toISOString();
+    return threadMessages
+      .filter(m => m.direction === 'incoming' && m.content && m.created > cutoff)
+      .map(m => m.content)
+      .join('\n');
+  });
+
+  // Latest incoming message — still used for message_id optimization in generate()
   let latestIncoming = $derived.by(() => {
     const incoming = threadMessages.filter(
       (m) => m.direction === "incoming" && m.content,
     );
     return incoming.length > 0 ? incoming[incoming.length - 1] : null;
   });
-  let latestIncomingText = $derived(latestIncoming?.content ?? "");
 
   type MessageGroup = { date: Date; label: string; msgs: Message[] };
   let groupedMessages = $derived.by(() => {
@@ -396,6 +347,9 @@
     return health;
   });
 
+  // Feature 4 — posts for selected client
+  let clientPosts = $derived(selectedId ? posts.filter(p => p.business === selectedId) : []);
+
   // Sort clients by urgency (red first, then yellow, then green)
   let sortedClients = $derived(
     [...clients].sort((a, b) => {
@@ -413,14 +367,45 @@
     }).length,
   );
 
-  let filteredClients = $derived(
-    clientFilter === "inativos"
-      ? sortedClients.filter((c) => {
+  // Feature 6 — morning summary derived values
+  let unreadClientsCount = $derived(clients.filter(c => (unreadCounts[c.id] ?? 0) > 0).length);
+  let pendingPaymentCount = $derived(clients.filter(c => c.charge_pending).length);
+  let globalNearestSeasonal = $derived.by(() => {
+    const now = new Date();
+    const limit = new Date(now.getTime() + 30 * 86400000);
+    const year = now.getFullYear();
+    for (const sd of SEASONAL_DATES_SORTED) {
+      const date = new Date(year, sd.month - 1, sd.day);
+      if (date < now) date.setFullYear(year + 1);
+      if (date > limit) continue;
+      const eligible = clients.filter(c => sd.niches.length === 0 || sd.niches.includes(c.type));
+      if (eligible.length > 0) {
+        return { ...sd, daysUntil: Math.ceil((date.getTime() - now.getTime()) / 86400000), eligibleCount: eligible.length };
+      }
+    }
+    return null;
+  });
+
+  let filteredClients = $derived.by(() => {
+    switch (clientFilter) {
+      case "inativos":
+        return sortedClients.filter((c) => {
           const h = clientHealth[c.id];
           return h && h.daysSinceMsg >= 5;
-        })
-      : sortedClients,
-  );
+        });
+      case "com_mensagens":
+        return sortedClients.filter(c => (unreadCounts[c.id] ?? 0) > 0);
+      case "sazonal":
+        if (!globalNearestSeasonal) return sortedClients;
+        return sortedClients.filter(c =>
+          globalNearestSeasonal!.niches.length === 0 || globalNearestSeasonal!.niches.includes(c.type)
+        );
+      case "cobranca":
+        return sortedClients.filter(c => c.charge_pending);
+      default:
+        return sortedClients;
+    }
+  });
 
   let nudgeTier = $derived.by(() => {
     if (!selected) return null;
@@ -465,6 +450,16 @@
         : null,
   );
 
+  // Feature 7 — show generate ideas button condition
+  let showGenerateIdeasButton = $derived(
+    !!selected &&
+    ideaDrafts === null &&
+    result === null &&
+    !generating &&
+    !generatingIdeas &&
+    ((clientHealth[selectedId!]?.daysSinceMsg ?? 999) >= 5 || threadMessages.length === 0)
+  );
+
   onMount(async () => {
     lastSeen = JSON.parse(
       localStorage.getItem("rekan_operator_last_seen") ?? "{}",
@@ -478,6 +473,9 @@
 
     // Load all messages and posts
     await Promise.all([loadMessages(), loadPosts()]);
+
+    // Load scheduled messages count
+    await loadScheduledMessages();
 
     // Subscribe to realtime updates
     unsubscribeMessages = await pb
@@ -520,6 +518,12 @@
         }
       });
 
+    unsubscribeScheduledMessages = await pb
+      .collection("scheduled_messages")
+      .subscribe<ScheduledMessage>("*", async () => {
+        await loadScheduledMessages();
+      });
+
     connectWhatsAppStream();
   });
 
@@ -545,6 +549,7 @@
     unsubscribeMessages?.();
     unsubscribeBusinesses?.();
     unsubscribePosts?.();
+    unsubscribeScheduledMessages?.();
     waAbortController?.abort();
   });
 
@@ -593,6 +598,15 @@
     }
   }
 
+  async function loadScheduledMessages() {
+    try {
+      const res = await pb.send("/api/scheduled-messages", { method: "GET" });
+      scheduledMessages = res as ScheduledMessage[];
+    } catch {
+      // non-critical
+    }
+  }
+
   function selectClient(id: string) {
     selectedId = id;
     result = null;
@@ -601,9 +615,20 @@
     sendSummaryError = "";
     nudgeOpen = false;
     summaryOpen = false;
+    profileOpen = false;
+    historyOpen = false;
+    historyLimit = 10;
+    expandedPosts = new Set();
+    ideaDrafts = null;
+    ideaError = "";
+    isProactive = false;
+    quickReply = "";
+    quickReplyError = "";
+
     // Mark as seen
     lastSeen = { ...lastSeen, [id]: new Date().toISOString() };
     localStorage.setItem("rekan_operator_last_seen", JSON.stringify(lastSeen));
+
     // Auto-populate nudge text for inactive clients
     const client = clients.find((c) => c.id === id);
     const health = clientHealth[id];
@@ -618,17 +643,18 @@
     } else {
       nudgeText = "";
     }
+
     // Monthly summary
     summaryText = "";
     if (!client) return;
     const now = new Date();
     const thisMonthStart = new Date(now.getFullYear(), now.getMonth(), 1);
     const lastMonthStart = new Date(now.getFullYear(), now.getMonth() - 1, 1);
-    const clientPosts = posts.filter((p) => p.business === id);
-    const thisMonth = clientPosts.filter(
+    const clientPostsLocal = posts.filter((p) => p.business === id);
+    const thisMonth = clientPostsLocal.filter(
       (p) => new Date(p.created) >= thisMonthStart,
     ).length;
-    const lastMonth = clientPosts.filter((p) => {
+    const lastMonth = clientPostsLocal.filter((p) => {
       const d = new Date(p.created);
       return d >= lastMonthStart && d < thisMonthStart;
     }).length;
@@ -643,8 +669,32 @@
     summaryText = text;
   }
 
+  // Feature 1 — prefill with recent conversation context
   function prefillGenerate() {
-    message = latestIncomingText;
+    message = recentContext;
+  }
+
+  // Feature 2 — quick reply
+  async function sendQuickReply() {
+    if (!selectedId || !quickReply.trim()) return;
+    sendingQuick = true;
+    quickReplyError = "";
+    try {
+      await pb.send("/api/messages:send", {
+        method: "POST",
+        body: JSON.stringify({
+          business_id: selectedId,
+          caption: quickReply.trim(),
+          hashtags: "",
+          production_note: "",
+        }),
+      });
+      quickReply = "";
+    } catch {
+      quickReplyError = "Erro ao enviar. Tente novamente.";
+    } finally {
+      sendingQuick = false;
+    }
   }
 
   function mediaUrl(msg: Message): string {
@@ -654,7 +704,7 @@
     );
   }
 
-  // --- Client form logic (unchanged) ---
+  // --- Client form logic ---
 
   function resetForm() {
     formName = "";
@@ -857,11 +907,41 @@
     }
   }
 
+  // Feature 7 — generate 3 proactive ideas
+  async function generateIdeas() {
+    if (!selectedId) return;
+    generatingIdeas = true;
+    ideaError = "";
+    try {
+      const res = await pb.send(
+        `/api/businesses/${selectedId}/posts:generateIdeas`,
+        { method: "POST", body: JSON.stringify({}) },
+      );
+      ideaDrafts = res as GeneratedPost[];
+    } catch {
+      ideaError = "Erro ao gerar ideias. Tente novamente.";
+    } finally {
+      generatingIdeas = false;
+    }
+  }
+
   async function sendViaWhatsApp() {
     if (!selectedId || !result) return;
     sending = true;
     sendError = "";
     try {
+      // Feature 7 — if proactive, save the post first
+      if (isProactive) {
+        await pb.send(`/api/businesses/${selectedId}/posts:saveProactive`, {
+          method: "POST",
+          body: JSON.stringify({
+            caption: result.caption,
+            hashtags: result.hashtags,
+            production_note: result.production_note || "",
+          }),
+        });
+      }
+
       await pb.send("/api/messages:send", {
         method: "POST",
         body: JSON.stringify({
@@ -873,6 +953,7 @@
       });
       result = null;
       message = "";
+      isProactive = false;
     } catch {
       sendError = "Erro ao enviar. Tente novamente.";
     } finally {
@@ -949,6 +1030,31 @@
     noteCopied = true;
     noteCopyTimer = setTimeout(() => { noteCopied = false; }, 2000);
   }
+
+  // Feature 8 — approval panel actions
+  async function approveScheduledMessage(id: string) {
+    approvingId = id;
+    try {
+      await pb.send(`/api/scheduled-messages/${id}/approve`, { method: "POST" });
+      scheduledMessages = scheduledMessages.filter(m => m.id !== id);
+    } catch {
+      // silent — rare failure
+    } finally {
+      approvingId = null;
+    }
+  }
+
+  async function dismissScheduledMessage(id: string) {
+    dismissingId = id;
+    try {
+      await pb.send(`/api/scheduled-messages/${id}/dismiss`, { method: "POST" });
+      scheduledMessages = scheduledMessages.filter(m => m.id !== id);
+    } catch {
+      // silent
+    } finally {
+      dismissingId = null;
+    }
+  }
 </script>
 
 <div class="min-h-screen flex flex-col" style="background: var(--bg)">
@@ -978,7 +1084,7 @@
   {:else}
     <!-- Main operator layout -->
     <main class="flex-1 flex overflow-hidden">
-      <!-- Left: Client list -->
+      <!-- Left: Client list (or approval panel) -->
       <div
         class="w-72 border-r flex flex-col shrink-0"
         style="border-color: var(--border); background: var(--surface)"
@@ -987,119 +1093,215 @@
           class="flex items-center justify-between p-4 border-b"
           style="border-color: var(--border)"
         >
-          <div class="flex gap-1">
+          {#if showApprovalPanel}
             <button
-              onclick={() => {
-                clientFilter = "todos";
-              }}
-              class="text-xs font-medium px-2.5 py-1 rounded-full transition-colors"
-              style="background: {clientFilter === 'todos'
-                ? 'var(--coral)'
-                : 'transparent'}; color: {clientFilter === 'todos'
-                ? '#fff'
-                : 'var(--text-secondary)'}"
+              onclick={() => { showApprovalPanel = false; }}
+              class="text-xs font-medium px-2.5 py-1 rounded-full border"
+              style="border-color: var(--border-strong); color: var(--text-secondary)"
             >
-              Todos
+              ← Clientes
             </button>
-            <button
-              onclick={() => {
-                clientFilter = "inativos";
-              }}
-              class="text-xs font-medium px-2.5 py-1 rounded-full transition-colors"
-              style="background: {clientFilter === 'inativos'
-                ? 'var(--coral)'
-                : 'transparent'}; color: {clientFilter === 'inativos'
-                ? '#fff'
-                : 'var(--text-secondary)'}"
-            >
-              Inativos{inactiveCount > 0 ? ` (${inactiveCount})` : ""}
-            </button>
-          </div>
-          <button
-            onclick={openNewForm}
-            class="text-xs font-medium px-2.5 py-1 rounded-full"
-            style="background: var(--coral); color: #fff"
-          >
-            Novo
-          </button>
-        </div>
-
-        <div class="flex-1 overflow-y-auto">
-          {#if clients.length === 0}
-            <p class="text-sm p-4" style="color: var(--text-muted)">
-              Nenhum cliente cadastrado.
-            </p>
+            <span class="text-xs font-medium" style="color: var(--text-muted)">
+              Sazonais ({scheduledMessageCount})
+            </span>
           {:else}
-            {#each filteredClients as client (client.id)}
-              {@const unread = unreadCounts[client.id] || 0}
-              {@const health = clientHealth[client.id]}
+            <div class="flex gap-1 flex-wrap">
               <button
-                onclick={() => selectClient(client.id)}
-                class="w-full text-left px-4 py-3 border-b transition-colors {selectedId === client.id ? 'bg-(--coral-pale)' : 'hover:bg-(--coral-pale)/40'}"
-                style="border-color: var(--border); color: var(--text)"
+                onclick={() => { clientFilter = "todos"; }}
+                class="text-xs font-medium px-2.5 py-1 rounded-full transition-colors"
+                style="background: {clientFilter === 'todos' ? 'var(--coral)' : 'transparent'}; color: {clientFilter === 'todos' ? '#fff' : 'var(--text-secondary)'}"
               >
-                <div class="flex items-center justify-between">
-                  <div class="flex items-center gap-2 min-w-0">
-                    {#if health}
-                      <span
-                        class="w-2 h-2 rounded-full shrink-0"
-                        style="background: {health.color}"
-                      ></span>
-                    {/if}
-                    <span class="font-medium text-sm truncate"
-                      >{client.name}</span
-                    >
-                    {#if client.invite_status && client.invite_status !== 'draft'}
-                      <span
-                        class="text-xs px-1.5 py-0.5 rounded-full shrink-0"
-                        style={
-                          client.invite_status === 'invited' ? 'background: #FEF3C7; color: #92400E' :
-                          client.invite_status === 'accepted' ? 'background: #DBEAFE; color: #1E40AF' :
-                          client.invite_status === 'active' ? 'background: #DEF7EC; color: #03543F' :
-                          client.invite_status === 'payment_failed' ? 'background: #FEE2E2; color: #991B1B' :
-                          client.invite_status === 'cancelled' ? 'background: #FEE2E2; color: #991B1B; text-decoration: line-through' :
-                          'background: var(--border); color: var(--text-muted)'
-                        }
-                      >
-                        {client.invite_status === 'invited' ? 'convite' :
-                         client.invite_status === 'accepted' ? 'aceito' :
-                         client.invite_status === 'active' ? 'ativo' :
-                         client.invite_status === 'payment_failed' ? 'falhou' :
-                         client.invite_status === 'cancelled' ? 'cancelado' :
-                         client.invite_status}
-                      </span>
-                      {#if client.invite_status === 'accepted' && client.invite_sent_at && (Date.now() - new Date(client.invite_sent_at).getTime()) > 48 * 3600000}
-                        <span class="text-xs shrink-0" title="Aceito há mais de 48h sem pagamento">&#9888;</span>
-                      {/if}
-                    {/if}
-                  </div>
-                  {#if unread > 0}
-                    <span
-                      class="text-xs font-bold px-1.5 py-0.5 rounded-full shrink-0 ml-2"
-                      style="background: var(--coral); color: #fff"
-                    >
-                      {unread}
-                    </span>
-                  {/if}
-                </div>
-                <div class="flex items-center justify-between mt-0.5">
-                  <span class="text-xs" style="color: var(--text-muted)"
-                    >{client.type} — {client.city}/{client.state}</span
-                  >
-                  {#if health}
-                    <span class="text-xs" style="color: var(--text-muted)">
-                      {health.daysSinceMsg < 999
-                        ? `${health.daysSinceMsg}d`
-                        : ""}{health.postsThisMonth > 0
-                        ? ` · ${health.postsThisMonth} posts`
-                        : ""}
-                    </span>
-                  {/if}
-                </div>
+                Todos
               </button>
-            {/each}
+              <button
+                onclick={() => { clientFilter = "inativos"; }}
+                class="text-xs font-medium px-2.5 py-1 rounded-full transition-colors"
+                style="background: {clientFilter === 'inativos' ? 'var(--coral)' : 'transparent'}; color: {clientFilter === 'inativos' ? '#fff' : 'var(--text-secondary)'}"
+              >
+                Inativos{inactiveCount > 0 ? ` (${inactiveCount})` : ""}
+              </button>
+            </div>
+            <button
+              onclick={openNewForm}
+              class="text-xs font-medium px-2.5 py-1 rounded-full"
+              style="background: var(--coral); color: #fff"
+            >
+              Novo
+            </button>
           {/if}
         </div>
+
+        {#if showApprovalPanel}
+          <!-- Feature 8 — Seasonal messages approval panel -->
+          <div class="flex-1 overflow-y-auto p-3 flex flex-col gap-2">
+            {#if scheduledMessages.length === 0}
+              <p class="text-sm text-center py-8" style="color: var(--text-muted)">
+                Nenhuma mensagem pendente.
+              </p>
+            {:else}
+              {#each scheduledMessages as msg (msg.id)}
+                {@const biz = clients.find(c => c.id === msg.business)}
+                <div
+                  class="rounded-xl p-3"
+                  style="background: var(--bg); border: 1px solid var(--border)"
+                >
+                  <p class="text-xs font-medium mb-1.5" style="color: var(--text-muted)">
+                    {biz?.name ?? msg.business}
+                  </p>
+                  <p class="text-xs py-1.5" style="color: var(--text-secondary)">{msg.text}</p>
+                  <div class="flex gap-1.5 mt-1.5">
+                    <button
+                      onclick={() => approveScheduledMessage(msg.id)}
+                      disabled={approvingId === msg.id || !waConnected}
+                      class="flex-1 py-1 rounded-lg text-xs font-medium transition-opacity"
+                      style="background: #25D366; color: #fff; opacity: {approvingId === msg.id ? '0.6' : '1'}"
+                    >
+                      {approvingId === msg.id ? "..." : "Enviar"}
+                    </button>
+                    <button
+                      onclick={() => dismissScheduledMessage(msg.id)}
+                      disabled={dismissingId === msg.id}
+                      class="flex-1 py-1 rounded-lg text-xs font-medium border transition-opacity"
+                      style="border-color: var(--border-strong); color: var(--text-secondary); opacity: {dismissingId === msg.id ? '0.6' : '1'}"
+                    >
+                      {dismissingId === msg.id ? "..." : "Descartar"}
+                    </button>
+                  </div>
+                </div>
+              {/each}
+            {/if}
+          </div>
+        {:else}
+          <!-- Feature 6 — Morning summary bar -->
+          {#if unreadClientsCount > 0 || inactiveCount > 0 || globalNearestSeasonal || pendingPaymentCount > 0 || scheduledMessageCount > 0}
+            <div
+              class="border-b px-4 py-2 flex flex-col gap-0.5"
+              style="border-color: var(--border); background: var(--bg)"
+            >
+              {#if unreadClientsCount > 0}
+                <button
+                  onclick={() => { clientFilter = "com_mensagens"; }}
+                  class="text-xs text-left w-full hover:underline"
+                  style="color: var(--text-secondary)"
+                >
+                  {unreadClientsCount} {unreadClientsCount === 1 ? "cliente" : "clientes"} com mensagens novas
+                </button>
+              {/if}
+              {#if inactiveCount > 0}
+                <button
+                  onclick={() => { clientFilter = "inativos"; }}
+                  class="text-xs text-left w-full hover:underline"
+                  style="color: var(--text-secondary)"
+                >
+                  {inactiveCount} {inactiveCount === 1 ? "cliente" : "clientes"} inativos
+                </button>
+              {/if}
+              {#if globalNearestSeasonal}
+                <button
+                  onclick={() => { clientFilter = "sazonal"; }}
+                  class="text-xs text-left w-full hover:underline"
+                  style="color: var(--text-secondary)"
+                >
+                  {globalNearestSeasonal.label} em {globalNearestSeasonal.daysUntil}d ({globalNearestSeasonal.eligibleCount} clientes)
+                </button>
+              {/if}
+              {#if pendingPaymentCount > 0}
+                <button
+                  onclick={() => { clientFilter = "cobranca"; }}
+                  class="text-xs text-left w-full hover:underline"
+                  style="color: var(--text-secondary)"
+                >
+                  {pendingPaymentCount} {pendingPaymentCount === 1 ? "cliente" : "clientes"} com pagamento pendente
+                </button>
+              {/if}
+              {#if scheduledMessageCount > 0}
+                <button
+                  onclick={() => { showApprovalPanel = true; }}
+                  class="text-xs text-left w-full hover:underline"
+                  style="color: var(--coral)"
+                >
+                  {scheduledMessageCount} {scheduledMessageCount === 1 ? "mensagem sazonal" : "mensagens sazonais"} prontas para aprovação
+                </button>
+              {/if}
+            </div>
+          {/if}
+
+          <!-- Client list -->
+          <div class="flex-1 overflow-y-auto">
+            {#if clients.length === 0}
+              <p class="text-sm p-4" style="color: var(--text-muted)">
+                Nenhum cliente cadastrado.
+              </p>
+            {:else}
+              {#each filteredClients as client (client.id)}
+                {@const unread = unreadCounts[client.id] || 0}
+                {@const health = clientHealth[client.id]}
+                <button
+                  onclick={() => selectClient(client.id)}
+                  class="w-full text-left px-4 py-3 border-b transition-colors {selectedId === client.id ? 'bg-(--coral-pale)' : 'hover:bg-(--coral-pale)/40'}"
+                  style="border-color: var(--border); color: var(--text)"
+                >
+                  <div class="flex items-center justify-between">
+                    <div class="flex items-center gap-2 min-w-0">
+                      {#if health}
+                        <span
+                          class="w-2 h-2 rounded-full shrink-0"
+                          style="background: {health.color}"
+                        ></span>
+                      {/if}
+                      <span class="font-medium text-sm truncate">{client.name}</span>
+                      {#if client.invite_status && client.invite_status !== 'draft'}
+                        <span
+                          class="text-xs px-1.5 py-0.5 rounded-full shrink-0"
+                          style={
+                            client.invite_status === 'invited' ? 'background: #FEF3C7; color: #92400E' :
+                            client.invite_status === 'accepted' ? 'background: #DBEAFE; color: #1E40AF' :
+                            client.invite_status === 'active' ? 'background: #DEF7EC; color: #03543F' :
+                            client.invite_status === 'payment_failed' ? 'background: #FEE2E2; color: #991B1B' :
+                            client.invite_status === 'cancelled' ? 'background: #FEE2E2; color: #991B1B; text-decoration: line-through' :
+                            'background: var(--border); color: var(--text-muted)'
+                          }
+                        >
+                          {client.invite_status === 'invited' ? 'convite' :
+                           client.invite_status === 'accepted' ? 'aceito' :
+                           client.invite_status === 'active' ? 'ativo' :
+                           client.invite_status === 'payment_failed' ? 'falhou' :
+                           client.invite_status === 'cancelled' ? 'cancelado' :
+                           client.invite_status}
+                        </span>
+                        {#if client.invite_status === 'accepted' && client.invite_sent_at && (Date.now() - new Date(client.invite_sent_at).getTime()) > 48 * 3600000}
+                          <span class="text-xs shrink-0" title="Aceito há mais de 48h sem pagamento">&#9888;</span>
+                        {/if}
+                      {/if}
+                    </div>
+                    {#if unread > 0}
+                      <span
+                        class="text-xs font-bold px-1.5 py-0.5 rounded-full shrink-0 ml-2"
+                        style="background: var(--coral); color: #fff"
+                      >
+                        {unread}
+                      </span>
+                    {/if}
+                  </div>
+                  <div class="flex items-center justify-between mt-0.5">
+                    <span class="text-xs" style="color: var(--text-muted)"
+                      >{client.type} — {client.city}/{client.state}</span
+                    >
+                    {#if health}
+                      <span class="text-xs" style="color: var(--text-muted)">
+                        {health.daysSinceMsg < 999
+                          ? `${health.daysSinceMsg}d`
+                          : ""}{health.postsThisMonth > 0
+                          ? ` · ${health.postsThisMonth} posts`
+                          : ""}
+                      </span>
+                    {/if}
+                  </div>
+                </button>
+              {/each}
+            {/if}
+          </div>
+        {/if}
       </div>
 
       <!-- Right: Thread or form -->
@@ -1125,9 +1327,7 @@
 
               <div class="flex flex-col gap-4">
                 <label class="flex flex-col gap-1.5">
-                  <span class="text-sm font-medium" style="color: var(--text)"
-                    >Nome do cliente</span
-                  >
+                  <span class="text-sm font-medium" style="color: var(--text)">Nome do cliente</span>
                   <input
                     bind:value={formClientName}
                     placeholder="Ex: Ana Silva"
@@ -1137,9 +1337,7 @@
                 </label>
 
                 <label class="flex flex-col gap-1.5">
-                  <span class="text-sm font-medium" style="color: var(--text)"
-                    >Email do cliente</span
-                  >
+                  <span class="text-sm font-medium" style="color: var(--text)">Email do cliente</span>
                   <input
                     bind:value={formClientEmail}
                     type="email"
@@ -1150,9 +1348,7 @@
                 </label>
 
                 <label class="flex flex-col gap-1.5">
-                  <span class="text-sm font-medium" style="color: var(--text)"
-                    >Nome do negócio</span
-                  >
+                  <span class="text-sm font-medium" style="color: var(--text)">Nome do negócio</span>
                   <input
                     bind:value={formName}
                     placeholder="Nome do negócio"
@@ -1162,9 +1358,7 @@
                 </label>
 
                 <label class="flex flex-col gap-1.5">
-                  <span class="text-sm font-medium" style="color: var(--text)"
-                    >Tipo de negócio</span
-                  >
+                  <span class="text-sm font-medium" style="color: var(--text)">Tipo de negócio</span>
                   <select
                     bind:value={formType}
                     class="px-3 py-2.5 rounded-xl text-sm outline-none border"
@@ -1179,9 +1373,7 @@
 
                 <div class="flex gap-3">
                   <label class="flex flex-col gap-1.5 flex-1">
-                    <span class="text-sm font-medium" style="color: var(--text)"
-                      >Cidade</span
-                    >
+                    <span class="text-sm font-medium" style="color: var(--text)">Cidade</span>
                     <input
                       bind:value={formCity}
                       placeholder="Ex: São Paulo"
@@ -1190,9 +1382,7 @@
                     />
                   </label>
                   <label class="flex flex-col gap-1.5 w-24">
-                    <span class="text-sm font-medium" style="color: var(--text)"
-                      >Estado</span
-                    >
+                    <span class="text-sm font-medium" style="color: var(--text)">Estado</span>
                     <select
                       bind:value={formState}
                       class="px-3 py-2.5 rounded-xl text-sm outline-none border"
@@ -1207,9 +1397,7 @@
                 </div>
 
                 <label class="flex flex-col gap-1.5">
-                  <span class="text-sm font-medium" style="color: var(--text)"
-                    >Telefone WhatsApp</span
-                  >
+                  <span class="text-sm font-medium" style="color: var(--text)">Telefone WhatsApp</span>
                   <input
                     bind:value={formPhone}
                     placeholder="5511999998888"
@@ -1219,9 +1407,7 @@
                 </label>
 
                 <div>
-                  <span class="text-sm font-medium" style="color: var(--text)"
-                    >Serviços</span
-                  >
+                  <span class="text-sm font-medium" style="color: var(--text)">Serviços</span>
                   <div class="flex flex-col gap-2 mt-1.5">
                     {#each formServices as service, i}
                       <div class="flex gap-2 items-center">
@@ -1251,11 +1437,7 @@
                             style="color: var(--text-muted)"
                             aria-label="Remover"
                           >
-                            <svg
-                              viewBox="0 0 20 20"
-                              fill="currentColor"
-                              width="16"
-                              height="16"
+                            <svg viewBox="0 0 20 20" fill="currentColor" width="16" height="16"
                               ><path
                                 fill-rule="evenodd"
                                 d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z"
@@ -1276,10 +1458,7 @@
 
                 <label class="flex flex-col gap-1.5">
                   <span class="text-sm font-medium" style="color: var(--text)"
-                    >Público-alvo <span
-                      class="font-normal"
-                      style="color: var(--text-muted)">— opcional</span
-                    ></span
+                    >Público-alvo <span class="font-normal" style="color: var(--text-muted)">— opcional</span></span
                   >
                   <input
                     bind:value={formTargetAudience}
@@ -1291,10 +1470,7 @@
 
                 <label class="flex flex-col gap-1.5">
                   <span class="text-sm font-medium" style="color: var(--text)"
-                    >Estilo da marca <span
-                      class="font-normal"
-                      style="color: var(--text-muted)">— opcional</span
-                    ></span
+                    >Estilo da marca <span class="font-normal" style="color: var(--text-muted)">— opcional</span></span
                   >
                   <input
                     bind:value={formBrandVibe}
@@ -1306,10 +1482,7 @@
 
                 <label class="flex flex-col gap-1.5">
                   <span class="text-sm font-medium" style="color: var(--text)"
-                    >Diferenciais <span
-                      class="font-normal"
-                      style="color: var(--text-muted)">— opcional</span
-                    ></span
+                    >Diferenciais <span class="font-normal" style="color: var(--text-muted)">— opcional</span></span
                   >
                   <textarea
                     bind:value={formQuirks}
@@ -1353,9 +1526,7 @@
                   onclick={saveClient}
                   disabled={formSaving}
                   class="px-5 py-2.5 rounded-full text-sm font-medium transition-opacity"
-                  style="background: var(--coral); color: #fff; opacity: {formSaving
-                    ? '0.6'
-                    : '1'}; cursor: {formSaving ? 'not-allowed' : 'pointer'}"
+                  style="background: var(--coral); color: #fff; opacity: {formSaving ? '0.6' : '1'}; cursor: {formSaving ? 'not-allowed' : 'pointer'}"
                 >
                   {formSaving ? "Salvando..." : "Salvar"}
                 </button>
@@ -1363,9 +1534,7 @@
                   onclick={saveAndInvite}
                   disabled={formSaving}
                   class="px-5 py-2.5 rounded-full text-sm font-medium transition-opacity"
-                  style="background: #25D366; color: #fff; opacity: {formSaving
-                    ? '0.6'
-                    : '1'}; cursor: {formSaving ? 'not-allowed' : 'pointer'}"
+                  style="background: #25D366; color: #fff; opacity: {formSaving ? '0.6' : '1'}; cursor: {formSaving ? 'not-allowed' : 'pointer'}"
                 >
                   {formSaving ? "Salvando..." : "Salvar e Enviar Convite"}
                 </button>
@@ -1432,6 +1601,103 @@
             </div>
           </div>
 
+          <!-- Feature 3 — Client context card -->
+          {#if selected.services?.length > 0 || selected.target_audience || selected.brand_vibe || selected.quirks}
+            <div class="shrink-0 border-b" style="border-color: var(--border)">
+              <button
+                onclick={() => { profileOpen = !profileOpen; }}
+                class="flex items-center gap-1 w-full px-6 py-2 text-left"
+              >
+                <span class="text-xs font-medium uppercase tracking-widest" style="color: var(--text-muted)">Perfil do cliente</span>
+                <span class="text-xs ml-auto" style="color: var(--text-muted)">{profileOpen ? '▲' : '▼'}</span>
+              </button>
+              {#if profileOpen}
+                <div class="px-6 pb-3 text-xs" style="color: var(--text-secondary)">
+                  {#if selected.services?.length > 0}
+                    <div class="mb-1.5 flex flex-col gap-0.5">
+                      {#each selected.services as svc}
+                        <span>{svc.name}{svc.price_brl != null ? ` — R$${svc.price_brl.toFixed(2).replace('.', ',')}` : ''}</span>
+                      {/each}
+                    </div>
+                  {/if}
+                  {#if selected.target_audience}
+                    <p class="mb-1">{selected.target_audience}</p>
+                  {/if}
+                  {#if selected.brand_vibe}
+                    <p class="mb-1 italic">{selected.brand_vibe}</p>
+                  {/if}
+                  {#if selected.quirks}
+                    <p class="mb-1 whitespace-pre-wrap">{selected.quirks}</p>
+                  {/if}
+                  <button
+                    onclick={() => openEditForm(selected!)}
+                    class="mt-1 font-medium"
+                    style="color: var(--primary)"
+                  >Editar</button>
+                </div>
+              {/if}
+            </div>
+          {/if}
+
+          <!-- Feature 4 — Post history panel -->
+          {#if clientPosts.length > 0}
+            <div class="shrink-0 border-b" style="border-color: var(--border)">
+              <button
+                onclick={() => { historyOpen = !historyOpen; }}
+                class="flex items-center gap-1 w-full px-6 py-2 text-left"
+              >
+                <span class="text-xs font-medium uppercase tracking-widest" style="color: var(--text-muted)">
+                  Histórico de posts ({clientPosts.length})
+                </span>
+                <span class="text-xs ml-auto" style="color: var(--text-muted)">{historyOpen ? '▲' : '▼'}</span>
+              </button>
+              {#if historyOpen}
+                <div class="px-6 pb-3 flex flex-col gap-2 max-h-48 overflow-y-auto">
+                  {#each clientPosts.slice(0, historyLimit) as post (post.id)}
+                    {@const postExpanded = expandedPosts.has(post.id)}
+                    <div class="border-b last:border-0 py-1.5" style="border-color: var(--border)">
+                      <div class="flex items-center justify-between gap-2">
+                        <span class="text-xs" style="color: var(--text-muted)">
+                          {new Date(post.created).toLocaleDateString("pt-BR", { day: "numeric", month: "short" })}
+                        </span>
+                        <button
+                          onclick={async () => {
+                            await navigator.clipboard.writeText(post.caption + (post.hashtags?.length ? '\n\n' + post.hashtags.join(' ') : ''));
+                          }}
+                          class="text-xs shrink-0"
+                          style="color: var(--coral)"
+                        >Copiar</button>
+                      </div>
+                      <button
+                        onclick={() => {
+                          const next = new Set(expandedPosts);
+                          if (postExpanded) next.delete(post.id); else next.add(post.id);
+                          expandedPosts = next;
+                        }}
+                        class="text-xs text-left w-full mt-0.5"
+                        style="color: var(--text-secondary); display: -webkit-box; -webkit-box-orient: vertical; overflow: hidden; {postExpanded ? '' : '-webkit-line-clamp: 2'}"
+                      >
+                        {post.caption}
+                      </button>
+                      {#if postExpanded && post.production_note}
+                        <p class="text-xs italic mt-1" style="color: var(--text-muted)">{post.production_note}</p>
+                      {/if}
+                    </div>
+                  {/each}
+                  {#if clientPosts.length > historyLimit}
+                    <button
+                      onclick={() => { historyLimit = clientPosts.length; }}
+                      class="text-xs font-medium text-left"
+                      style="color: var(--primary)"
+                    >
+                      Ver todos ({clientPosts.length})
+                    </button>
+                  {/if}
+                </div>
+              {/if}
+            </div>
+          {/if}
+
           <!-- Engagement panel (nudge + seasonal) -->
           {#if nudgeTier || upcomingDates.length > 0 || nudgeText || summaryText}
             <div
@@ -1444,10 +1710,7 @@
                     onclick={() => { nudgeOpen = !nudgeOpen; }}
                     class="flex items-center gap-1 w-full text-left"
                   >
-                    <span
-                      class="text-xs font-medium uppercase tracking-widest"
-                      style="color: var(--text-muted)"
-                    >
+                    <span class="text-xs font-medium uppercase tracking-widest" style="color: var(--text-muted)">
                       {#if nudgeTier}
                         Lembrete · {clientHealth[selected!.id]?.daysSinceMsg} dias sem mensagem
                       {:else}
@@ -1469,27 +1732,15 @@
                         disabled={sendingNudge || !nudgeText.trim() || !!blockReason}
                         title={blockReason ?? undefined}
                         class="px-3 py-1.5 rounded-full text-xs font-medium transition-opacity"
-                        style="background: #25D366; color: #fff; opacity: {sendingNudge ||
-                        !nudgeText.trim() ||
-                        blockReason
-                          ? '0.6'
-                          : '1'}; cursor: {sendingNudge ||
-                        !nudgeText.trim() ||
-                        blockReason
-                          ? 'not-allowed'
-                          : 'pointer'}"
+                        style="background: #25D366; color: #fff; opacity: {sendingNudge || !nudgeText.trim() || blockReason ? '0.6' : '1'}; cursor: {sendingNudge || !nudgeText.trim() || blockReason ? 'not-allowed' : 'pointer'}"
                       >
                         {sendingNudge ? "Enviando..." : "Enviar lembrete"}
                       </button>
                       {#if blockReason && nudgeText.trim()}
-                        <span class="text-xs" style="color: var(--text-muted)"
-                          >{blockReason}</span
-                        >
+                        <span class="text-xs" style="color: var(--text-muted)">{blockReason}</span>
                       {/if}
                       {#if sendNudgeError}
-                        <span class="text-xs" style="color: var(--destructive)"
-                          >{sendNudgeError}</span
-                        >
+                        <span class="text-xs" style="color: var(--destructive)">{sendNudgeError}</span>
                       {/if}
                     </div>
                   {/if}
@@ -1501,10 +1752,7 @@
                   class={nudgeTier || nudgeText ? "pt-2 border-t" : ""}
                   style="border-color: var(--border)"
                 >
-                  <span
-                    class="text-xs font-medium uppercase tracking-widest"
-                    style="color: var(--text-muted)"
-                  >
+                  <span class="text-xs font-medium uppercase tracking-widest" style="color: var(--text-muted)">
                     Datas próximas
                   </span>
                   <div class="flex flex-wrap gap-1.5 mt-1.5">
@@ -1527,19 +1775,14 @@
 
               {#if summaryText}
                 <div
-                  class={nudgeTier || nudgeText || upcomingDates.length > 0
-                    ? "pt-2 border-t"
-                    : ""}
+                  class={nudgeTier || nudgeText || upcomingDates.length > 0 ? "pt-2 border-t" : ""}
                   style="border-color: var(--border)"
                 >
                   <button
                     onclick={() => { summaryOpen = !summaryOpen; }}
                     class="flex items-center gap-1 w-full text-left"
                   >
-                    <span
-                      class="text-xs font-medium uppercase tracking-widest"
-                      style="color: var(--text-muted)"
-                    >
+                    <span class="text-xs font-medium uppercase tracking-widest" style="color: var(--text-muted)">
                       Resumo mensal · {clientHealth[selected!.id]?.postsThisMonth ?? 0} posts este mês
                     </span>
                     <span class="text-xs ml-auto" style="color: var(--text-muted)">{summaryOpen ? '▲' : '▼'}</span>
@@ -1557,27 +1800,15 @@
                         disabled={sendingSummary || !summaryText.trim() || !!blockReason}
                         title={blockReason ?? undefined}
                         class="px-3 py-1.5 rounded-full text-xs font-medium transition-opacity"
-                        style="background: #25D366; color: #fff; opacity: {sendingSummary ||
-                        !summaryText.trim() ||
-                        blockReason
-                          ? '0.6'
-                          : '1'}; cursor: {sendingSummary ||
-                        !summaryText.trim() ||
-                        blockReason
-                          ? 'not-allowed'
-                          : 'pointer'}"
+                        style="background: #25D366; color: #fff; opacity: {sendingSummary || !summaryText.trim() || blockReason ? '0.6' : '1'}; cursor: {sendingSummary || !summaryText.trim() || blockReason ? 'not-allowed' : 'pointer'}"
                       >
                         {sendingSummary ? "Enviando..." : "Enviar resumo"}
                       </button>
                       {#if blockReason && summaryText.trim()}
-                        <span class="text-xs" style="color: var(--text-muted)"
-                          >{blockReason}</span
-                        >
+                        <span class="text-xs" style="color: var(--text-muted)">{blockReason}</span>
                       {/if}
                       {#if sendSummaryError}
-                        <span class="text-xs" style="color: var(--destructive)"
-                          >{sendSummaryError}</span
-                        >
+                        <span class="text-xs" style="color: var(--destructive)">{sendSummaryError}</span>
                       {/if}
                     </div>
                   {/if}
@@ -1589,41 +1820,26 @@
           <!-- Message thread -->
           <div bind:this={threadEl} class="flex-1 overflow-y-auto px-6 py-4 flex flex-col gap-3">
             {#if groupedMessages.length === 0}
-              <p
-                class="text-sm text-center py-8"
-                style="color: var(--text-muted)"
-              >
+              <p class="text-sm text-center py-8" style="color: var(--text-muted)">
                 Nenhuma mensagem ainda.
               </p>
             {:else}
               {#each groupedMessages as group}
                 <div class="flex items-center gap-3 my-1">
                   <hr class="flex-1" style="border-color: var(--border)" />
-                  <span class="text-xs shrink-0" style="color: var(--text-muted)"
-                    >{group.label}</span
-                  >
+                  <span class="text-xs shrink-0" style="color: var(--text-muted)">{group.label}</span>
                   <hr class="flex-1" style="border-color: var(--border)" />
                 </div>
                 {#each group.msgs as msg (msg.id)}
                   <div
-                    class="flex {msg.direction === 'outgoing'
-                      ? 'justify-end'
-                      : 'justify-start'}"
+                    class="flex {msg.direction === 'outgoing' ? 'justify-end' : 'justify-start'}"
                   >
                     <div
                       class="max-w-md rounded-2xl px-4 py-2.5 text-sm"
-                      style="background: {msg.direction === 'outgoing'
-                        ? 'var(--coral-pale)'
-                        : 'var(--surface)'}; border: 1px solid {msg.direction ===
-                      'outgoing'
-                        ? 'var(--coral-light)'
-                        : 'var(--border)'}; color: var(--text)"
+                      style="background: {msg.direction === 'outgoing' ? 'var(--coral-pale)' : 'var(--surface)'}; border: 1px solid {msg.direction === 'outgoing' ? 'var(--coral-light)' : 'var(--border)'}; color: var(--text)"
                     >
                       {#if msg.type === "audio"}
-                        <span
-                          class="text-xs font-medium block mb-1"
-                          style="color: var(--text-muted)">Áudio transcrito</span
-                        >
+                        <span class="text-xs font-medium block mb-1" style="color: var(--text-muted)">Áudio transcrito</span>
                       {/if}
 
                       {#if msg.type === "image" && msg.media}
@@ -1638,18 +1854,11 @@
                       {#if msg.content}
                         <p class="whitespace-pre-wrap">{msg.content}</p>
                       {:else if msg.type === "audio"}
-                        <p class="italic" style="color: var(--text-muted)">
-                          Transcrição indisponível
-                        </p>
+                        <p class="italic" style="color: var(--text-muted)">Transcrição indisponível</p>
                       {/if}
 
-                      <span
-                        class="text-xs block mt-1"
-                        style="color: var(--text-muted)"
-                      >
-                        {new Date(
-                          msg.wa_timestamp || msg.created,
-                        ).toLocaleTimeString("pt-BR", {
+                      <span class="text-xs block mt-1" style="color: var(--text-muted)">
+                        {new Date(msg.wa_timestamp || msg.created).toLocaleTimeString("pt-BR", {
                           hour: "2-digit",
                           minute: "2-digit",
                         })}
@@ -1661,51 +1870,137 @@
             {/if}
           </div>
 
+          <!-- Feature 2 — Quick reply row -->
+          {#if !blockReason}
+            <div
+              class="shrink-0 border-t px-4 py-2 flex gap-2 items-center"
+              style="border-color: var(--border); background: var(--surface)"
+            >
+              <input
+                bind:value={quickReply}
+                placeholder="Resposta rápida..."
+                class="flex-1 px-3 py-2 rounded-xl text-sm outline-none border"
+                style="border-color: var(--border-strong); background: var(--bg); color: var(--text)"
+                onkeydown={(e) => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); sendQuickReply(); } }}
+              />
+              <button
+                onclick={sendQuickReply}
+                disabled={sendingQuick || !quickReply.trim()}
+                class="px-3 py-2 rounded-full text-xs font-medium transition-opacity"
+                style="background: #25D366; color: #fff; opacity: {sendingQuick || !quickReply.trim() ? '0.6' : '1'}"
+              >
+                {sendingQuick ? "..." : "Enviar"}
+              </button>
+              {#if quickReplyError}
+                <span class="text-xs" style="color: var(--destructive)">{quickReplyError}</span>
+              {/if}
+            </div>
+          {:else}
+            <div
+              class="shrink-0 border-t px-4 py-2"
+              style="border-color: var(--border); background: var(--surface)"
+            >
+              <span class="text-xs" style="color: var(--text-muted)">{blockReason}</span>
+            </div>
+          {/if}
+
           <!-- Generate panel (bottom) -->
           <div
             class="shrink-0 border-t px-6 py-4 overflow-y-auto"
             style="border-color: var(--border); background: var(--surface); max-height: 50vh"
           >
-            <div class="flex gap-2 items-end">
-              <div class="flex-1">
-                <textarea
-                  bind:value={message}
-                  placeholder="Mensagem do cliente para gerar post..."
-                  rows={2}
-                  class="w-full px-3 py-2.5 rounded-xl text-sm outline-none border resize-none"
-                  style="border-color: var(--border-strong); background: var(--bg); color: var(--text)"
-                ></textarea>
-              </div>
-              <div class="flex flex-col gap-1.5">
-                {#if latestIncomingText && message !== latestIncomingText}
+            <!-- Feature 7 — idea drafts UI -->
+            {#if ideaDrafts !== null}
+              <div class="flex flex-col gap-3">
+                <div class="flex items-center justify-between">
+                  <span class="text-xs font-medium uppercase tracking-widest" style="color: var(--text-muted)">
+                    Escolha uma ideia
+                  </span>
                   <button
-                    onclick={prefillGenerate}
-                    class="text-xs px-3 py-1.5 rounded-full border"
-                    style="border-color: var(--border-strong); color: var(--text-secondary)"
+                    onclick={() => { ideaDrafts = null; }}
+                    class="text-xs"
+                    style="color: var(--text-muted)"
+                  >Cancelar</button>
+                </div>
+                {#each ideaDrafts as draft, i}
+                  <div
+                    class="rounded-xl p-3"
+                    style="background: var(--bg); border: 1px solid var(--border)"
                   >
-                    Usar última msg
-                  </button>
-                {/if}
-                <button
-                  onclick={generate}
-                  disabled={generating || !message.trim()}
-                  class="px-4 py-2.5 rounded-full text-sm font-medium transition-opacity"
-                  style="background: var(--coral); color: #fff; opacity: {generating ||
-                  !message.trim()
-                    ? '0.6'
-                    : '1'}; cursor: {generating || !message.trim()
-                    ? 'not-allowed'
-                    : 'pointer'}"
-                >
-                  {generating ? "Gerando..." : "Gerar post"}
-                </button>
+                    <p
+                      class="text-sm leading-relaxed"
+                      style="color: var(--text); display: -webkit-box; -webkit-line-clamp: 3; -webkit-box-orient: vertical; overflow: hidden"
+                    >
+                      {draft.caption}
+                    </p>
+                    <button
+                      onclick={() => { result = draft; isProactive = true; ideaDrafts = null; }}
+                      class="mt-2 px-3 py-1.5 rounded-full text-xs font-medium"
+                      style="background: var(--coral); color: #fff"
+                    >
+                      Usar este
+                    </button>
+                  </div>
+                {/each}
               </div>
-            </div>
+            {:else}
+              <!-- Standard generate panel -->
+              <div class="flex gap-2 items-end">
+                <div class="flex-1">
+                  <textarea
+                    bind:value={message}
+                    placeholder="Mensagem do cliente para gerar post..."
+                    rows={2}
+                    class="w-full px-3 py-2.5 rounded-xl text-sm outline-none border resize-none"
+                    style="border-color: var(--border-strong); background: var(--bg); color: var(--text)"
+                  ></textarea>
+                  <!-- Feature 5 — hook counter -->
+                  {#if clientPosts.length >= 3}
+                    <p class="text-xs mt-1" style="color: var(--text-muted)">
+                      {clientPosts.length} temas anteriores memorizados — o próximo post será diferente.
+                    </p>
+                  {/if}
+                </div>
+                <div class="flex flex-col gap-1.5">
+                  <!-- Feature 1 — "Usar conversa recente" -->
+                  {#if recentContext && message !== recentContext}
+                    <button
+                      onclick={prefillGenerate}
+                      class="text-xs px-3 py-1.5 rounded-full border"
+                      style="border-color: var(--border-strong); color: var(--text-secondary)"
+                    >
+                      Usar conversa recente
+                    </button>
+                  {/if}
+                  <!-- Feature 7 — "Gerar 3 ideias" -->
+                  {#if showGenerateIdeasButton}
+                    <button
+                      onclick={generateIdeas}
+                      disabled={generatingIdeas}
+                      class="text-xs px-3 py-1.5 rounded-full border transition-opacity"
+                      style="border-color: var(--border-strong); color: var(--text-secondary); opacity: {generatingIdeas ? '0.6' : '1'}"
+                    >
+                      {generatingIdeas ? "Gerando..." : "Gerar 3 ideias"}
+                    </button>
+                  {/if}
+                  <button
+                    onclick={generate}
+                    disabled={generating || !message.trim()}
+                    class="px-4 py-2.5 rounded-full text-sm font-medium transition-opacity"
+                    style="background: var(--coral); color: #fff; opacity: {generating || !message.trim() ? '0.6' : '1'}; cursor: {generating || !message.trim() ? 'not-allowed' : 'pointer'}"
+                  >
+                    {generating ? "Gerando..." : "Gerar post"}
+                  </button>
+                </div>
+              </div>
 
-            {#if generateError}
-              <p class="mt-2 text-sm" style="color: var(--destructive)">
-                {generateError}
-              </p>
+              {#if ideaError}
+                <p class="mt-2 text-sm" style="color: var(--destructive)">{ideaError}</p>
+              {/if}
+
+              {#if generateError}
+                <p class="mt-2 text-sm" style="color: var(--destructive)">{generateError}</p>
+              {/if}
             {/if}
 
             {#if result}
@@ -1715,37 +2010,20 @@
               >
                 <div class="mb-3">
                   <div class="flex items-center justify-between mb-1">
-                    <span
-                      class="text-xs font-medium uppercase tracking-widest"
-                      style="color: var(--text-muted)">Legenda</span
-                    >
-                    <button
-                      onclick={() => copyCaption(result!.caption)}
-                      class="text-xs"
-                      style="color: var(--coral)"
-                    >
+                    <span class="text-xs font-medium uppercase tracking-widest" style="color: var(--text-muted)">Legenda</span>
+                    <button onclick={() => copyCaption(result!.caption)} class="text-xs" style="color: var(--coral)">
                       {captionCopied ? "Copiado!" : "Copiar"}
                     </button>
                   </div>
-                  <p
-                    class="text-sm leading-relaxed whitespace-pre-wrap"
-                    style="color: var(--text)"
-                  >
+                  <p class="text-sm leading-relaxed whitespace-pre-wrap" style="color: var(--text)">
                     {result.caption}
                   </p>
                 </div>
 
                 <div class="mb-3">
                   <div class="flex items-center justify-between mb-1">
-                    <span
-                      class="text-xs font-medium uppercase tracking-widest"
-                      style="color: var(--text-muted)">Hashtags</span
-                    >
-                    <button
-                      onclick={() => copyHashtags(result!.hashtags.join(" "))}
-                      class="text-xs"
-                      style="color: var(--coral)"
-                    >
+                    <span class="text-xs font-medium uppercase tracking-widest" style="color: var(--text-muted)">Hashtags</span>
+                    <button onclick={() => copyHashtags(result!.hashtags.join(" "))} class="text-xs" style="color: var(--coral)">
                       {hashtagsCopied ? "Copiado!" : "Copiar"}
                     </button>
                   </div>
@@ -1757,15 +2035,8 @@
                 {#if result.production_note}
                   <div>
                     <div class="flex items-center justify-between mb-1">
-                      <span
-                        class="text-xs font-medium uppercase tracking-widest"
-                        style="color: var(--text-muted)">Nota de produção</span
-                      >
-                      <button
-                        onclick={() => copyNote(result!.production_note!)}
-                        class="text-xs"
-                        style="color: var(--coral)"
-                      >
+                      <span class="text-xs font-medium uppercase tracking-widest" style="color: var(--text-muted)">Nota de produção</span>
+                      <button onclick={() => copyNote(result!.production_note!)} class="text-xs" style="color: var(--coral)">
                         {noteCopied ? "Copiado!" : "Copiar"}
                       </button>
                     </div>
@@ -1791,16 +2062,12 @@
                       onclick={sendViaWhatsApp}
                       disabled={sending}
                       class="px-4 py-2 rounded-full text-sm font-medium transition-opacity"
-                      style="background: #25D366; color: #fff; opacity: {sending
-                        ? '0.6'
-                        : '1'}; cursor: {sending ? 'not-allowed' : 'pointer'}"
+                      style="background: #25D366; color: #fff; opacity: {sending ? '0.6' : '1'}; cursor: {sending ? 'not-allowed' : 'pointer'}"
                     >
                       {sending ? "Enviando..." : "Enviar pelo WhatsApp"}
                     </button>
                     {#if sendError}
-                      <span class="text-xs" style="color: var(--destructive)"
-                        >{sendError}</span
-                      >
+                      <span class="text-xs" style="color: var(--destructive)">{sendError}</span>
                     {/if}
                   {/if}
                 </div>
@@ -1835,20 +2102,10 @@
           </p>
           <div class="bg-white p-4 rounded-xl inline-block">
             {#if qrDataUrl}
-              <img
-                src={qrDataUrl}
-                alt="QR Code WhatsApp"
-                width="256"
-                height="256"
-              />
+              <img src={qrDataUrl} alt="QR Code WhatsApp" width="256" height="256" />
             {:else}
-              <div
-                style="width: 256px; height: 256px"
-                class="flex items-center justify-center"
-              >
-                <span class="text-sm" style="color: var(--text-muted)"
-                  >Conectando ao WhatsApp...</span
-                >
+              <div style="width: 256px; height: 256px" class="flex items-center justify-center">
+                <span class="text-sm" style="color: var(--text-muted)">Conectando ao WhatsApp...</span>
               </div>
             {/if}
           </div>
@@ -1860,3 +2117,4 @@
     {/if}
   {/if}
 </div>
+

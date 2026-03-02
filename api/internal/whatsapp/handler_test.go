@@ -55,7 +55,7 @@ func newHandlerTestApp(t *testing.T) *tests.TestApp {
 
 func makeDeps(t *testing.T, app *tests.TestApp) HandlerDeps {
 	t.Helper()
-	return HandlerDeps{App: app, Client: nil, Transcribe: nil}
+	return HandlerDeps{App: app, Client: nil, Logger: app.Logger(), Transcribe: nil}
 }
 
 func incomingTextEvt(msgID, senderPhone string) *events.Message {

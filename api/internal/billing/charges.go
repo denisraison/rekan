@@ -12,7 +12,7 @@ import (
 
 // CreatePendingCharges finds active businesses whose next_charge_date is within
 // 7 days and creates a Pix Automatico charge for each one via Asaas.
-func CreatePendingCharges(app core.App, asaasClient *asaas.Client) {
+func CreatePendingCharges(ctx context.Context, app core.App, asaasClient *asaas.Client) {
 	if asaasClient == nil {
 		return
 	}
@@ -31,8 +31,6 @@ func CreatePendingCharges(app core.App, asaasClient *asaas.Client) {
 		app.Logger().Error("billing: query businesses", "error", err)
 		return
 	}
-
-	ctx := context.Background()
 
 	for _, biz := range businesses {
 		tier := pricing.Tier(biz.GetString("tier"))

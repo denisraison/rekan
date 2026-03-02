@@ -15,52 +15,24 @@ import (
 const testWebhookToken = "test-webhook-token"
 const testAuthorizationID = "auth_test_webhook_123"
 
-// newWebhookApp creates a test PocketBase app with a businesses collection
-// (including invite fields) and a pre-created test business with authorization_id.
+// newWebhookApp creates a test PocketBase app using real migrations
+// and a pre-created test business with authorization_id.
 func newWebhookApp(t testing.TB) *tests.TestApp {
 	app, err := tests.NewTestApp()
 	if err != nil {
 		t.Fatalf("new test app: %v", err)
 	}
 
-	businesses := core.NewBaseCollection("businesses")
-	businesses.Fields.Add(
-		&core.TextField{Name: "name"},
-		&core.TextField{Name: "user"},
-		&core.TextField{Name: "phone"},
-		&core.TextField{Name: "client_name"},
-		&core.TextField{Name: "client_email"},
-		&core.TextField{Name: "invite_token"},
-		&core.SelectField{
-			Name:      "invite_status",
-			Values:    []string{"draft", "invited", "accepted", "active", "payment_failed", "cancelled"},
-			MaxSelect: 1,
-		},
-		&core.DateField{Name: "invite_sent_at"},
-		&core.DateField{Name: "terms_accepted_at"},
-		&core.TextField{Name: "authorization_id"},
-		&core.TextField{Name: "customer_id"},
-		&core.SelectField{
-			Name:      "tier",
-			Values:    []string{"basico", "parceiro", "profissional"},
-			MaxSelect: 1,
-		},
-		&core.SelectField{
-			Name:      "commitment",
-			Values:    []string{"mensal", "trimestral"},
-			MaxSelect: 1,
-		},
-		&core.DateField{Name: "next_charge_date"},
-		&core.BoolField{Name: "charge_pending"},
-		&core.TextField{Name: "qr_payload"},
-	)
-	if err := app.Save(businesses); err != nil {
-		t.Fatalf("save businesses collection: %v", err)
+	businesses, err := app.FindCollectionByNameOrId("businesses")
+	if err != nil {
+		t.Fatalf("find businesses collection: %v", err)
 	}
 
-	// Create a test business with a known authorization_id
 	biz := core.NewRecord(businesses)
 	biz.Set("name", "Webhook Test Biz")
+	biz.Set("type", "padaria")
+	biz.Set("city", "São Paulo")
+	biz.Set("state", "SP")
 	biz.Set("authorization_id", testAuthorizationID)
 	biz.Set("customer_id", "cus_webhook_test")
 	biz.Set("invite_status", "accepted")

@@ -18,7 +18,7 @@ func RegisterRoutes(rtr *router.Router[*core.RequestEvent], deps handlers.Deps) 
 	rtr.GET("/api/terms", handlers.Terms())
 
 	// Invite flow (public, no auth)
-	rtr.GET("/api/invites/{token}", handlers.InviteGet(deps))
+	rtr.GET("/api/invites/{token}", handlers.InviteGet())
 	rtr.POST("/api/invites/{token}/accept", handlers.InviteAccept(deps))
 
 	// Invite management (auth required)
@@ -27,6 +27,17 @@ func RegisterRoutes(rtr *router.Router[*core.RequestEvent], deps handlers.Deps) 
 
 	// Operator tool (single-post generation from WhatsApp message)
 	rtr.POST("/api/businesses/{id}/posts:generateFromMessage", handlers.OperatorGenerate(deps)).Bind(auth)
+
+	// Proactive idea generation (no save)
+	rtr.POST("/api/businesses/{id}/posts:generateIdeas", handlers.GenerateIdeas(deps)).Bind(auth)
+
+	// Save a proactively selected idea as a post
+	rtr.POST("/api/businesses/{id}/posts:saveProactive", handlers.SaveProactivePost()).Bind(auth)
+
+	// Scheduled messages (seasonal outreach queued by cron)
+	rtr.GET("/api/scheduled-messages", handlers.ListScheduledMessages()).Bind(auth)
+	rtr.POST("/api/scheduled-messages/{id}/approve", handlers.ApproveScheduledMessage(deps)).Bind(auth)
+	rtr.POST("/api/scheduled-messages/{id}/dismiss", handlers.DismissScheduledMessage()).Bind(auth)
 
 	// Demo generator (no DB save, inline business profile)
 	rtr.POST("/api/demo:generate", handlers.DemoGenerate(deps)).Bind(auth)

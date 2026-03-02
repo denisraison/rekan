@@ -1,23 +1,15 @@
 package handlers
 
 import (
-	"encoding/json"
 	"fmt"
 	"net/http"
-	"strings"
 
 	"github.com/denisraison/rekan/api/internal/domain"
+	"github.com/denisraison/rekan/api/internal/operator"
 	"github.com/denisraison/rekan/eval"
 	"github.com/google/uuid"
-	"github.com/pocketbase/dbx"
 	"github.com/pocketbase/pocketbase/core"
 )
-
-// storedService matches the shape the frontend writes to PocketBase (snake_case).
-type storedService struct {
-	Name     string  `json:"name"`
-	PriceBRL float64 `json:"price_brl"`
-}
 
 func GeneratePosts(deps Deps) func(*core.RequestEvent) error {
 	return func(e *core.RequestEvent) error {
@@ -29,14 +21,14 @@ func GeneratePosts(deps Deps) func(*core.RequestEvent) error {
 		}
 
 
-		profile, err := businessToProfile(business)
+		profile, err := operator.BusinessToProfile(business)
 		if err != nil {
 			return fmt.Errorf("business to profile: %w", err)
 		}
 
 		roles := eval.PickRoles(3, nil)
 
-		previousHooks, err := loadPreviousHooks(e.App, businessID)
+		previousHooks, err := operator.LoadPreviousHooks(e.App, businessID)
 		if err != nil {
 			return fmt.Errorf("load previous hooks: %w", err)
 		}
@@ -108,50 +100,3 @@ func GeneratePosts(deps Deps) func(*core.RequestEvent) error {
 	}
 }
 
-func businessToProfile(record *core.Record) (eval.BusinessProfile, error) {
-	raw := record.Get("services")
-	b, err := json.Marshal(raw)
-	if err != nil {
-		return eval.BusinessProfile{}, fmt.Errorf("marshal services: %w", err)
-	}
-	var stored []storedService
-	if err := json.Unmarshal(b, &stored); err != nil {
-		return eval.BusinessProfile{}, fmt.Errorf("unmarshal services: %w", err)
-	}
-	services := make([]eval.Service, len(stored))
-	for i, s := range stored {
-		services[i] = eval.Service{Name: s.Name, PriceBRL: s.PriceBRL}
-	}
-
-	var quirks []string
-	for _, line := range strings.Split(record.GetString("quirks"), "\n") {
-		if line = strings.TrimSpace(line); line != "" {
-			quirks = append(quirks, line)
-		}
-	}
-
-	return eval.BusinessProfile{
-		BusinessName:   record.GetString("name"),
-		BusinessType:   record.GetString("type"),
-		City:           record.GetString("city"),
-		Neighbourhood:  "", // collection has state, not neighbourhood; city is sufficient for generation
-		Services:       services,
-		TargetAudience: record.GetString("target_audience"),
-		BrandVibe:      record.GetString("brand_vibe"),
-		Quirks:         quirks,
-	}, nil
-}
-
-func loadPreviousHooks(app core.App, businessID string) ([]string, error) {
-	records, err := app.FindAllRecords(domain.CollPosts, dbx.HashExp{"business": businessID})
-	if err != nil {
-		return nil, err
-	}
-	hooks := make([]string, 0, len(records))
-	for _, r := range records {
-		if h := r.GetString("hook"); h != "" {
-			hooks = append(hooks, h)
-		}
-	}
-	return hooks, nil
-}

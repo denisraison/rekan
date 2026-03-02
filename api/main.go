@@ -14,6 +14,7 @@ import (
 	"github.com/denisraison/rekan/api/internal/billing"
 	apphttp "github.com/denisraison/rekan/api/internal/http"
 	"github.com/denisraison/rekan/api/internal/http/handlers"
+	"github.com/denisraison/rekan/api/internal/operator"
 	"github.com/denisraison/rekan/api/internal/transcribe"
 	"github.com/denisraison/rekan/api/internal/whatsapp"
 	"github.com/denisraison/rekan/eval"
@@ -51,14 +52,14 @@ func run(ctx context.Context, getenv func(string) string) error {
 		}
 
 		if err := configureBackups(app, getenv); err != nil {
-			log.Printf("warning: failed to configure backups: %v", err)
+			app.Logger().Warn("failed to configure backups", "error", err)
 		}
 
 		// Start WhatsApp client, store session alongside PocketBase data
 		dbPath := filepath.Join(app.DataDir(), "whatsapp.db")
-		wac, err := whatsapp.New(ctx, dbPath, "Rekan")
+		wac, err := whatsapp.New(ctx, dbPath, "Rekan", app.Logger())
 		if err != nil {
-			log.Printf("warning: whatsapp client failed to init: %v", err)
+			app.Logger().Warn("whatsapp client failed to init", "error", err)
 		} else {
 			var whisperClient *transcribe.Client
 			if key := getenv("GEMINI_API_KEY"); key != "" {
@@ -67,17 +68,22 @@ func run(ctx context.Context, getenv func(string) string) error {
 			whatsapp.RegisterMessageHandler(whatsapp.HandlerDeps{
 				Client:     wac,
 				App:        app,
+				Logger:     app.Logger(),
 				Transcribe: whisperClient,
 			})
 			if err := wac.Connect(ctx); err != nil {
-				log.Printf("warning: whatsapp connect failed: %v", err)
+				app.Logger().Warn("whatsapp connect failed", "error", err)
 			} else {
 				waClient = wac
 			}
 		}
 
 		app.Cron().MustAdd("create-charges", "0 10 * * *", func() {
-			billing.CreatePendingCharges(app, asaasClient)
+			billing.CreatePendingCharges(ctx, app, asaasClient)
+		})
+
+		app.Cron().MustAdd("seasonal-messages", "0 8 * * *", func() {
+			operator.QueueSeasonalMessages(app)
 		})
 
 		apphttp.RegisterRoutes(se.Router, handlers.Deps{
@@ -126,6 +132,6 @@ func disableRateLimits(app core.App) {
 	settings := app.Settings()
 	settings.RateLimits.Enabled = false
 	if err := app.Save(settings); err != nil {
-		log.Printf("warning: failed to disable rate limits in dev mode: %v", err)
+		app.Logger().Warn("failed to disable rate limits in dev mode", "error", err)
 	}
 }

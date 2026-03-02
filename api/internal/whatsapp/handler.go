@@ -2,7 +2,7 @@ package whatsapp
 
 import (
 	"context"
-	"log"
+	"log/slog"
 	"time"
 
 	"go.mau.fi/whatsmeow/types/events"
@@ -17,6 +17,7 @@ import (
 type HandlerDeps struct {
 	Client     *Client
 	App        core.App
+	Logger     *slog.Logger
 	Transcribe *transcribe.Client // nil if GEMINI_API_KEY not set
 }
 
@@ -50,7 +51,7 @@ func handleMessage(deps HandlerDeps, evt *events.Message) {
 	if evt.Info.IsFromMe {
 		jid := deps.Client.ResolveLID(ctx, evt.Info.Chat)
 		if jid.IsEmpty() {
-			log.Printf("whatsapp: skipping unresolvable LID outgoing event (chat=%s)", evt.Info.Chat)
+			deps.Logger.Warn("whatsapp: skipping unresolvable LID outgoing event", "chat", evt.Info.Chat)
 			return
 		}
 		direction = domain.DirectionOutgoing
@@ -58,7 +59,7 @@ func handleMessage(deps HandlerDeps, evt *events.Message) {
 	} else {
 		jid := deps.Client.ResolveLID(ctx, evt.Info.Sender)
 		if jid.IsEmpty() {
-			log.Printf("whatsapp: skipping unresolvable LID incoming event (sender=%s)", evt.Info.Sender)
+			deps.Logger.Warn("whatsapp: skipping unresolvable LID incoming event", "sender", evt.Info.Sender)
 			return
 		}
 		phone = jid.User
@@ -102,7 +103,7 @@ func handleMessage(deps HandlerDeps, evt *events.Message) {
 
 	collection, err := deps.App.FindCachedCollectionByNameOrId(domain.CollMessages)
 	if err != nil {
-		log.Printf("whatsapp: messages collection not found: %v", err)
+		deps.Logger.Error("whatsapp: messages collection not found", "error", err)
 		return
 	}
 
@@ -122,7 +123,7 @@ func handleMessage(deps HandlerDeps, evt *events.Message) {
 	}
 
 	if err := deps.App.Save(record); err != nil {
-		log.Printf("whatsapp: failed to save message: %v", err)
+		deps.Logger.Error("whatsapp: failed to save message", "error", err)
 	}
 }
 
@@ -137,7 +138,7 @@ func findOrCreateBusiness(deps HandlerDeps, phone, pushName string) string {
 			business.Set("name", pushName)
 			business.Set("client_name", pushName)
 			if err := deps.App.Save(business); err != nil {
-				log.Printf("whatsapp: failed to update placeholder name for %s: %v", phone, err)
+				deps.Logger.Error("whatsapp: failed to update placeholder name", "phone", phone, "error", err)
 			}
 		}
 		return business.Id
@@ -145,7 +146,7 @@ func findOrCreateBusiness(deps HandlerDeps, phone, pushName string) string {
 
 	collection, err := deps.App.FindCachedCollectionByNameOrId(domain.CollBusinesses)
 	if err != nil {
-		log.Printf("whatsapp: businesses collection not found: %v", err)
+		deps.Logger.Error("whatsapp: businesses collection not found", "error", err)
 		return ""
 	}
 
@@ -163,17 +164,17 @@ func findOrCreateBusiness(deps HandlerDeps, phone, pushName string) string {
 	record.Set("state", "-")
 
 	if err := deps.App.Save(record); err != nil {
-		log.Printf("whatsapp: failed to create placeholder business for %s: %v", phone, err)
+		deps.Logger.Error("whatsapp: failed to create placeholder business", "phone", phone, "error", err)
 		return ""
 	}
 
-	log.Printf("whatsapp: created placeholder business for %s (%s)", phone, name)
+	deps.Logger.Info("whatsapp: created placeholder business", "phone", phone, "name", name)
 	return record.Id
 }
 
 func transcribeAudio(ctx context.Context, deps HandlerDeps, evt *events.Message) string {
 	if deps.Transcribe == nil {
-		log.Printf("whatsapp: audio received but no transcription client configured")
+		deps.Logger.Warn("whatsapp: audio received but no transcription client configured")
 		return ""
 	}
 
@@ -184,13 +185,13 @@ func transcribeAudio(ctx context.Context, deps HandlerDeps, evt *events.Message)
 
 	data, err := deps.Client.Download(ctx, audio)
 	if err != nil {
-		log.Printf("whatsapp: failed to download audio: %v", err)
+		deps.Logger.Error("whatsapp: failed to download audio", "error", err)
 		return ""
 	}
 
 	text, err := deps.Transcribe.Transcribe(ctx, data)
 	if err != nil {
-		log.Printf("whatsapp: transcription failed: %v", err)
+		deps.Logger.Error("whatsapp: transcription failed", "error", err)
 		return ""
 	}
 
@@ -205,7 +206,7 @@ func downloadImage(ctx context.Context, deps HandlerDeps, evt *events.Message) *
 
 	data, err := deps.Client.Download(ctx, img)
 	if err != nil {
-		log.Printf("whatsapp: failed to download image: %v", err)
+		deps.Logger.Error("whatsapp: failed to download image", "error", err)
 		return nil
 	}
 
@@ -220,7 +221,7 @@ func downloadImage(ctx context.Context, deps HandlerDeps, evt *events.Message) *
 	filename := string(evt.Info.ID) + ext
 	f, err := filesystem.NewFileFromBytes(data, filename)
 	if err != nil {
-		log.Printf("whatsapp: failed to create file from bytes: %v", err)
+		deps.Logger.Error("whatsapp: failed to create file from bytes", "error", err)
 		return nil
 	}
 

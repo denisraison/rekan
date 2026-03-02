@@ -3,12 +3,10 @@ package whatsapp
 import (
 	"context"
 	"fmt"
-	"log"
+	"log/slog"
 	"sync"
-	"time"
 
 	"go.mau.fi/whatsmeow"
-	"go.mau.fi/whatsmeow/appstate"
 	"go.mau.fi/whatsmeow/proto/waE2E"
 	"go.mau.fi/whatsmeow/store"
 	"go.mau.fi/whatsmeow/store/sqlstore"
@@ -23,7 +21,7 @@ type EventHandler func(evt any)
 type Client struct {
 	wac       *whatsmeow.Client
 	container *sqlstore.Container
-	name      string // push name to set on first pairing
+	log       *slog.Logger
 
 	mu     sync.RWMutex
 	qrCode string // current QR code string, empty when connected or expired
@@ -39,9 +37,9 @@ type Status struct {
 }
 
 // New creates a whatsmeow client backed by a SQLite session store.
-// name is the WhatsApp push name set on first QR pairing (e.g. "Rekan").
+// name is used as the device OS label visible in WhatsApp's linked-devices list.
 // The client is not connected yet; call Connect to start.
-func New(ctx context.Context, dbPath, name string) (*Client, error) {
+func New(ctx context.Context, dbPath, name string, log *slog.Logger) (*Client, error) {
 	dsn := fmt.Sprintf("file:%s?_pragma=foreign_keys(1)&_pragma=journal_mode(WAL)", dbPath)
 	container, err := sqlstore.New(ctx, "sqlite", dsn, nil)
 	if err != nil {
@@ -60,7 +58,7 @@ func New(ctx context.Context, dbPath, name string) (*Client, error) {
 	c := &Client{
 		wac:       wac,
 		container: container,
-		name:      name,
+		log:       log,
 		subs:      make(map[chan Status]struct{}),
 	}
 
@@ -194,14 +192,7 @@ func (c *Client) handleQR(ch <-chan whatsmeow.QRChannelItem) {
 		}
 		c.mu.Unlock()
 		c.notify()
-		log.Printf("whatsapp qr event: %s", evt.Event)
+		c.log.Info("whatsapp qr event", "event", evt.Event)
 
-		if evt == whatsmeow.QRChannelSuccess && c.name != "" {
-			ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
-			if err := c.wac.SendAppState(ctx, appstate.BuildSettingPushName(c.name)); err != nil {
-				log.Printf("whatsapp: failed to set push name %q: %v", c.name, err)
-			}
-			cancel()
-		}
 	}
 }

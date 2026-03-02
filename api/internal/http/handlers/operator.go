@@ -7,6 +7,7 @@ import (
 	"strings"
 
 	"github.com/denisraison/rekan/api/internal/domain"
+	"github.com/denisraison/rekan/api/internal/operator"
 	"github.com/denisraison/rekan/eval"
 	"github.com/pocketbase/pocketbase/core"
 )
@@ -28,12 +29,12 @@ func OperatorGenerate(deps Deps) func(*core.RequestEvent) error {
 			return e.JSON(http.StatusBadRequest, map[string]string{"message": "mensagem é obrigatória"})
 		}
 
-		profile, err := businessToProfile(business)
+		profile, err := operator.BusinessToProfile(business)
 		if err != nil {
 			return fmt.Errorf("business to profile: %w", err)
 		}
 
-		previousHooks, err := loadPreviousHooks(e.App, businessID)
+		previousHooks, err := operator.LoadPreviousHooks(e.App, businessID)
 		if err != nil {
 			return fmt.Errorf("load previous hooks: %w", err)
 		}

@@ -2,7 +2,6 @@ package handlers
 
 import (
 	"encoding/json"
-	"log"
 	"math/rand/v2"
 	"net/http"
 	"strings"
@@ -86,7 +85,7 @@ func SendMessage(deps Deps) func(*core.RequestEvent) error {
 			record.Set("direction", domain.DirectionOutgoing)
 			record.Set("wa_timestamp", time.Now().UTC().Format(time.RFC3339))
 			if err := e.App.Save(record); err != nil {
-				log.Printf("send_message: failed to save outgoing message: %v", err)
+				e.App.Logger().Error("send_message: failed to save outgoing message", "error", err)
 			}
 		}
 
@@ -109,7 +108,7 @@ func SendMessage(deps Deps) func(*core.RequestEvent) error {
 				noteRecord.Set("direction", domain.DirectionOutgoing)
 				noteRecord.Set("wa_timestamp", time.Now().UTC().Format(time.RFC3339))
 				if err := e.App.Save(noteRecord); err != nil {
-					log.Printf("send_message: failed to save production note message: %v", err)
+					e.App.Logger().Error("send_message: failed to save production note message", "error", err)
 				}
 			}
 		}
@@ -130,7 +129,7 @@ func SendMessage(deps Deps) func(*core.RequestEvent) error {
 				tipRecord.Set("direction", domain.DirectionOutgoing)
 				tipRecord.Set("wa_timestamp", time.Now().UTC().Format(time.RFC3339))
 				if err := e.App.Save(tipRecord); err != nil {
-					log.Printf("send_message: failed to save tip message: %v", err)
+					e.App.Logger().Error("send_message: failed to save tip message", "error", err)
 				}
 			}
 		}

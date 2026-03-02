@@ -9,13 +9,14 @@ import (
 	"time"
 
 	"github.com/denisraison/rekan/api/internal/asaas"
+	"github.com/denisraison/rekan/api/internal/domain"
 	apphttp "github.com/denisraison/rekan/api/internal/http"
 	"github.com/denisraison/rekan/api/internal/http/handlers"
 	"github.com/pocketbase/pocketbase/core"
 	"github.com/pocketbase/pocketbase/tests"
 )
 
-// newInviteApp creates a test app with businesses, messages, a user, and a business.
+// newInviteApp creates a test app using real migrations, plus a test user and business.
 // Returns (app, userID, businessID).
 func newInviteApp(t testing.TB) (*tests.TestApp, string, string) {
 	t.Helper()
@@ -24,61 +25,7 @@ func newInviteApp(t testing.TB) (*tests.TestApp, string, string) {
 		t.Fatalf("new test app: %v", err)
 	}
 
-	businesses := core.NewBaseCollection("businesses")
-	businesses.Fields.Add(
-		&core.TextField{Name: "name"},
-		&core.TextField{Name: "type"},
-		&core.TextField{Name: "city"},
-		&core.TextField{Name: "phone"},
-		&core.TextField{Name: "client_name"},
-		&core.TextField{Name: "client_email"},
-		&core.TextField{Name: "invite_token"},
-		&core.SelectField{
-			Name:      "invite_status",
-			Values:    []string{"draft", "invited", "accepted", "active", "payment_failed", "cancelled"},
-			MaxSelect: 1,
-		},
-		&core.DateField{Name: "invite_sent_at"},
-		&core.DateField{Name: "terms_accepted_at"},
-		&core.TextField{Name: "authorization_id"},
-		&core.TextField{Name: "customer_id"},
-		&core.SelectField{
-			Name:      "tier",
-			Values:    []string{"basico", "parceiro", "profissional"},
-			MaxSelect: 1,
-		},
-		&core.SelectField{
-			Name:      "commitment",
-			Values:    []string{"mensal", "trimestral"},
-			MaxSelect: 1,
-		},
-		&core.DateField{Name: "next_charge_date"},
-		&core.BoolField{Name: "charge_pending"},
-		&core.TextField{Name: "qr_payload"},
-		&core.JSONField{Name: "services"},
-		&core.TextField{Name: "target_audience"},
-		&core.TextField{Name: "brand_vibe"},
-		&core.TextField{Name: "quirks"},
-	)
-	if err := app.Save(businesses); err != nil {
-		t.Fatalf("save businesses collection: %v", err)
-	}
-
-	messages := core.NewBaseCollection("messages")
-	messages.Fields.Add(
-		&core.TextField{Name: "business"},
-		&core.TextField{Name: "phone"},
-		&core.SelectField{Name: "type", Values: []string{"text", "audio", "image"}, MaxSelect: 1},
-		&core.TextField{Name: "content"},
-		&core.SelectField{Name: "direction", Values: []string{"incoming", "outgoing"}, MaxSelect: 1},
-		&core.DateField{Name: "wa_timestamp"},
-		&core.TextField{Name: "wa_message_id"},
-	)
-	if err := app.Save(messages); err != nil {
-		t.Fatalf("save messages collection: %v", err)
-	}
-
-	users, err := app.FindCollectionByNameOrId("users")
+	users, err := app.FindCollectionByNameOrId(domain.CollUsers)
 	if err != nil {
 		t.Fatalf("find users: %v", err)
 	}
@@ -89,10 +36,15 @@ func newInviteApp(t testing.TB) (*tests.TestApp, string, string) {
 		t.Fatalf("save user: %v", err)
 	}
 
+	businesses, err := app.FindCollectionByNameOrId(domain.CollBusinesses)
+	if err != nil {
+		t.Fatalf("find businesses collection: %v", err)
+	}
 	biz := core.NewRecord(businesses)
 	biz.Set("name", "Padaria Convite")
 	biz.Set("type", "padaria")
 	biz.Set("city", "São Paulo")
+	biz.Set("state", "SP")
 	biz.Set("phone", "5511999998888")
 	biz.Set("client_name", "Maria Silva")
 	biz.Set("client_email", "maria@example.com")
@@ -128,8 +80,8 @@ func TestInviteSendRequiresPhone(t *testing.T) {
 	app.Save(biz)
 
 	s := &tests.ApiScenario{
-		Method: http.MethodPost,
-		URL:    "/api/businesses/" + bizID + "/invites:send",
+		Method:         http.MethodPost,
+		URL:            "/api/businesses/" + bizID + "/invites:send",
 		TestAppFactory: func(_ testing.TB) *tests.TestApp { return app },
 		BeforeTestFunc: func(_ testing.TB, app *tests.TestApp, e *core.ServeEvent) {
 			apphttp.RegisterRoutes(e.Router, handlers.Deps{
@@ -156,8 +108,8 @@ func TestInviteSendRequiresTierAndCommitment(t *testing.T) {
 	app.Save(biz)
 
 	s := &tests.ApiScenario{
-		Method: http.MethodPost,
-		URL:    "/api/businesses/" + bizID + "/invites:send",
+		Method:         http.MethodPost,
+		URL:            "/api/businesses/" + bizID + "/invites:send",
 		TestAppFactory: func(_ testing.TB) *tests.TestApp { return app },
 		BeforeTestFunc: func(_ testing.TB, app *tests.TestApp, e *core.ServeEvent) {
 			apphttp.RegisterRoutes(e.Router, handlers.Deps{
@@ -183,8 +135,8 @@ func TestInviteSendRejectsActive(t *testing.T) {
 	app.Save(biz)
 
 	s := &tests.ApiScenario{
-		Method: http.MethodPost,
-		URL:    "/api/businesses/" + bizID + "/invites:send",
+		Method:         http.MethodPost,
+		URL:            "/api/businesses/" + bizID + "/invites:send",
 		TestAppFactory: func(_ testing.TB) *tests.TestApp { return app },
 		BeforeTestFunc: func(_ testing.TB, app *tests.TestApp, e *core.ServeEvent) {
 			apphttp.RegisterRoutes(e.Router, handlers.Deps{
@@ -210,8 +162,8 @@ func TestInviteSendRejectsAccepted(t *testing.T) {
 	app.Save(biz)
 
 	s := &tests.ApiScenario{
-		Method: http.MethodPost,
-		URL:    "/api/businesses/" + bizID + "/invites:send",
+		Method:         http.MethodPost,
+		URL:            "/api/businesses/" + bizID + "/invites:send",
 		TestAppFactory: func(_ testing.TB) *tests.TestApp { return app },
 		BeforeTestFunc: func(_ testing.TB, app *tests.TestApp, e *core.ServeEvent) {
 			apphttp.RegisterRoutes(e.Router, handlers.Deps{
@@ -233,8 +185,8 @@ func TestInviteGetNotFound(t *testing.T) {
 	defer app.Cleanup()
 
 	s := &tests.ApiScenario{
-		Method: http.MethodGet,
-		URL:    "/api/invites/nonexistent-token",
+		Method:         http.MethodGet,
+		URL:            "/api/invites/nonexistent-token",
 		TestAppFactory: func(_ testing.TB) *tests.TestApp { return app },
 		BeforeTestFunc: func(_ testing.TB, app *tests.TestApp, e *core.ServeEvent) {
 			apphttp.RegisterRoutes(e.Router, handlers.Deps{App: app})
@@ -256,8 +208,8 @@ func TestInviteGetSuccess(t *testing.T) {
 	app.Save(biz)
 
 	s := &tests.ApiScenario{
-		Method: http.MethodGet,
-		URL:    "/api/invites/valid-token-abc",
+		Method:         http.MethodGet,
+		URL:            "/api/invites/valid-token-abc",
 		TestAppFactory: func(_ testing.TB) *tests.TestApp { return app },
 		BeforeTestFunc: func(_ testing.TB, app *tests.TestApp, e *core.ServeEvent) {
 			apphttp.RegisterRoutes(e.Router, handlers.Deps{App: app})
@@ -279,8 +231,8 @@ func TestInviteGetExpired(t *testing.T) {
 	app.Save(biz)
 
 	s := &tests.ApiScenario{
-		Method: http.MethodGet,
-		URL:    "/api/invites/expired-token",
+		Method:         http.MethodGet,
+		URL:            "/api/invites/expired-token",
 		TestAppFactory: func(_ testing.TB) *tests.TestApp { return app },
 		BeforeTestFunc: func(_ testing.TB, app *tests.TestApp, e *core.ServeEvent) {
 			apphttp.RegisterRoutes(e.Router, handlers.Deps{App: app})
@@ -303,8 +255,8 @@ func TestInviteGetAcceptedReturnsQrPayload(t *testing.T) {
 	app.Save(biz)
 
 	s := &tests.ApiScenario{
-		Method: http.MethodGet,
-		URL:    "/api/invites/accepted-token",
+		Method:         http.MethodGet,
+		URL:            "/api/invites/accepted-token",
 		TestAppFactory: func(_ testing.TB) *tests.TestApp { return app },
 		BeforeTestFunc: func(_ testing.TB, app *tests.TestApp, e *core.ServeEvent) {
 			apphttp.RegisterRoutes(e.Router, handlers.Deps{App: app})
@@ -517,8 +469,8 @@ func TestAuthorizationCancelNoActiveAuth(t *testing.T) {
 
 	// Status is "draft", no authorization_id
 	s := &tests.ApiScenario{
-		Method: http.MethodPost,
-		URL:    "/api/businesses/" + bizID + "/authorization:cancel",
+		Method:         http.MethodPost,
+		URL:            "/api/businesses/" + bizID + "/authorization:cancel",
 		TestAppFactory: func(_ testing.TB) *tests.TestApp { return app },
 		BeforeTestFunc: func(_ testing.TB, app *tests.TestApp, e *core.ServeEvent) {
 			apphttp.RegisterRoutes(e.Router, handlers.Deps{
@@ -534,7 +486,6 @@ func TestAuthorizationCancelNoActiveAuth(t *testing.T) {
 	}
 	s.Test(t)
 }
-
 
 func TestAuthorizationCancelSuccess(t *testing.T) {
 	app, userID, bizID := newInviteApp(t)

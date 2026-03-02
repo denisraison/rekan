@@ -2,6 +2,7 @@ package whatsapp
 
 import (
 	"context"
+	"log/slog"
 	"path/filepath"
 	"testing"
 	"time"
@@ -9,7 +10,7 @@ import (
 
 func newTestClient(t *testing.T) *Client {
 	t.Helper()
-	c, err := New(context.Background(), filepath.Join(t.TempDir(), "wa.db"), "")
+	c, err := New(context.Background(), filepath.Join(t.TempDir(), "wa.db"), "", slog.Default())
 	if err != nil {
 		t.Fatalf("New: %v", err)
 	}
