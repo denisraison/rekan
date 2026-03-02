@@ -1,6 +1,7 @@
 <script lang="ts">
 	import LogoCombo from '$lib/components/LogoCombo.svelte';
 	import { SectionLabel } from '$lib/components/marketing';
+	import { waLink } from '$lib/whatsapp';
 
 	let commitment: 'mensal' | 'trimestral' = $state('mensal');
 
@@ -73,7 +74,7 @@
 		<div class="nav-links">
 			<a href="#exemplos">Exemplos</a>
 			<a href="#preco">Preço</a>
-			<a href="https://wa.me/5511940699184?text=Oi,%20quero%20saber%20mais%20sobre%20o%20Rekan" target="_blank" rel="noopener" class="btn btn-primary btn-sm">Começar</a>
+			<a href="{waLink('Oi, quero saber mais sobre o Rekan')}" target="_blank" rel="noopener" class="btn btn-primary btn-sm">Começar</a>
 		</div>
 	</div>
 </nav>
@@ -94,7 +95,7 @@
 			</p>
 			<p class="hero-tags">Padarias · Salões · Studios · Barbearias · Lojas · Academias</p>
 			<div class="hero-cta">
-				<a href="https://wa.me/5511940699184?text=Oi,%20quero%20saber%20mais%20sobre%20o%20Rekan" target="_blank" rel="noopener" class="btn btn-primary">Comece por R$ 69,90</a>
+				<a href="{waLink('Oi, quero saber mais sobre o Rekan')}" target="_blank" rel="noopener" class="btn btn-primary">Comece por R$ 69,90</a>
 				<a href="#exemplos" class="btn btn-ghost">Ver exemplos</a>
 			</div>
 		</div>
@@ -198,7 +199,7 @@
 					<li>8 posts por mês</li>
 					<li>Legendas + hashtags</li>
 				</ul>
-				<a href="https://wa.me/5511940699184?text=Oi,%20quero%20o%20plano%20Básico%20{commitment}" target="_blank" rel="noopener" class="btn btn-ghost btn-block">Começar</a>
+				<a href={waLink(`Oi, quero o plano Básico ${commitment}`)} target="_blank" rel="noopener" class="btn btn-ghost btn-block">Começar</a>
 			</div>
 			<div class="tier-card tier-card--featured">
 				<span class="tier-badge">Mais popular</span>
@@ -219,7 +220,7 @@
 					<li>Direção de foto e roteiro de reels</li>
 					<li>Melhor horário pra postar</li>
 				</ul>
-				<a href="https://wa.me/5511940699184?text=Oi,%20quero%20o%20plano%20Parceiro%20{commitment}" target="_blank" rel="noopener" class="btn btn-primary btn-block">Começar agora</a>
+				<a href={waLink(`Oi, quero o plano Parceiro ${commitment}`)} target="_blank" rel="noopener" class="btn btn-primary btn-block">Começar agora</a>
 				<p class="tier-daily">{commitment === 'mensal' ? 'Menos de R$4 por dia' : 'Menos de R$3,50 por dia'}</p>
 			</div>
 			<div class="tier-card">
@@ -239,7 +240,7 @@
 					<li>Calendário de stories</li>
 					<li>Resposta prioritária</li>
 				</ul>
-				<a href="https://wa.me/5511940699184?text=Oi,%20quero%20o%20plano%20Profissional%20{commitment}" target="_blank" rel="noopener" class="btn btn-ghost btn-block">Começar</a>
+				<a href={waLink(`Oi, quero o plano Profissional ${commitment}`)} target="_blank" rel="noopener" class="btn btn-ghost btn-block">Começar</a>
 			</div>
 		</div>
 	</div>
@@ -249,7 +250,7 @@
 <section class="final-cta">
 	<div class="final-cta-inner">
 		<h2>Bora <em>postar?</em></h2>
-		<a href="https://wa.me/5511940699184?text=Oi,%20quero%20saber%20mais%20sobre%20o%20Rekan" target="_blank" rel="noopener" class="btn btn-white">Comece agora</a>
+		<a href="{waLink('Oi, quero saber mais sobre o Rekan')}" target="_blank" rel="noopener" class="btn btn-white">Comece agora</a>
 	</div>
 </section>
 

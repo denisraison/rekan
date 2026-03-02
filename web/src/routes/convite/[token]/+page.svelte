@@ -5,6 +5,7 @@
 	import LogoCombo from '$lib/components/LogoCombo.svelte';
 	import { maskCpfCnpj, validateCpfCnpj } from '$lib/cpf-cnpj';
 	import { pb } from '$lib/pb';
+	import { waLink } from '$lib/whatsapp';
 
 	type InviteData = {
 		business_name: string;
@@ -188,7 +189,7 @@
 					Este convite não é mais válido. Entre em contato pelo WhatsApp para solicitar um novo.
 				</p>
 				<a
-					href="https://wa.me/5511940699184?text=Oi,%20meu%20convite%20expirou"
+					href={waLink('Oi, meu convite expirou')}
 					target="_blank"
 					rel="noopener"
 					class="inline-block px-5 py-2.5 rounded-full text-sm font-medium"
@@ -229,7 +230,7 @@
 					Pagamento confirmado. O Rekan já está pronto para gerar conteúdo para o seu negócio. Em breve você receberá seus primeiros posts pelo WhatsApp.
 				</p>
 				<a
-					href="https://wa.me/5511940699184?text=Oi,%20acabei%20de%20assinar!"
+					href={waLink('Oi, acabei de assinar!')}
 					target="_blank"
 					rel="noopener"
 					class="inline-block px-5 py-2.5 rounded-full text-sm font-medium"
@@ -252,7 +253,7 @@
 							Se você já realizou o pagamento, pode levar alguns minutos para a confirmação. Caso tenha dúvidas, fale com a gente.
 						</p>
 								<a
-							href="https://wa.me/5511940699184?text=Oi,%20fiz%20o%20pagamento%20mas%20nao%20confirmou"
+							href={waLink('Oi, fiz o pagamento mas não confirmou')}
 							target="_blank"
 							rel="noopener"
 							class="inline-block px-5 py-2.5 rounded-full text-sm font-medium"
@@ -363,6 +364,29 @@
 						{submitting ? 'Processando...' : 'Aceitar e pagar via PIX'}
 					</button>
 				</div>
+			</div>
+		{:else if invite?.invite_status === 'payment_failed' || invite?.invite_status === 'cancelled'}
+			<div
+				class="rounded-2xl p-8 text-center"
+				style="background: var(--surface); box-shadow: var(--shadow-md); border: 1px solid var(--border)"
+			>
+				<h1 class="text-xl font-semibold mb-2" style="color: var(--text); font-family: var(--font-primary)">
+					{invite.invite_status === 'cancelled' ? 'Assinatura cancelada' : 'Pagamento não confirmado'}
+				</h1>
+				<p class="text-sm mb-4" style="color: var(--text-secondary)">
+					{invite.invite_status === 'cancelled'
+						? 'Sua assinatura foi cancelada. Entre em contato pelo WhatsApp se quiser reativar.'
+						: 'Não conseguimos confirmar seu pagamento. Entre em contato pelo WhatsApp para resolver.'}
+				</p>
+				<a
+					href={waLink('Oi, preciso de ajuda com meu acesso ao Rekan')}
+					target="_blank"
+					rel="noopener"
+					class="inline-block px-5 py-2.5 rounded-full text-sm font-medium"
+					style="background: #25D366; color: #fff"
+				>
+					Falar no WhatsApp
+				</a>
 			</div>
 		{/if}
 	</div>

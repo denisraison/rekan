@@ -1,8 +1,8 @@
 # PEP-008: Operator-Led Onboarding
 
-**Status:** In Progress (Wave 1 done, Wave 2 in progress)
+**Status:** Done
 **Date:** 2026-02-24
-**Updated:** 2026-02-24
+**Updated:** 2026-03-02
 
 ## Language requirement
 
@@ -71,7 +71,15 @@ Under the Código de Defesa do Consumidor, clients have 7 days to cancel a remot
 
 Move subscription tracking to businesses, add invite infrastructure, create public endpoints for the invite flow. After this wave, the invite-accept-pay cycle works end-to-end via API calls.
 
-All items implemented. Key files: `api/internal/asaas/client.go` (added cpfCnpj, Callback, GetSubscription, CancelSubscription), `api/migrations/1740000010_business_invite_fields.go`, `api/internal/http/handlers/invite.go` (InviteSend, InviteGet, InviteAccept, SubscriptionCancel), `api/internal/http/handlers/webhooks.go` (businesses instead of users), `api/internal/http/handlers/generate.go` (removed trial gate). Deleted `subscribe.go`. 35 handler tests pass.
+All items implemented. Key files: `api/internal/asaas/client.go` (added cpfCnpj, CreateAuthorization, CancelAuthorization), `api/migrations/1740000010_business_invite_fields.go`, `api/internal/http/handlers/invite.go` (InviteSend, InviteGet, InviteAccept, AuthorizationCancel), `api/internal/http/handlers/webhooks.go` (businesses instead of users), `api/internal/http/handlers/generate.go` (removed trial gate). Deleted `subscribe.go`. Handler tests pass.
+
+**Architectural deviation from plan:** The implementation uses Pix Automático (automatic debit authorizations) rather than Asaas subscriptions. Key differences:
+- Asaas client has `CreateAuthorization`/`CancelAuthorization` instead of `CreateSubscription`/`GetSubscription`/`CancelSubscription`
+- Business field is `authorization_id` + `customer_id` instead of `subscription_id`
+- Webhook events are `PIX_AUTOMATIC_RECURRING_*` instead of `PAYMENT_CONFIRMED`/`SUBSCRIPTION_DELETED`
+- Migration adds `tier` (basico/parceiro/profissional), `commitment` (mensal/trimestral), `next_charge_date`, `charge_pending`, `qr_payload`, `customer_id`, `terms_accepted_text` — the pricing model supports multiple tiers/commitments rather than flat R$19 + R$108.90
+- The T&Cs are served from a backend endpoint (`GET /api/terms`, handler in `api/internal/terms/`) rather than being hardcoded in the frontend
+- `InviteAccept` returns `qr_payload` (raw PIX string) instead of a redirect URL; the frontend renders the QR code inline
 
 **Deviation from original plan:** InviteAccept saves `terms_accepted_at` immediately but defers `invite_status: "accepted"` until after both Asaas calls succeed. This prevents a stuck state where a failed CreateCustomer leaves the business in `accepted` with no `subscription_id`, making retries impossible. See section 1.3 steps 6-9.
 
@@ -332,7 +340,7 @@ This gives Elenice a cancel button in the operator tool. The Asaas webhook for `
 
 ---
 
-## Wave 2: Frontend (Operator Flow + Invite Pages) -- IN PROGRESS
+## Wave 2: Frontend (Operator Flow + Invite Pages) -- DONE
 
 Remove self-serve routes, enhance operator client creation with invite flow, add public invite pages. After this wave, the full onboarding cycle works from browser.
 
@@ -340,24 +348,27 @@ Remove self-serve routes, enhance operator client creation with invite flow, add
 - Deleted `/dashboard`, `/onboarding`, `/login` routes
 - Created `/entrar` with email/password login (replaces Google OAuth)
 - `(app)/+layout.svelte` redirects to `/entrar` when unauthenticated
-- Marketing page CTAs point to WhatsApp (placeholder number, marked TODO)
-- Marketing pricing updated: R$19 first month, then R$108,90/month
+- Marketing page CTAs point to WhatsApp (`PUBLIC_WHATSAPP_NUMBER` env var)
 - OG meta tags added to marketing page, `og-image.png` generated
 - Operator form: added `client_name`, `client_email` fields, validation, "Salvar e Enviar Convite" button with invite URL copy
 - Operator sidebar: invite status badges (color-coded by status, 48h warning for accepted)
 - Operator client header: "Cancelar assinatura" button for active clients
 - Created `web/src/lib/cpf-cnpj.ts` (mask + mod-11 validation for CPF/CNPJ)
+- Created `web/src/lib/whatsapp.ts` (`waLink(text)` using `PUBLIC_WHATSAPP_NUMBER` from root `.env`; `svelte.config.js` sets `kit.env.dir: '..'` so Vite and SvelteKit both read from the single root `.env`)
 - Added `InviteStatus` type and invite fields to `Business` interface
-- Public invite page `/convite/[token]`: T&Cs form, CPF/CNPJ input, status routing
-- Confirmation page `/convite/[token]/confirmacao`: payment polling, timeout fallback
+- Public invite page `/convite/[token]`: T&Cs link, CPF/CNPJ input, all status states (invited/accepted/active/payment_failed/cancelled/expired/invalid)
+- T&Cs page `/termos`: fetches content from `GET /api/terms` (stored in `api/internal/terms/`)
+- Confirmation page `/convite/[token]/confirmacao`: redirects to invite page (polling is on the invite page itself for the `accepted` state)
+- Playwright tests in `web/tests/invite.spec.ts` covering all main invite states
 - Typecheck and production build both pass (0 errors)
 
 **Deviation from plan:** Switched from Google OAuth to email/password auth. Google OAuth auto-creates user records for anyone with a Google account, which conflicts with the operator-only model. New migration (`1740000011_password_auth_only.go`) enables password auth, disables OAuth2, and sets `CreateRule = nil` to block self-registration. Operator accounts are created manually via PocketBase admin. The `/entrar` page uses `authWithPassword` instead of `authWithOAuth2`.
 
-**Remaining:**
-- Replace placeholder WhatsApp phone number (TODO markers in marketing page, invite pages, confirmation page)
-- Playwright tests for invite flow
-- Manual end-to-end testing
+**Deviation from plan:** The confirmation page (`/convite/[token]/confirmacao`) is a simple redirect to `/convite/[token]` rather than a standalone polling page. The `accepted` state on the invite page shows the QR code inline and polls every 5 seconds (max 10 minutes) for payment confirmation, then transitions to the `active` success state.
+
+**Remaining before launch (ops, not code):**
+- Manual end-to-end test in Asaas sandbox
+- Asaas account setup: PIX key, production domain in account settings, webhook URL + token
 
 ### 2.1 Remove self-serve routes
 
