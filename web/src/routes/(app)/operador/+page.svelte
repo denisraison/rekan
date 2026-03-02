@@ -605,7 +605,7 @@
             health.daysSinceMsg >= t.minDays &&
             health.daysSinceMsg <= t.maxDays,
         ) ?? NUDGE_TEMPLATES[NUDGE_TEMPLATES.length - 1];
-      nudgeText = tier.template.replace("{name}", client.name.split(" ")[0]);
+      nudgeText = tier.template.replace("{name}", client.client_name ? client.client_name.split(" ")[0] : client.name);
     } else {
       nudgeText = "";
     }
@@ -624,7 +624,7 @@
       return d >= lastMonthStart && d < thisMonthStart;
     }).length;
     if (thisMonth === 0) return;
-    const firstName = client.name.split(" ")[0];
+    const firstName = client.client_name ? client.client_name.split(" ")[0] : client.name;
     const monthName = now.toLocaleDateString("pt-BR", { month: "long" });
     let text = `*${firstName}, resumo de ${monthName}:* a gente criou *${thisMonth} post${thisMonth > 1 ? "s" : ""}* pro seu Instagram`;
     if (lastMonth > 0) {
@@ -917,7 +917,7 @@
 
   function prefillSeasonalMessage(template: string) {
     if (!selected) return;
-    nudgeText = template.replace("{name}", selected.name.split(" ")[0]);
+    nudgeText = template.replace("{name}", selected.client_name ? selected.client_name.split(" ")[0] : selected.name);
   }
 
   async function copyText(text: string, label: string) {
@@ -1469,7 +1469,7 @@
                         style="border-color: var(--border-strong); color: var(--text-secondary)"
                         title={sd.template.replace(
                           "{name}",
-                          selected!.name.split(" ")[0],
+                          selected!.client_name ? selected!.client_name.split(" ")[0] : selected!.name,
                         )}
                       >
                         {sd.label} · {sd.daysUntil}d

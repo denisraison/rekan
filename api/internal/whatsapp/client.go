@@ -10,6 +10,7 @@ import (
 	"go.mau.fi/whatsmeow"
 	"go.mau.fi/whatsmeow/appstate"
 	"go.mau.fi/whatsmeow/proto/waE2E"
+	"go.mau.fi/whatsmeow/store"
 	"go.mau.fi/whatsmeow/store/sqlstore"
 	"go.mau.fi/whatsmeow/types"
 	"go.mau.fi/whatsmeow/types/events"
@@ -46,6 +47,8 @@ func New(ctx context.Context, dbPath, name string) (*Client, error) {
 	if err != nil {
 		return nil, fmt.Errorf("whatsapp store: %w", err)
 	}
+
+	store.SetOSInfo(name, [3]uint32{1, 0, 0})
 
 	device, err := container.GetFirstDevice(ctx)
 	if err != nil {
