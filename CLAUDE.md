@@ -10,7 +10,7 @@ cd api && go run .             # PocketBase only (:8090)
 cd web && pnpm dev             # SvelteKit only
 cd web && pnpm check           # typecheck
 cd web && pnpm build           # production build
-make eval                      # heuristics only (~5s, needs OPENROUTER_API_KEY)
+make eval                      # heuristics only (~5s, needs CLAUDE_API_KEY + GEMINI_API_KEY)
 make eval-judges               # heuristics + LLM judges (~25s)
 make test-judges               # integration tests for judge verdicts
 ```

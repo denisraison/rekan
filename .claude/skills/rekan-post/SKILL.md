@@ -21,10 +21,10 @@ Generate Instagram posts for Rekan (@chamaorekan): content from the BAML pipelin
 
 ```bash
 [[ -n "${GEMINI_API_KEY:-}" ]] && echo "GEMINI_API_KEY set" || echo "GEMINI_API_KEY not set"
-[[ -n "${OPENROUTER_API_KEY:-}" ]] && echo "OPENROUTER_API_KEY set" || echo "OPENROUTER_API_KEY not set"
+[[ -n "${CLAUDE_API_KEY:-}" ]] && echo "CLAUDE_API_KEY set" || echo "CLAUDE_API_KEY not set"
 ```
 
-Both required. OPENROUTER_API_KEY must be exported from `.env`:
+Both required. Export from `.env`:
 ```bash
 export $(grep -v '^#' /home/denis/workspace/rekan/.env | xargs)
 ```
