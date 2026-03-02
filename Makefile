@@ -1,4 +1,4 @@
-.PHONY: dev dev-api dev-web eval eval-judges eval-fast test-judges lint
+.PHONY: dev dev-api dev-web eval eval-judges eval-fast test-judges lint seed
 
 dev:
 	$(MAKE) dev-api &
@@ -27,3 +27,6 @@ test-judges:
 
 lint:
 	cd api && golangci-lint run ./...
+
+seed:
+	set -a && . ./.env && set +a && bash scripts/seed.sh
