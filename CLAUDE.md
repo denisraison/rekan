@@ -27,6 +27,17 @@ See `eval/CLAUDE.md` for full eval pipeline docs. The short version:
 4. `make eval-judges`, diff the two runs
 5. Keep or revert. Max 5 cycles per session.
 
+## Test credentials
+
+`make seed` (via `scripts/seed.sh`) resets the DB and creates:
+
+| Role     | Email                | Password       |
+|----------|----------------------|----------------|
+| Admin    | admin@rekan.local    | admin1234567   |
+| Operador | operador@rekan.local | senha1234567   |
+
+Overridable via `SEED_ADMIN_EMAIL`, `SEED_ADMIN_PASSWORD`, `SEED_USER_EMAIL`, `SEED_USER_PASSWORD` env vars.
+
 ## Browser inspection
 
 ```bash
