@@ -118,7 +118,7 @@ Three tiers with a 30-day money-back guarantee. Full pricing strategy in `docs/P
 |---|---|---|
 | Basico | R$69,90 | 8 posts/mês, legendas + hashtags |
 | **Parceiro** | **~~R$149,90~~ R$108,90** (preço de lançamento) | 12 posts/mês, legendas + hashtags + direção de foto/vídeo + roteiros de reels + melhor horário |
-| Profissional | R$249,90 | 16 posts/mês, tudo do Parceiro + chamada mensal + calendário de stories + resposta prioritária |
+| Profissional | R$249,90 | 16 posts/mês, tudo do Parceiro + alinhamento mensal do perfil + calendário de stories + resposta prioritária |
 
 This positions Rekan:
 

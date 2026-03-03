@@ -3,6 +3,120 @@
 	import { SectionLabel } from '$lib/components/marketing';
 	import { waLink } from '$lib/whatsapp';
 
+	const schema = {
+		'@context': 'https://schema.org',
+		'@graph': [
+			{
+				'@type': 'Organization',
+				'@id': 'https://rekan.com.br/#organization',
+				name: 'Rekan',
+				url: 'https://rekan.com.br',
+				logo: 'https://rekan.com.br/brand/logo-mark.svg',
+				description:
+					'Parceiro de conteúdo para Instagram de micro-empreendedores brasileiros, entregue via WhatsApp. Você conta o que aconteceu no seu negócio e a gente escreve o post pronto.',
+				areaServed: 'BR',
+				inLanguage: 'pt-BR'
+			},
+			{
+				'@type': 'WebSite',
+				'@id': 'https://rekan.com.br/#website',
+				url: 'https://rekan.com.br',
+				name: 'Rekan',
+				publisher: { '@id': 'https://rekan.com.br/#organization' },
+				inLanguage: 'pt-BR'
+			},
+			{
+				'@type': 'Service',
+				name: 'Rekan',
+				url: 'https://rekan.com.br',
+				serviceType: 'Serviço de conteúdo para Instagram via WhatsApp',
+				provider: { '@id': 'https://rekan.com.br/#organization' },
+				areaServed: 'BR',
+				inLanguage: 'pt-BR',
+				description:
+					'O Rekan é seu parceiro de conteúdo para o Instagram, entregue direto no WhatsApp. Você manda uma mensagem sobre o seu dia — uma venda, um produto novo, um cliente satisfeito — e a gente escreve a legenda, as hashtags e o story. Você só cola no Instagram.',
+				offers: [
+					{
+						'@type': 'Offer',
+						name: 'Plano Básico',
+						price: '69.90',
+						priceCurrency: 'BRL',
+						description: '8 posts por mês com legendas e hashtags'
+					},
+					{
+						'@type': 'Offer',
+						name: 'Plano Parceiro',
+						price: '108.90',
+						priceCurrency: 'BRL',
+						description:
+							'12 posts por mês com legendas, hashtags, direção de foto e roteiro de reels'
+					},
+					{
+						'@type': 'Offer',
+						name: 'Plano Profissional',
+						price: '249.90',
+						priceCurrency: 'BRL',
+						description:
+							'16 posts por mês com tudo do Parceiro mais alinhamento mensal do perfil e calendário de stories'
+					}
+				]
+			},
+			{
+				'@type': 'FAQPage',
+				mainEntity: [
+					{
+						'@type': 'Question',
+						name: 'O que é o Rekan?',
+						acceptedAnswer: {
+							'@type': 'Answer',
+							text: 'O Rekan é um parceiro de conteúdo para Instagram entregue via WhatsApp. Você manda uma mensagem sobre o que aconteceu no seu negócio — uma venda, um produto, um cliente — e a gente escreve a legenda completa, as hashtags e a sugestão de story, tudo pronto para copiar e colar. Feito para micro-empreendedores brasileiros que não têm tempo nem orçamento para contratar um social media.'
+						}
+					},
+					{
+						'@type': 'Question',
+						name: 'Quanto custa o Rekan?',
+						acceptedAnswer: {
+							'@type': 'Answer',
+							text: 'O Rekan tem três planos mensais: Básico por R$ 69,90 com 8 posts, Parceiro por R$ 108,90 com 12 posts (inclui direção de foto e roteiro de reels), e Profissional por R$ 249,90 com 16 posts e alinhamento mensal do perfil. Todos com garantia de 30 dias e sem contrato de fidelidade. Planos trimestrais têm até 30% de desconto.'
+						}
+					},
+					{
+						'@type': 'Question',
+						name: 'Para quem é o Rekan?',
+						acceptedAnswer: {
+							'@type': 'Answer',
+							text: 'O Rekan é feito para micro-empreendedores brasileiros: donos de padarias, salões de beleza, studios de pilates, barbearias, lojas, academias e qualquer pequeno negócio que precise de conteúdo regular para o Instagram sem tempo ou orçamento para contratar um social media.'
+						}
+					},
+					{
+						'@type': 'Question',
+						name: 'Como funciona o Rekan?',
+						acceptedAnswer: {
+							'@type': 'Answer',
+							text: 'Você descreve seu negócio uma vez pelo WhatsApp — quem você é, o que faz, quem são seus clientes. Depois, é só mandar uma mensagem curta quando tiver algo para postar: uma foto do dia, uma venda especial, um produto novo. A gente escreve a legenda, as hashtags e a sugestão de story. Você copia e cola no Instagram. Todo o processo leva menos de 2 minutos da sua parte.'
+						}
+					},
+					{
+						'@type': 'Question',
+						name: 'Precisa assinar contrato de fidelidade?',
+						acceptedAnswer: {
+							'@type': 'Answer',
+							text: 'Não. O Rekan não exige contrato de fidelidade. Você pode cancelar quando quiser. Todos os planos têm garantia de 30 dias: se não gostar, devolvemos o dinheiro.'
+						}
+					},
+					{
+						'@type': 'Question',
+						name: 'O Rekan funciona para qual tipo de negócio?',
+						acceptedAnswer: {
+							'@type': 'Answer',
+							text: 'O Rekan funciona para micro-empreendedores individuais (MEI) e pequenos negócios: padarias, confeitarias, salões de beleza, barbearias, studios de pilates, lojas de roupas, academias, doceiras, nail designers e qualquer negócio local com presença no Instagram.'
+						}
+					}
+				]
+			}
+		]
+	};
+
 	let commitment: 'mensal' | 'trimestral' = $state('mensal');
 
 	const prices = {
@@ -59,12 +173,29 @@
 
 <svelte:head>
 	<title>Rekan — Conteúdo pro Instagram do seu negócio</title>
-	<meta name="description" content="Legendas, hashtags e stories criados por IA, personalizados pro seu negócio. Feito para micro-empreendedores brasileiros." />
+	<meta name="description" content="Parceiro de conteúdo pro Instagram via WhatsApp. Você conta o que aconteceu no seu negócio e a gente escreve a legenda, as hashtags e o story. Para micro-empreendedores brasileiros." />
+	<meta name="robots" content="index, follow" />
+	<link rel="canonical" href="https://rekan.com.br" />
+	<link rel="alternate" hreflang="pt-BR" href="https://rekan.com.br" />
+	<link rel="alternate" hreflang="x-default" href="https://rekan.com.br" />
+
 	<meta property="og:title" content="Rekan — Conteúdo pro Instagram do seu negócio" />
-	<meta property="og:description" content="Legendas, hashtags e stories criados por IA, personalizados pro seu negócio. Feito para micro-empreendedores brasileiros." />
+	<meta property="og:description" content="Parceiro de conteúdo pro Instagram via WhatsApp. Você conta o que aconteceu no seu negócio e a gente escreve a legenda, as hashtags e o story. Para micro-empreendedores brasileiros." />
 	<meta property="og:image" content="https://rekan.com.br/og-image.png" />
+	<meta property="og:image:width" content="1200" />
+	<meta property="og:image:height" content="630" />
+	<meta property="og:image:alt" content="Rekan — Conteúdo pro Instagram do seu negócio" />
 	<meta property="og:type" content="website" />
 	<meta property="og:url" content="https://rekan.com.br" />
+	<meta property="og:locale" content="pt_BR" />
+	<meta property="og:site_name" content="Rekan" />
+
+	<meta name="twitter:card" content="summary_large_image" />
+	<meta name="twitter:title" content="Rekan — Conteúdo pro Instagram do seu negócio" />
+	<meta name="twitter:description" content="Parceiro de conteúdo pro Instagram via WhatsApp. Você conta o que aconteceu no seu negócio e a gente escreve a legenda, as hashtags e o story. Para micro-empreendedores brasileiros." />
+	<meta name="twitter:image" content="https://rekan.com.br/og-image.png" />
+
+	{@html `<script type="application/ld+json">${JSON.stringify(schema)}</script>`}
 </svelte:head>
 
 <!-- Nav -->
@@ -236,7 +367,7 @@
 				<ul class="tier-features">
 					<li>16 posts por mês</li>
 					<li>Tudo do Parceiro</li>
-					<li>Chamada mensal de estratégia</li>
+					<li>Alinhamento mensal do seu perfil</li>
 					<li>Calendário de stories</li>
 					<li>Resposta prioritária</li>
 				</ul>

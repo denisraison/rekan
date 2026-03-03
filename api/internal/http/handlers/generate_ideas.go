@@ -32,9 +32,8 @@ func GenerateIdeas(deps Deps) func(*core.RequestEvent) error {
 
 		posts, err := deps.Generate(e.Request.Context(), profile, eval.PickRoles(3, nil), previousHooks)
 		if err != nil {
-			return e.JSON(http.StatusBadGateway, map[string]string{
-				"message": "Erro ao gerar conteúdo. Tente novamente.",
-			})
+			e.App.Logger().Error("generate ideas failed", "business", businessID, "error", err)
+			return e.JSON(http.StatusBadGateway, map[string]string{"message": "Erro ao gerar conteúdo. Tente novamente."})
 		}
 
 		type postResponse struct {

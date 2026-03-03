@@ -51,7 +51,7 @@ O Rekan resolve o problema de consistência, não o problema de criação. Qualq
 |---|---|---|---|
 | Basico | R$69,90 | R$179,70 (R$59,90/mês) | 8 posts/mês, legendas + hashtags |
 | **Parceiro** | **~~R$149,90~~ R$108,90** (preço de lançamento) | **R$299,70 (R$99,90/mês)** | **12 posts/mês, legendas + hashtags + direção de foto/vídeo + roteiros de reels + melhor horário pra postar** |
-| Profissional | R$249,90 | R$599,70 (R$199,90/mês) | 16 posts/mês, tudo do Parceiro + chamada mensal de estratégia + calendário de stories + resposta prioritária |
+| Profissional | R$249,90 | R$599,70 (R$199,90/mês) | 16 posts/mês, tudo do Parceiro + alinhamento mensal do perfil + calendário de stories + resposta prioritária |
 
 Todos os planos têm **garantia de 30 dias**: se não gostar, devolve tudo pelo Pix. Sem contrato, cancela quando quiser.
 
@@ -206,7 +206,7 @@ Mensagem pronta pra encaminhar pra quem pergunta "quanto custa?" ou pra mandar d
 > 12 posts/mês · legendas + hashtags + direção de foto/vídeo + roteiros de reels + melhor horário pra postar
 >
 > *Profissional* — R$249,90/mês
-> 16 posts/mês · tudo do Parceiro + chamada mensal de estratégia + calendário de stories + resposta prioritária
+> 16 posts/mês · tudo do Parceiro + alinhamento mensal do perfil + calendário de stories + resposta prioritária
 >
 > Menos de R$4 por dia no Parceiro. Sem contrato, cancela quando quiser.
 

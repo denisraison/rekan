@@ -20,7 +20,6 @@ func GeneratePosts(deps Deps) func(*core.RequestEvent) error {
 			return e.JSON(http.StatusNotFound, map[string]string{"message": "negócio não encontrado"})
 		}
 
-
 		profile, err := operator.BusinessToProfile(business)
 		if err != nil {
 			return fmt.Errorf("business to profile: %w", err)
@@ -35,9 +34,8 @@ func GeneratePosts(deps Deps) func(*core.RequestEvent) error {
 
 		posts, err := deps.Generate(e.Request.Context(), profile, roles, previousHooks)
 		if err != nil {
-			return e.JSON(http.StatusBadGateway, map[string]string{
-				"message": "erro ao gerar conteúdo. Tente novamente.",
-			})
+			e.App.Logger().Error("generate posts failed", "business", businessID, "error", err)
+			return e.JSON(http.StatusBadGateway, map[string]string{"message": "erro ao gerar conteúdo. Tente novamente."})
 		}
 
 		hooks := eval.ExtractHooks(posts)
@@ -99,4 +97,3 @@ func GeneratePosts(deps Deps) func(*core.RequestEvent) error {
 		})
 	}
 }
-

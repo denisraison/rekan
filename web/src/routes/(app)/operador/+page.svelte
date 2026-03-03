@@ -186,11 +186,7 @@
   let sendingQuick = $state(false);
   let quickReplyError = $state("");
 
-  // Feature 3 — client context card
-  let profileOpen = $state(false);
-
   // Feature 4 — post history
-  let historyOpen = $state(false);
   let historyLimit = $state(10);
   let expandedPosts = $state(new Set<string>());
 
@@ -209,15 +205,9 @@
   // Nudge / engagement
   let clientFilter = $state<"todos" | "inativos" | "com_mensagens" | "sazonal" | "cobranca">("todos");
   let nudgeText = $state("");
-  let nudgeOpen = $state(false);
   let sendingNudge = $state(false);
   let sendNudgeError = $state("");
 
-  // Monthly summary
-  let summaryText = $state("");
-  let summaryOpen = $state(false);
-  let sendingSummary = $state(false);
-  let sendSummaryError = $state("");
 
   // Posts (for health indicators)
   let posts = $state<Post[]>([]);
@@ -614,11 +604,6 @@
     result = null;
     generateError = "";
     sendNudgeError = "";
-    sendSummaryError = "";
-    nudgeOpen = false;
-    summaryOpen = false;
-    profileOpen = false;
-    historyOpen = false;
     historyLimit = 10;
     expandedPosts = new Set();
     ideaDrafts = null;
@@ -646,29 +631,6 @@
       nudgeText = "";
     }
 
-    // Monthly summary
-    summaryText = "";
-    if (!client) return;
-    const now = new Date();
-    const thisMonthStart = new Date(now.getFullYear(), now.getMonth(), 1);
-    const lastMonthStart = new Date(now.getFullYear(), now.getMonth() - 1, 1);
-    const clientPostsLocal = posts.filter((p) => p.business === id);
-    const thisMonth = clientPostsLocal.filter(
-      (p) => new Date(p.created) >= thisMonthStart,
-    ).length;
-    const lastMonth = clientPostsLocal.filter((p) => {
-      const d = new Date(p.created);
-      return d >= lastMonthStart && d < thisMonthStart;
-    }).length;
-    if (thisMonth === 0) return;
-    const firstName = client.client_name ? client.client_name.split(" ")[0] : client.name;
-    const monthName = now.toLocaleDateString("pt-BR", { month: "long" });
-    let text = `*${firstName}, resumo de ${monthName}:* a gente criou *${thisMonth} post${thisMonth > 1 ? "s" : ""}* pro seu Instagram`;
-    if (lastMonth > 0) {
-      text += ` (contra ${lastMonth} em ${new Date(now.getFullYear(), now.getMonth() - 1, 1).toLocaleDateString("pt-BR", { month: "long" })})`;
-    }
-    text += `. Mês que vem vamos manter esse ritmo!`;
-    summaryText = text;
   }
 
   // Feature 1 — prefill with recent conversation context
@@ -862,8 +824,23 @@
     }
   }
 
+  async function copyText(text: string) {
+    if (navigator.clipboard?.writeText) {
+      await navigator.clipboard.writeText(text);
+    } else {
+      const el = document.createElement("textarea");
+      el.value = text;
+      el.style.position = "fixed";
+      el.style.opacity = "0";
+      document.body.appendChild(el);
+      el.select();
+      document.execCommand("copy");
+      document.body.removeChild(el);
+    }
+  }
+
   async function copyInviteUrl() {
-    await navigator.clipboard.writeText(inviteUrl);
+    await copyText(inviteUrl);
     inviteCopied = true;
     setTimeout(() => { inviteCopied = false; }, 2000);
   }
@@ -988,27 +965,6 @@
     }
   }
 
-  async function sendSummary() {
-    if (!selectedId || !summaryText.trim()) return;
-    sendingSummary = true;
-    sendSummaryError = "";
-    try {
-      await pb.send("/api/messages:send", {
-        method: "POST",
-        body: JSON.stringify({
-          business_id: selectedId,
-          caption: summaryText.trim(),
-          hashtags: "",
-          production_note: "",
-        }),
-      });
-      summaryText = "";
-    } catch {
-      sendSummaryError = "Erro ao enviar resumo. Tente novamente.";
-    } finally {
-      sendingSummary = false;
-    }
-  }
 
   function prefillSeasonalMessage(template: string) {
     if (!selected) return;
@@ -1016,21 +972,21 @@
   }
 
   async function copyCaption(text: string) {
-    await navigator.clipboard.writeText(text);
+    await copyText(text);
     if (captionCopyTimer) clearTimeout(captionCopyTimer);
     captionCopied = true;
     captionCopyTimer = setTimeout(() => { captionCopied = false; }, 2000);
   }
 
   async function copyHashtags(text: string) {
-    await navigator.clipboard.writeText(text);
+    await copyText(text);
     if (hashtagsCopyTimer) clearTimeout(hashtagsCopyTimer);
     hashtagsCopied = true;
     hashtagsCopyTimer = setTimeout(() => { hashtagsCopied = false; }, 2000);
   }
 
   async function copyNote(text: string) {
-    await navigator.clipboard.writeText(text);
+    await copyText(text);
     if (noteCopyTimer) clearTimeout(noteCopyTimer);
     noteCopied = true;
     noteCopyTimer = setTimeout(() => { noteCopied = false; }, 2000);
@@ -1064,7 +1020,7 @@
 
 <div class="h-dvh flex flex-col" style="background: var(--bg)">
   <header
-    class="border-b px-5 py-4 flex items-center justify-between shrink-0"
+    class="border-b px-5 py-4 flex items-center gap-3 shrink-0 {mobileView !== 'list' ? 'hidden md:flex' : ''}"
     style="background: var(--surface); border-color: var(--border)"
   >
     <span
@@ -1073,16 +1029,21 @@
     >
       Rekan
     </span>
+    <button
+      onclick={openNewForm}
+      style="padding: 6px 16px; border-radius: 9999px; font-size: 14px; font-weight: 600; background: var(--coral); color: #fff; margin-left: auto;"
+    >+ Novo</button>
+  </header>
+  {#if !waConnected}
     <a
       href="/operador/whatsapp"
-      class="text-sm px-3 py-1.5 rounded-full font-medium"
-      style="background: {waConnected
-        ? '#DEF7EC'
-        : '#FDE8E8'}; color: {waConnected ? '#03543F' : '#9B1C1C'}"
+      class="shrink-0 flex items-center justify-center gap-2 px-4 py-3 text-sm font-medium"
+      style="background: #FDE8E8; color: #9B1C1C;"
     >
-      WhatsApp {waConnected ? "conectado" : "desconectado"}
+      <svg viewBox="0 0 20 20" fill="currentColor" width="16" height="16"><path fill-rule="evenodd" d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z" clip-rule="evenodd"/></svg>
+      WhatsApp desconectado — toque para reconectar
     </a>
-  </header>
+  {/if}
 
   {#if loading}
     <p class="text-base p-6" style="color: var(--text-muted)">Carregando...</p>
@@ -1091,54 +1052,16 @@
     <main class="flex-1 flex flex-col md:flex-row overflow-hidden">
       <!-- Left: Client list (or approval panel) -->
       <div
-        class="w-full md:w-80 md:border-r flex flex-col shrink-0 {mobileView === 'list' ? '' : 'hidden md:flex'}"
+        class="w-full md:w-80 md:border-r flex flex-col flex-1 min-h-0 md:flex-none {mobileView === 'list' ? '' : 'hidden md:flex'}"
         style="border-color: var(--border); background: var(--surface)"
       >
-        <div
-          class="flex items-center justify-between p-4 border-b"
-          style="border-color: var(--border)"
-        >
-          {#if showApprovalPanel}
-            <button
-              onclick={() => { showApprovalPanel = false; }}
-              class="text-sm font-medium px-4 py-2.5 rounded-full border"
-              style="border-color: var(--border-strong); color: var(--text-secondary)"
-            >
-              ← Clientes
-            </button>
-            <span class="text-sm font-medium" style="color: var(--text-muted)">
-              Sazonais ({scheduledMessageCount})
-            </span>
-          {:else}
-            <div class="flex gap-1.5 flex-wrap">
-              <button
-                onclick={() => { clientFilter = "todos"; }}
-                class="text-sm font-medium px-4 py-2.5 rounded-full transition-colors"
-                style="background: {clientFilter === 'todos' ? 'var(--coral)' : 'transparent'}; color: {clientFilter === 'todos' ? '#fff' : 'var(--text-secondary)'}"
-              >
-                Todos
-              </button>
-              <button
-                onclick={() => { clientFilter = "inativos"; }}
-                class="text-sm font-medium px-4 py-2.5 rounded-full transition-colors"
-                style="background: {clientFilter === 'inativos' ? 'var(--coral)' : 'transparent'}; color: {clientFilter === 'inativos' ? '#fff' : 'var(--text-secondary)'}"
-              >
-                Inativos{inactiveCount > 0 ? ` (${inactiveCount})` : ""}
-              </button>
-            </div>
-            <button
-              onclick={openNewForm}
-              class="text-sm font-medium px-4 py-2.5 rounded-full"
-              style="background: var(--coral); color: #fff"
-            >
-              Novo
-            </button>
-          {/if}
-        </div>
-
         {#if showApprovalPanel}
           <!-- Feature 8 — Seasonal messages approval panel -->
           <div class="flex-1 overflow-y-auto p-3 flex flex-col gap-2">
+            <button
+              onclick={() => { showApprovalPanel = false; }}
+              style="min-height: 48px; padding: 0 4px; border-radius: 9999px; font-size: 14px; font-weight: 500; color: var(--coral); background: none; text-align: left; align-self: flex-start;"
+            >← Clientes</button>
             {#if scheduledMessages.length === 0}
               <p class="text-base text-center py-8" style="color: var(--text-muted)">
                 Nenhuma mensagem pendente.
@@ -1179,60 +1102,82 @@
         {:else}
           <!-- Feature 6 — Morning summary bar -->
           {#if unreadClientsCount > 0 || inactiveCount > 0 || globalNearestSeasonal || pendingPaymentCount > 0 || scheduledMessageCount > 0}
-            <div
-              class="border-b px-5 py-3 flex flex-col gap-1"
-              style="border-color: var(--border); background: var(--bg)"
-            >
+            <div style="border-bottom: 1px solid var(--border); background: var(--bg);">
               {#if unreadClientsCount > 0}
                 <button
                   onclick={() => { clientFilter = "com_mensagens"; }}
-                  class="text-sm text-left w-full py-1 hover:underline"
-                  style="color: var(--text-secondary)"
+                  style="display: flex; align-items: center; gap: 10px; width: 100%; min-height: 48px; padding: 0 20px; text-align: left; font-size: 14px; color: var(--text-secondary); border-bottom: 1px solid var(--border); background: none;"
                 >
+                  <span style="width: 8px; height: 8px; border-radius: 9999px; background: var(--coral); flex-shrink: 0; display: inline-block;"></span>
                   {unreadClientsCount} {unreadClientsCount === 1 ? "cliente" : "clientes"} com mensagens novas
+                  <span style="margin-left: auto; color: var(--text-muted); font-size: 20px; line-height: 1;">›</span>
                 </button>
               {/if}
               {#if inactiveCount > 0}
                 <button
                   onclick={() => { clientFilter = "inativos"; }}
-                  class="text-sm text-left w-full py-1 hover:underline"
-                  style="color: var(--text-secondary)"
+                  style="display: flex; align-items: center; gap: 10px; width: 100%; min-height: 48px; padding: 0 20px; text-align: left; font-size: 14px; color: var(--text-secondary); border-bottom: 1px solid var(--border); background: none;"
                 >
+                  <span style="width: 8px; height: 8px; border-radius: 9999px; background: #EF4444; flex-shrink: 0; display: inline-block;"></span>
                   {inactiveCount} {inactiveCount === 1 ? "cliente" : "clientes"} inativos
-                </button>
-              {/if}
-              {#if globalNearestSeasonal}
-                <button
-                  onclick={() => { clientFilter = "sazonal"; }}
-                  class="text-sm text-left w-full py-1 hover:underline"
-                  style="color: var(--text-secondary)"
-                >
-                  {globalNearestSeasonal.label} em {globalNearestSeasonal.daysUntil}d ({globalNearestSeasonal.eligibleCount} clientes)
+                  <span style="margin-left: auto; color: var(--text-muted); font-size: 20px; line-height: 1;">›</span>
                 </button>
               {/if}
               {#if pendingPaymentCount > 0}
                 <button
                   onclick={() => { clientFilter = "cobranca"; }}
-                  class="text-sm text-left w-full py-1 hover:underline"
-                  style="color: var(--text-secondary)"
+                  style="display: flex; align-items: center; gap: 10px; width: 100%; min-height: 48px; padding: 0 20px; text-align: left; font-size: 14px; color: var(--text-secondary); border-bottom: 1px solid var(--border); background: none;"
                 >
+                  <span style="width: 8px; height: 8px; border-radius: 9999px; background: #F59E0B; flex-shrink: 0; display: inline-block;"></span>
                   {pendingPaymentCount} {pendingPaymentCount === 1 ? "cliente" : "clientes"} com pagamento pendente
+                  <span style="margin-left: auto; color: var(--text-muted); font-size: 20px; line-height: 1;">›</span>
                 </button>
               {/if}
               {#if scheduledMessageCount > 0}
                 <button
                   onclick={() => { showApprovalPanel = true; }}
-                  class="text-sm text-left w-full py-1 hover:underline"
-                  style="color: var(--coral)"
+                  style="display: flex; align-items: center; gap: 10px; width: 100%; min-height: 48px; padding: 0 20px; text-align: left; font-size: 14px; font-weight: 500; color: var(--coral); background: none;"
                 >
-                  {scheduledMessageCount} {scheduledMessageCount === 1 ? "mensagem sazonal" : "mensagens sazonais"} prontas para aprovação
+                  <span style="font-size: 16px; flex-shrink: 0;">📅</span>
+                  {scheduledMessageCount} {scheduledMessageCount === 1 ? "mensagem sazonal" : "mensagens sazonais"} para aprovar
+                  <span style="margin-left: auto; color: var(--coral); font-size: 20px; line-height: 1;">›</span>
+                </button>
+              {/if}
+              {#if globalNearestSeasonal}
+                <button
+                  onclick={() => { clientFilter = "sazonal"; }}
+                  style="display: flex; align-items: center; gap: 10px; width: 100%; min-height: 48px; padding: 0 20px; text-align: left; font-size: 14px; color: var(--text-secondary); border-top: 1px solid var(--border); background: none;"
+                >
+                  <span style="width: 8px; height: 8px; border-radius: 9999px; background: var(--sage); flex-shrink: 0; display: inline-block;"></span>
+                  {globalNearestSeasonal.label} em {globalNearestSeasonal.daysUntil}d ({globalNearestSeasonal.eligibleCount} clientes)
+                  <span style="margin-left: auto; color: var(--text-muted); font-size: 20px; line-height: 1;">›</span>
                 </button>
               {/if}
             </div>
           {/if}
 
+          <!-- Color legend -->
+          <div style="display: flex; gap: 16px; align-items: center; padding: 8px 20px; background: var(--bg); border-bottom: 1px solid var(--border);">
+            <span style="font-size: 12px; color: var(--text-muted);">Estado:</span>
+            <span style="display: flex; align-items: center; gap: 5px; font-size: 12px; color: var(--text-muted);">
+              <span style="width: 8px; height: 8px; border-radius: 9999px; background: #10B981; display: inline-block;"></span>Ativo
+            </span>
+            <span style="display: flex; align-items: center; gap: 5px; font-size: 12px; color: var(--text-muted);">
+              <span style="width: 8px; height: 8px; border-radius: 9999px; background: #F59E0B; display: inline-block;"></span>5–9d
+            </span>
+            <span style="display: flex; align-items: center; gap: 5px; font-size: 12px; color: var(--text-muted);">
+              <span style="width: 8px; height: 8px; border-radius: 9999px; background: #EF4444; display: inline-block;"></span>+10d
+            </span>
+          </div>
+
           <!-- Client list -->
           <div class="flex-1 overflow-y-auto">
+            {#if clientFilter !== 'todos'}
+              <button
+                onclick={() => { clientFilter = 'todos'; }}
+                style="display: flex; align-items: center; gap: 6px; width: 100%; min-height: 44px; padding: 0 20px; font-size: 14px; color: var(--coral); background: var(--coral-pale); border-bottom: 1px solid var(--coral-light); border: none; cursor: pointer;"
+              >← Todos os clientes</button>
+            {/if}
             {#if clients.length === 0}
               <p class="text-base p-5" style="color: var(--text-muted)">
                 Nenhum cliente cadastrado.
@@ -1288,20 +1233,21 @@
                       </span>
                     {/if}
                   </div>
-                  <div class="flex items-center justify-between mt-1">
-                    <span class="text-sm" style="color: var(--text-muted)"
-                      >{client.type} — {client.city}/{client.state}</span
-                    >
-                    {#if health}
-                      <span class="text-sm" style="color: var(--text-muted)">
-                        {health.daysSinceMsg < 999
-                          ? `${health.daysSinceMsg}d`
-                          : ""}{health.postsThisMonth > 0
-                          ? ` · ${health.postsThisMonth} posts`
-                          : ""}
+                  <div class="flex items-center justify-between mt-1 pl-5 gap-2">
+                    <span class="text-sm truncate" style="color: var(--text-muted); min-width: 0;">{client.type} · {client.city}</span>
+                    {#if health && health.daysSinceMsg === 0}
+                      <span class="text-sm shrink-0" style="color: var(--text-muted)">Hoje</span>
+                    {:else if health && health.daysSinceMsg < 999}
+                      <span class="text-sm font-medium shrink-0" style="color: {health.daysSinceMsg >= 5 ? health.color : 'var(--text-muted)'}">
+                        {health.daysSinceMsg}d sem postar
                       </span>
                     {/if}
                   </div>
+                  {#if client.charge_pending}
+                    <div class="mt-1 pl-5">
+                      <span style="font-size: 13px; padding: 2px 10px; border-radius: 9999px; background: #FEF3C7; color: #92400E;">⚠ pagamento pendente</span>
+                    </div>
+                  {/if}
                 </button>
               {/each}
             {/if}
@@ -1549,254 +1495,222 @@
         {:else if selected}
           <!-- Info screen (mobile only) -->
           {#if mobileView === 'info'}
-            <div class="flex-1 flex flex-col overflow-hidden md:hidden">
-              <div
-                class="px-5 py-4 border-b shrink-0"
-                style="border-color: var(--border); background: var(--surface)"
-              >
+            <div class="flex-1 flex flex-col overflow-hidden">
+
+              <!-- Header: Voltar | Name/Type | Editar -->
+              <div style="background: var(--surface); border-bottom: 1px solid var(--border); display: flex; align-items: center; min-height: 60px; padding: 0 16px; gap: 4px; flex-shrink: 0;">
                 <button
                   onclick={() => { mobileView = 'detail'; }}
-                  class="flex items-center gap-1 py-2 pr-2 -ml-1 rounded-lg text-sm font-medium"
-                  style="color: var(--coral)"
+                  style="display: flex; align-items: center; gap: 4px; min-height: 60px; padding: 0 12px 0 0; font-size: 14px; font-weight: 500; color: var(--coral); flex-shrink: 0;"
                 >
-                  <svg viewBox="0 0 20 20" fill="currentColor" width="18" height="18"><path fill-rule="evenodd" d="M12.707 5.293a1 1 0 010 1.414L9.414 10l3.293 3.293a1 1 0 01-1.414 1.414l-4-4a1 1 0 010-1.414l4-4a1 1 0 011.414 0z" clip-rule="evenodd" /></svg>
+                  <svg viewBox="0 0 20 20" fill="currentColor" width="20" height="20"><path fill-rule="evenodd" d="M12.707 5.293a1 1 0 010 1.414L9.414 10l3.293 3.293a1 1 0 01-1.414 1.414l-4-4a1 1 0 010-1.414l4-4a1 1 0 011.414 0z" clip-rule="evenodd" /></svg>
                   Voltar
                 </button>
-                <h2 class="text-lg font-semibold mt-1" style="color: var(--text)">{selected.name}</h2>
-                <p class="text-sm" style="color: var(--text-secondary)">{selected.type} — {selected.city}/{selected.state}</p>
+                <div style="flex: 1; min-width: 0;">
+                  <div style="font-size: 17px; font-weight: 600; color: var(--text); overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">{selected.name}</div>
+                  <div style="font-size: 14px; color: var(--text-secondary);">{selected.type} — {selected.city}/{selected.state}</div>
+                </div>
+                <button
+                  onclick={() => openEditForm(selected!)}
+                  style="min-height: 48px; padding: 0 18px; border-radius: 9999px; font-size: 14px; font-weight: 500; color: var(--text-secondary); border: 1px solid var(--border-strong); flex-shrink: 0;"
+                >Editar</button>
               </div>
 
               <div class="flex-1 overflow-y-auto">
-                <!-- Badges and actions -->
-                <div class="px-5 py-4 border-b" style="border-color: var(--border)">
-                  <div class="flex items-center gap-2 flex-wrap">
-                    {#if selected.tier}
-                      <span class="text-sm px-2 py-0.5 rounded-full font-medium" style="background: var(--border); color: var(--text-secondary)">{selected.tier}</span>
-                    {/if}
-                    {#if selected.invite_status && selected.invite_status !== 'draft'}
-                      <span
-                        class="text-sm px-2 py-0.5 rounded-full"
-                        style={
-                          selected.invite_status === 'invited' ? 'background: #FEF3C7; color: #92400E' :
-                          selected.invite_status === 'accepted' ? 'background: #DBEAFE; color: #1E40AF' :
-                          selected.invite_status === 'active' ? 'background: #DEF7EC; color: #03543F' :
-                          selected.invite_status === 'payment_failed' ? 'background: #FEE2E2; color: #991B1B' :
-                          selected.invite_status === 'cancelled' ? 'background: #FEE2E2; color: #991B1B; text-decoration: line-through' :
-                          'background: var(--border); color: var(--text-muted)'
-                        }
-                      >
-                        {selected.invite_status === 'invited' ? 'convite' :
-                         selected.invite_status === 'accepted' ? 'aceito' :
-                         selected.invite_status === 'active' ? 'ativo' :
-                         selected.invite_status === 'payment_failed' ? 'falhou' :
-                         selected.invite_status === 'cancelled' ? 'cancelado' :
-                         selected.invite_status}
-                      </span>
-                    {/if}
-                    {#if selected.invite_status === 'active' && selected.next_charge_date}
-                      <span class="text-sm" style="color: var(--text-muted)">
-                        Próx. cobrança: {new Date(selected.next_charge_date).toLocaleDateString('pt-BR', { day: 'numeric', month: 'short' })}
-                      </span>
-                    {/if}
-                    {#if selected.charge_pending}
-                      <span class="text-sm px-2 py-0.5 rounded-full font-medium" style="background: #FEE2E2; color: #991B1B">Pagamento pendente</span>
-                    {/if}
-                  </div>
-                  <div class="flex items-center gap-2 mt-3">
+
+                <!-- Status strip -->
+                <div style="background: var(--surface); padding: 14px 20px; border-bottom: 1px solid var(--border); display: flex; align-items: center; gap: 10px; flex-wrap: wrap;">
+                  {#if selected.tier}
+                    <span style="font-size: 14px; padding: 4px 12px; border-radius: 9999px; background: var(--bg); color: var(--text-secondary); border: 1px solid var(--border-strong); font-weight: 500;">{selected.tier}</span>
+                  {/if}
+                  {#if selected.invite_status && selected.invite_status !== 'draft'}
+                    <span
+                      style="font-size: 14px; padding: 4px 12px; border-radius: 9999px; font-weight: 500; {
+                        selected.invite_status === 'invited' ? 'background: #FEF3C7; color: #92400E' :
+                        selected.invite_status === 'accepted' ? 'background: #DBEAFE; color: #1E40AF' :
+                        selected.invite_status === 'active' ? 'background: #DEF7EC; color: #03543F' :
+                        selected.invite_status === 'payment_failed' ? 'background: #FEE2E2; color: #991B1B' :
+                        selected.invite_status === 'cancelled' ? 'background: #FEE2E2; color: #991B1B; text-decoration: line-through' :
+                        'background: var(--border); color: var(--text-muted)'
+                      }"
+                    >
+                      {selected.invite_status === 'invited' ? 'convite' :
+                       selected.invite_status === 'accepted' ? 'aceito' :
+                       selected.invite_status === 'active' ? 'ativo' :
+                       selected.invite_status === 'payment_failed' ? 'falhou' :
+                       selected.invite_status === 'cancelled' ? 'cancelado' :
+                       selected.invite_status}
+                    </span>
+                  {/if}
+                  {#if selected.invite_status === 'active' && selected.next_charge_date}
+                    <span style="font-size: 14px; color: var(--text-muted); margin-left: 4px;">
+                      Próx. cobrança: {new Date(selected.next_charge_date).toLocaleDateString('pt-BR', { day: 'numeric', month: 'short' })}
+                    </span>
+                  {/if}
+                  {#if selected.charge_pending}
+                    <span style="font-size: 14px; padding: 4px 12px; border-radius: 9999px; font-weight: 500; background: #FEE2E2; color: #991B1B;">Pagamento pendente</span>
+                  {/if}
+                  {#if selected.type === 'Desconhecido'}
                     <button
                       onclick={() => openEditForm(selected!)}
-                      class="text-sm px-4 py-2.5 rounded-full border"
-                      style="border-color: var(--border-strong); color: var(--text-secondary)"
-                    >Editar</button>
-                    {#if selected.type === 'Desconhecido'}
-                      <button
-                        onclick={() => openEditForm(selected!)}
-                        class="text-sm px-4 py-2.5 rounded-full font-medium"
-                        style="background: #25D366; color: #fff"
-                      >Criar conta</button>
-                    {/if}
-                    {#if selected.invite_status === 'active'}
-                      <button
-                        onclick={cancelSubscription}
-                        disabled={cancelling}
-                        class="text-sm px-4 py-2.5 rounded-full border transition-opacity"
-                        style="border-color: #EF4444; color: #EF4444; opacity: {cancelling ? '0.6' : '1'}"
-                      >
-                        {cancelling ? "Cancelando..." : "Cancelar assinatura"}
-                      </button>
-                    {/if}
-                  </div>
+                      style="min-height: 48px; padding: 0 20px; border-radius: 9999px; font-size: 15px; font-weight: 600; background: #25D366; color: #fff;"
+                    >Criar conta</button>
+                  {/if}
                 </div>
 
-                <!-- Profile info (flat) -->
-                {#if selected.services?.length > 0 || selected.target_audience || selected.brand_vibe || selected.quirks}
-                  <div class="px-5 py-4 border-b" style="border-color: var(--border)">
-                    <span class="text-sm font-medium" style="color: var(--text-muted)">Perfil do cliente</span>
-                    <div class="mt-2 text-sm" style="color: var(--text-secondary)">
-                      {#if selected.services?.length > 0}
-                        <div class="mb-1.5 flex flex-col gap-0.5">
-                          {#each selected.services as svc}
-                            <span>{svc.name}{svc.price_brl != null ? ` — R$${svc.price_brl.toFixed(2).replace('.', ',')}` : ''}</span>
-                          {/each}
-                        </div>
-                      {/if}
-                      {#if selected.target_audience}
-                        <p class="mb-1">{selected.target_audience}</p>
-                      {/if}
-                      {#if selected.brand_vibe}
-                        <p class="mb-1 italic">{selected.brand_vibe}</p>
-                      {/if}
-                      {#if selected.quirks}
-                        <p class="mb-1 whitespace-pre-wrap">{selected.quirks}</p>
-                      {/if}
-                    </div>
+                <!-- Section: Serviços -->
+                {#if selected.services?.length > 0}
+                  <span style="font-size: 11px; font-weight: 700; letter-spacing: 0.08em; text-transform: uppercase; color: var(--text-muted); padding: 14px 20px 8px; background: var(--bg); border-top: 1px solid var(--border); display: block;">Serviços</span>
+                  <div style="background: var(--surface); padding: 4px 0 12px;">
+                    {#each selected.services as svc}
+                      <div style="display: flex; align-items: baseline; gap: 12px; padding: 6px 20px;">
+                        <span style="font-size: 13px; font-weight: 600; color: var(--text-muted); white-space: nowrap; flex-shrink: 0; width: 100px; overflow: hidden; text-overflow: ellipsis;">{svc.name}</span>
+                        <span style="font-size: 15px; color: var(--text-secondary); flex: 1;">{svc.price_brl != null ? `R$${svc.price_brl.toFixed(2).replace('.', ',')}` : '—'}</span>
+                      </div>
+                    {/each}
                   </div>
                 {/if}
 
-                <!-- Post history (flat) -->
+                <!-- Section: Perfil -->
+                {#if selected.target_audience || selected.brand_vibe || selected.quirks}
+                  <span style="font-size: 11px; font-weight: 700; letter-spacing: 0.08em; text-transform: uppercase; color: var(--text-muted); padding: 14px 20px 8px; background: var(--bg); border-top: 1px solid var(--border); display: block;">Perfil</span>
+                  <div style="background: var(--surface); padding: 4px 0 12px;">
+                    {#if selected.target_audience}
+                      <div style="display: flex; align-items: baseline; gap: 12px; padding: 6px 20px;">
+                        <span style="font-size: 13px; font-weight: 600; color: var(--text-muted); white-space: nowrap; flex-shrink: 0; width: 64px;">Público</span>
+                        <span style="font-size: 15px; color: var(--text-secondary); flex: 1;">{selected.target_audience}</span>
+                      </div>
+                    {/if}
+                    {#if selected.brand_vibe}
+                      <div style="display: flex; align-items: baseline; gap: 12px; padding: 6px 20px;">
+                        <span style="font-size: 13px; font-weight: 600; color: var(--text-muted); white-space: nowrap; flex-shrink: 0; width: 64px;">Estilo</span>
+                        <span style="font-size: 15px; color: var(--text-secondary); flex: 1; font-style: italic;">{selected.brand_vibe}</span>
+                      </div>
+                    {/if}
+                    {#if selected.quirks}
+                      <div style="display: flex; align-items: baseline; gap: 12px; padding: 6px 20px;">
+                        <span style="font-size: 13px; font-weight: 600; color: var(--text-muted); white-space: nowrap; flex-shrink: 0; width: 64px;">Obs.</span>
+                        <span style="font-size: 15px; color: var(--text-secondary); flex: 1; white-space: pre-wrap;">{selected.quirks}</span>
+                      </div>
+                    {/if}
+                  </div>
+                {/if}
+
+                <!-- Section: Posts recentes -->
                 {#if clientPosts.length > 0}
-                  <div class="px-5 py-4 border-b" style="border-color: var(--border)">
-                    <span class="text-sm font-medium" style="color: var(--text-muted)">
-                      Histórico de posts ({clientPosts.length})
-                    </span>
-                    <div class="mt-2 flex flex-col gap-2">
-                      {#each clientPosts.slice(0, historyLimit) as post (post.id)}
-                        {@const postExpanded = expandedPosts.has(post.id)}
-                        <div class="border-b last:border-0 py-2" style="border-color: var(--border)">
-                          <div class="flex items-center justify-between gap-2">
-                            <span class="text-sm" style="color: var(--text-muted)">
-                              {new Date(post.created).toLocaleDateString("pt-BR", { day: "numeric", month: "short" })}
-                            </span>
-                            <button
-                              onclick={async () => {
-                                await navigator.clipboard.writeText(post.caption + (post.hashtags?.length ? '\n\n' + post.hashtags.join(' ') : ''));
-                              }}
-                              class="text-sm shrink-0 py-1"
-                              style="color: var(--coral)"
-                            >Copiar</button>
-                          </div>
+                  <span style="font-size: 11px; font-weight: 700; letter-spacing: 0.08em; text-transform: uppercase; color: var(--text-muted); padding: 14px 20px 8px; background: var(--bg); border-top: 1px solid var(--border); display: block;">Posts recentes</span>
+                  <div style="background: var(--surface);">
+                    {#each clientPosts.slice(0, historyLimit) as post (post.id)}
+                      {@const postExpanded = expandedPosts.has(post.id)}
+                      <div style="padding: 12px 20px; border-bottom: 1px solid var(--border); display: flex; gap: 12px; align-items: flex-start;">
+                        <span style="font-size: 14px; color: var(--text-muted); white-space: nowrap; padding-top: 2px; width: 48px; flex-shrink: 0;">
+                          {new Date(post.created).toLocaleDateString("pt-BR", { day: "numeric", month: "short" })}
+                        </span>
+                        <div style="flex: 1; min-width: 0;">
                           <button
                             onclick={() => {
                               const next = new Set(expandedPosts);
                               if (postExpanded) next.delete(post.id); else next.add(post.id);
                               expandedPosts = next;
                             }}
-                            class="text-sm text-left w-full mt-0.5"
-                            style="color: var(--text-secondary); display: -webkit-box; -webkit-box-orient: vertical; overflow: hidden; {postExpanded ? '' : '-webkit-line-clamp: 2'}"
+                            style="font-size: 15px; color: var(--text-secondary); line-height: 1.5; text-align: left; width: 100%; background: none; border: none; padding: 0; {postExpanded ? '' : 'display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden;'}"
                           >
                             {post.caption}
                           </button>
+                          {#if !postExpanded}
+                            <span style="font-size: 13px; color: var(--text-muted); margin-top: 2px; display: block;">toque para expandir</span>
+                          {/if}
                           {#if postExpanded && post.production_note}
-                            <p class="text-sm italic mt-1" style="color: var(--text-muted)">{post.production_note}</p>
+                            <p style="font-size: 14px; font-style: italic; margin-top: 4px; color: var(--text-muted);">{post.production_note}</p>
                           {/if}
                         </div>
-                      {/each}
-                      {#if clientPosts.length > historyLimit}
                         <button
-                          onclick={() => { historyLimit = clientPosts.length; }}
-                          class="text-sm font-medium text-left py-1"
-                          style="color: var(--primary)"
-                        >
-                          Ver todos ({clientPosts.length})
-                        </button>
+                          onclick={async () => {
+                            await copyText(post.caption + (post.hashtags?.length ? '\n\n' + post.hashtags.join(' ') : ''));
+                          }}
+                          style="min-height: 48px; padding: 0 14px; border-radius: 9999px; font-size: 14px; font-weight: 500; color: var(--coral); border: 1px solid var(--coral-light); background: var(--coral-pale); white-space: nowrap; flex-shrink: 0;"
+                        >Copiar</button>
+                      </div>
+                    {/each}
+                    {#if clientPosts.length > historyLimit}
+                      <button
+                        onclick={() => { historyLimit = clientPosts.length; }}
+                        style="display: block; width: 100%; min-height: 48px; padding: 0 20px; text-align: left; font-size: 14px; font-weight: 500; color: var(--coral); background: none; border: none;"
+                      >
+                        Ver todos ({clientPosts.length})
+                      </button>
+                    {/if}
+                  </div>
+                {/if}
+
+                <!-- Section: Lembrete -->
+                {#if nudgeTier || nudgeText}
+                  <span style="font-size: 11px; font-weight: 700; letter-spacing: 0.08em; text-transform: uppercase; padding: 14px 20px 8px; display: block; {nudgeTier ? 'background: #FFF7ED; border-top: 1px solid #FDE68A; color: #92400E;' : 'background: var(--bg); border-top: 1px solid var(--border); color: var(--text-muted);'}">
+                    {nudgeTier ? `⚠ Lembrete — ${clientHealth[selected!.id]?.daysSinceMsg} dias sem mensagem` : 'Mensagem'}
+                  </span>
+                  <div style="padding: 12px 20px 16px; border-bottom: 1px solid var(--border); {nudgeTier ? 'background: #FFFBEB;' : 'background: var(--surface);'}">
+                    <textarea
+                      bind:value={nudgeText}
+                      rows={2}
+                      class="w-full rounded-xl text-base outline-none border resize-none"
+                      style="padding: 12px 16px; border-color: var(--border-strong); background: var(--surface); color: var(--text);"
+                    ></textarea>
+                    <div class="flex items-center gap-2 mt-2">
+                      <button
+                        onclick={sendNudge}
+                        disabled={sendingNudge || !nudgeText.trim() || !!blockReason}
+                        title={blockReason ?? undefined}
+                        style="min-height: 48px; padding: 0 24px; border-radius: 9999px; font-size: 15px; font-weight: 600; background: #25D366; color: #fff; opacity: {sendingNudge || !nudgeText.trim() || blockReason ? '0.6' : '1'}; cursor: {sendingNudge || !nudgeText.trim() || blockReason ? 'not-allowed' : 'pointer'};"
+                      >
+                        {sendingNudge ? "Enviando..." : "Enviar lembrete"}
+                      </button>
+                      {#if blockReason && nudgeText.trim()}
+                        <span class="text-sm" style="color: var(--text-muted)">{blockReason}</span>
+                      {/if}
+                      {#if sendNudgeError}
+                        <span class="text-sm" style="color: var(--destructive)">{sendNudgeError}</span>
                       {/if}
                     </div>
                   </div>
                 {/if}
 
-                <!-- Engagement: nudge, seasonal dates, monthly summary (flat) -->
-                {#if nudgeTier || upcomingDates.length > 0 || nudgeText || summaryText}
-                  <div class="px-5 py-4">
-                    {#if nudgeTier || nudgeText}
-                      <div class="mb-3">
-                        <span class="text-sm font-medium" style="color: var(--text-muted)">
-                          {#if nudgeTier}
-                            Lembrete · {clientHealth[selected!.id]?.daysSinceMsg} dias sem mensagem
-                          {:else}
-                            Mensagem
-                          {/if}
-                        </span>
-                        <textarea
-                          bind:value={nudgeText}
-                          rows={2}
-                          class="w-full mt-1.5 px-3 py-3 rounded-xl text-base outline-none border resize-none"
-                          style="border-color: var(--border-strong); background: var(--surface); color: var(--text)"
-                        ></textarea>
-                        <div class="flex items-center gap-2 mt-2">
-                          <button
-                            onclick={sendNudge}
-                            disabled={sendingNudge || !nudgeText.trim() || !!blockReason}
-                            title={blockReason ?? undefined}
-                            class="px-5 py-3 rounded-full text-sm font-medium transition-opacity"
-                            style="background: #25D366; color: #fff; opacity: {sendingNudge || !nudgeText.trim() || blockReason ? '0.6' : '1'}; cursor: {sendingNudge || !nudgeText.trim() || blockReason ? 'not-allowed' : 'pointer'}"
-                          >
-                            {sendingNudge ? "Enviando..." : "Enviar lembrete"}
-                          </button>
-                          {#if blockReason && nudgeText.trim()}
-                            <span class="text-sm" style="color: var(--text-muted)">{blockReason}</span>
-                          {/if}
-                          {#if sendNudgeError}
-                            <span class="text-sm" style="color: var(--destructive)">{sendNudgeError}</span>
-                          {/if}
-                        </div>
-                      </div>
-                    {/if}
-
-                    {#if upcomingDates.length > 0}
-                      <div class={nudgeTier || nudgeText ? "pt-2 border-t" : ""} style="border-color: var(--border)">
-                        <span class="text-sm font-medium" style="color: var(--text-muted)">Datas próximas</span>
-                        <div class="flex flex-wrap gap-2 mt-2">
-                          {#each upcomingDates as sd}
-                            <button
-                              onclick={() => { prefillSeasonalMessage(sd.template); }}
-                              class="text-sm px-4 py-2.5 rounded-full border transition-colors hover:bg-(--coral-pale)"
-                              style="border-color: var(--border-strong); color: var(--text-secondary)"
-                            >
-                              {sd.label} · {sd.daysUntil}d
-                            </button>
-                          {/each}
-                        </div>
-                      </div>
-                    {/if}
-
-                    {#if summaryText}
-                      <div class={nudgeTier || nudgeText || upcomingDates.length > 0 ? "pt-2 border-t" : ""} style="border-color: var(--border)">
-                        <span class="text-sm font-medium" style="color: var(--text-muted)">
-                          Resumo mensal · {clientHealth[selected!.id]?.postsThisMonth ?? 0} posts este mês
-                        </span>
-                        <textarea
-                          bind:value={summaryText}
-                          rows={3}
-                          class="w-full mt-1.5 px-3 py-3 rounded-xl text-base outline-none border resize-none"
-                          style="border-color: var(--border-strong); background: var(--surface); color: var(--text)"
-                        ></textarea>
-                        <div class="flex items-center gap-2 mt-2">
-                          <button
-                            onclick={sendSummary}
-                            disabled={sendingSummary || !summaryText.trim() || !!blockReason}
-                            title={blockReason ?? undefined}
-                            class="px-5 py-3 rounded-full text-sm font-medium transition-opacity"
-                            style="background: #25D366; color: #fff; opacity: {sendingSummary || !summaryText.trim() || blockReason ? '0.6' : '1'}; cursor: {sendingSummary || !summaryText.trim() || blockReason ? 'not-allowed' : 'pointer'}"
-                          >
-                            {sendingSummary ? "Enviando..." : "Enviar resumo"}
-                          </button>
-                          {#if blockReason && summaryText.trim()}
-                            <span class="text-sm" style="color: var(--text-muted)">{blockReason}</span>
-                          {/if}
-                          {#if sendSummaryError}
-                            <span class="text-sm" style="color: var(--destructive)">{sendSummaryError}</span>
-                          {/if}
-                        </div>
-                      </div>
-                    {/if}
+                <!-- Section: Datas próximas -->
+                {#if upcomingDates.length > 0}
+                  <span style="font-size: 11px; font-weight: 700; letter-spacing: 0.08em; text-transform: uppercase; color: var(--text-muted); padding: 14px 20px 8px; background: var(--bg); border-top: 1px solid var(--border); display: block;">Datas próximas</span>
+                  <div style="background: var(--surface); padding: 8px 20px 16px; display: flex; flex-wrap: wrap; gap: 8px;">
+                    {#each upcomingDates as sd}
+                      <button
+                        onclick={() => { prefillSeasonalMessage(sd.template); }}
+                        style="min-height: 48px; padding: 0 16px; border-radius: 9999px; font-size: 14px; font-weight: 500; border: 1px solid var(--border-strong); color: var(--text-secondary); background: none;"
+                      >
+                        {sd.label} · {sd.daysUntil}d
+                      </button>
+                    {/each}
                   </div>
                 {/if}
+
+                <!-- Danger zone: Cancelar assinatura -->
+                {#if selected.invite_status === 'active'}
+                  <div style="margin: 16px 20px 24px; padding: 16px; border-radius: 16px; border: 1px solid #FCA5A5; background: #FFF5F5;">
+                    <p style="font-size: 14px; color: #991B1B; margin-bottom: 10px; line-height: 1.5;">
+                      Cancelar a assinatura desativa o acesso de {selected.name} ao rekan.
+                    </p>
+                    <button
+                      onclick={cancelSubscription}
+                      disabled={cancelling}
+                      style="min-height: 48px; padding: 0 20px; border-radius: 9999px; font-size: 14px; font-weight: 600; border: 1.5px solid #EF4444; color: #EF4444; background: transparent; opacity: {cancelling ? '0.6' : '1'};"
+                    >
+                      {cancelling ? "Cancelando..." : "Cancelar assinatura"}
+                    </button>
+                  </div>
+                {/if}
+
               </div>
             </div>
           {/if}
 
           <!-- Detail view: hidden on mobile when info screen is open -->
-          <div class="{mobileView === 'info' ? 'hidden md:flex' : 'flex'} flex-col flex-1 overflow-hidden">
+          <div class="{mobileView === 'info' ? 'hidden' : 'flex'} flex-col flex-1 overflow-hidden relative">
           <!-- Client header -->
           <div
             class="px-5 py-4 border-b shrink-0"
@@ -1811,10 +1725,10 @@
                 <svg viewBox="0 0 20 20" fill="currentColor" width="18" height="18"><path fill-rule="evenodd" d="M12.707 5.293a1 1 0 010 1.414L9.414 10l3.293 3.293a1 1 0 01-1.414 1.414l-4-4a1 1 0 010-1.414l4-4a1 1 0 011.414 0z" clip-rule="evenodd" /></svg>
                 Voltar
               </button>
-              <!-- Mobile: tappable name opens info screen -->
+              <!-- Tappable name opens info screen -->
               <button
                 onclick={() => { mobileView = 'info'; }}
-                class="md:hidden min-w-0 flex-1 text-left"
+                class="min-w-0 flex-1 text-left"
               >
                 <h2 class="text-base font-semibold truncate" style="color: var(--text)">
                   {selected.name}
@@ -1824,280 +1738,53 @@
                   <span class="ml-1 text-xs" style="color: var(--text-muted)">›</span>
                 </p>
               </button>
-              <!-- Desktop: plain div -->
-              <div class="hidden md:block min-w-0 flex-1">
-                <h2 class="text-base font-semibold truncate" style="color: var(--text)">
-                  {selected.name}
-                </h2>
-                <p class="text-sm" style="color: var(--text-secondary)">
-                  {selected.type} — {selected.city}/{selected.state}
-                </p>
-              </div>
-            </div>
-            <div class="hidden md:flex items-center gap-2 mt-2 flex-wrap">
-              {#if selected.tier}
-                <span
-                  class="text-sm px-2 py-0.5 rounded-full font-medium"
-                  style="background: var(--border); color: var(--text-secondary)"
-                >{selected.tier}</span>
-              {/if}
-              {#if selected.invite_status === 'active' && selected.next_charge_date}
-                <span class="text-sm" style="color: var(--text-muted)">
-                  Próx. cobrança: {new Date(selected.next_charge_date).toLocaleDateString('pt-BR', { day: 'numeric', month: 'short' })}
-                </span>
-              {/if}
-              {#if selected.charge_pending}
-                <span
-                  class="text-sm px-2 py-0.5 rounded-full font-medium"
-                  style="background: #FEE2E2; color: #991B1B"
-                >Pagamento pendente</span>
-              {/if}
-              <div class="flex items-center gap-2 ml-auto">
-                {#if selected.type === 'Desconhecido'}
-                  <button
-                    onclick={() => openEditForm(selected!)}
-                    class="text-sm px-4 py-2.5 rounded-full font-medium"
-                    style="background: #25D366; color: #fff"
-                  >Criar conta</button>
-                {/if}
-                {#if selected.invite_status === 'active'}
-                  <button
-                    onclick={cancelSubscription}
-                    disabled={cancelling}
-                    class="hidden md:inline-flex text-sm px-4 py-2.5 rounded-full border transition-opacity"
-                    style="border-color: #EF4444; color: #EF4444; opacity: {cancelling ? '0.6' : '1'}"
-                  >
-                    {cancelling ? "Cancelando..." : "Cancelar assinatura"}
-                  </button>
-                {/if}
-                <button
-                  onclick={() => openEditForm(selected!)}
-                  class="text-sm px-4 py-2.5 rounded-full border"
-                  style="border-color: var(--border-strong); color: var(--text-secondary)"
-                  >Editar</button
-                >
-              </div>
             </div>
           </div>
 
-          <!-- Feature 3 — Client context card (desktop only, mobile uses info screen) -->
-          {#if selected.services?.length > 0 || selected.target_audience || selected.brand_vibe || selected.quirks}
-            <div class="shrink-0 border-b hidden md:block" style="border-color: var(--border)">
-              <button
-                onclick={() => { profileOpen = !profileOpen; }}
-                class="flex items-center gap-1 w-full px-5 py-3 text-left"
-              >
-                <span class="text-sm font-medium" style="color: var(--text-muted)">Perfil do cliente</span>
-                <span class="text-sm ml-auto" style="color: var(--text-muted)">{profileOpen ? '▲' : '▼'}</span>
-              </button>
-              {#if profileOpen}
-                <div class="px-5 pb-3 text-sm" style="color: var(--text-secondary)">
-                  {#if selected.services?.length > 0}
-                    <div class="mb-1.5 flex flex-col gap-0.5">
-                      {#each selected.services as svc}
-                        <span>{svc.name}{svc.price_brl != null ? ` — R$${svc.price_brl.toFixed(2).replace('.', ',')}` : ''}</span>
-                      {/each}
-                    </div>
-                  {/if}
-                  {#if selected.target_audience}
-                    <p class="mb-1">{selected.target_audience}</p>
-                  {/if}
-                  {#if selected.brand_vibe}
-                    <p class="mb-1 italic">{selected.brand_vibe}</p>
-                  {/if}
-                  {#if selected.quirks}
-                    <p class="mb-1 whitespace-pre-wrap">{selected.quirks}</p>
-                  {/if}
+          <!-- Mobile ideas picker — full screen overlay (shows immediately on tap, then fills in) -->
+          {#if generatingIdeas || ideaDrafts !== null}
+            <div class="md:hidden absolute inset-0 flex flex-col z-10" style="background: var(--bg)">
+              <div class="flex items-center gap-3 px-4 shrink-0" style="min-height: 60px; background: var(--surface); border-bottom: 1px solid var(--border);">
+                {#if !generatingIdeas}
                   <button
-                    onclick={() => openEditForm(selected!)}
-                    class="mt-2 font-medium text-sm"
-                    style="color: var(--primary)"
-                  >Editar</button>
-                </div>
-              {/if}
-            </div>
-          {/if}
-
-          <!-- Feature 4 — Post history panel (desktop only, mobile uses info screen) -->
-          {#if clientPosts.length > 0}
-            <div class="shrink-0 border-b hidden md:block" style="border-color: var(--border)">
-              <button
-                onclick={() => { historyOpen = !historyOpen; }}
-                class="flex items-center gap-1 w-full px-5 py-3 text-left"
-              >
-                <span class="text-sm font-medium" style="color: var(--text-muted)">
-                  Histórico de posts ({clientPosts.length})
+                    onclick={() => { ideaDrafts = null; }}
+                    style="display: flex; align-items: center; gap: 4px; min-height: 60px; padding: 0 12px 0 0; font-size: 14px; font-weight: 500; color: var(--coral); flex-shrink: 0;"
+                  >
+                    <svg viewBox="0 0 20 20" fill="currentColor" width="20" height="20"><path fill-rule="evenodd" d="M12.707 5.293a1 1 0 010 1.414L9.414 10l3.293 3.293a1 1 0 01-1.414 1.414l-4-4a1 1 0 010-1.414l4-4a1 1 0 011.414 0z" clip-rule="evenodd"/></svg>
+                    Voltar
+                  </button>
+                {/if}
+                <span class="text-base font-semibold" style="color: var(--text)">
+                  {generatingIdeas ? 'Gerando ideias...' : 'Escolha uma ideia'}
                 </span>
-                <span class="text-sm ml-auto" style="color: var(--text-muted)">{historyOpen ? '▲' : '▼'}</span>
-              </button>
-              {#if historyOpen}
-                <div class="px-5 pb-3 flex flex-col gap-2 max-h-48 overflow-y-auto">
-                  {#each clientPosts.slice(0, historyLimit) as post (post.id)}
-                    {@const postExpanded = expandedPosts.has(post.id)}
-                    <div class="border-b last:border-0 py-2" style="border-color: var(--border)">
-                      <div class="flex items-center justify-between gap-2">
-                        <span class="text-sm" style="color: var(--text-muted)">
-                          {new Date(post.created).toLocaleDateString("pt-BR", { day: "numeric", month: "short" })}
-                        </span>
-                        <button
-                          onclick={async () => {
-                            await navigator.clipboard.writeText(post.caption + (post.hashtags?.length ? '\n\n' + post.hashtags.join(' ') : ''));
-                          }}
-                          class="text-sm shrink-0 py-1"
-                          style="color: var(--coral)"
-                        >Copiar</button>
-                      </div>
-                      <button
-                        onclick={() => {
-                          const next = new Set(expandedPosts);
-                          if (postExpanded) next.delete(post.id); else next.add(post.id);
-                          expandedPosts = next;
-                        }}
-                        class="text-sm text-left w-full mt-0.5"
-                        style="color: var(--text-secondary); display: -webkit-box; -webkit-box-orient: vertical; overflow: hidden; {postExpanded ? '' : '-webkit-line-clamp: 2'}"
-                      >
-                        {post.caption}
-                      </button>
-                      {#if postExpanded && post.production_note}
-                        <p class="text-sm italic mt-1" style="color: var(--text-muted)">{post.production_note}</p>
+              </div>
+              {#if generatingIdeas}
+                <div class="flex-1 flex flex-col items-center justify-center gap-4 p-8">
+                  <svg class="animate-spin" width="36" height="36" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="color: var(--coral)"><path d="M12 2v4M12 18v4M4.93 4.93l2.83 2.83M16.24 16.24l2.83 2.83M2 12h4M18 12h4M4.93 19.07l2.83-2.83M16.24 7.76l2.83-2.83"/></svg>
+                  <p class="text-base text-center" style="color: var(--text-muted)">Escrevendo 3 ideias<br>caprichadas pra você...</p>
+                </div>
+              {:else}
+                <div class="flex-1 overflow-y-auto p-4 flex flex-col gap-4">
+                  {#each ideaDrafts! as draft}
+                    <div class="rounded-2xl p-5" style="background: var(--surface); border: 1px solid var(--border)">
+                      <p class="text-base leading-relaxed" style="color: var(--text); white-space: pre-wrap">{draft.caption}</p>
+                      {#if draft.hashtags?.length}
+                        <p class="text-sm mt-3" style="color: var(--text-muted)">{draft.hashtags.join(' ')}</p>
                       {/if}
+                      <button
+                        onclick={() => { result = draft; isProactive = true; ideaDrafts = null; }}
+                        class="mt-4 w-full rounded-full text-base font-semibold"
+                        style="min-height: 52px; background: var(--coral); color: #fff;"
+                      >Usar este</button>
                     </div>
                   {/each}
-                  {#if clientPosts.length > historyLimit}
-                    <button
-                      onclick={() => { historyLimit = clientPosts.length; }}
-                      class="text-sm font-medium text-left py-1"
-                      style="color: var(--primary)"
-                    >
-                      Ver todos ({clientPosts.length})
-                    </button>
-                  {/if}
-                </div>
-              {/if}
-            </div>
-          {/if}
-
-          <!-- Engagement panel (nudge + seasonal) (desktop only, mobile uses info screen) -->
-          {#if nudgeTier || upcomingDates.length > 0 || nudgeText || summaryText}
-            <div
-              class="shrink-0 px-5 py-3 border-b overflow-y-auto hidden md:block"
-              style="border-color: var(--border); background: var(--bg); max-height: 38vh"
-            >
-              {#if nudgeTier || nudgeText}
-                <div class="mb-2">
-                  <button
-                    onclick={() => { nudgeOpen = !nudgeOpen; }}
-                    class="flex items-center gap-1 w-full text-left py-1"
-                  >
-                    <span class="text-sm font-medium" style="color: var(--text-muted)">
-                      {#if nudgeTier}
-                        Lembrete · {clientHealth[selected!.id]?.daysSinceMsg} dias sem mensagem
-                      {:else}
-                        Mensagem
-                      {/if}
-                    </span>
-                    <span class="text-sm ml-auto" style="color: var(--text-muted)">{nudgeOpen ? '▲' : '▼'}</span>
-                  </button>
-                  {#if nudgeOpen}
-                    <textarea
-                      bind:value={nudgeText}
-                      rows={2}
-                      class="w-full mt-1.5 px-3 py-3 rounded-xl text-base outline-none border resize-none"
-                      style="border-color: var(--border-strong); background: var(--surface); color: var(--text)"
-                    ></textarea>
-                    <div class="flex items-center gap-2 mt-2">
-                      <button
-                        onclick={sendNudge}
-                        disabled={sendingNudge || !nudgeText.trim() || !!blockReason}
-                        title={blockReason ?? undefined}
-                        class="px-5 py-3 rounded-full text-sm font-medium transition-opacity"
-                        style="background: #25D366; color: #fff; opacity: {sendingNudge || !nudgeText.trim() || blockReason ? '0.6' : '1'}; cursor: {sendingNudge || !nudgeText.trim() || blockReason ? 'not-allowed' : 'pointer'}"
-                      >
-                        {sendingNudge ? "Enviando..." : "Enviar lembrete"}
-                      </button>
-                      {#if blockReason && nudgeText.trim()}
-                        <span class="text-sm" style="color: var(--text-muted)">{blockReason}</span>
-                      {/if}
-                      {#if sendNudgeError}
-                        <span class="text-sm" style="color: var(--destructive)">{sendNudgeError}</span>
-                      {/if}
-                    </div>
-                  {/if}
-                </div>
-              {/if}
-
-              {#if upcomingDates.length > 0}
-                <div
-                  class={nudgeTier || nudgeText ? "pt-2 border-t" : ""}
-                  style="border-color: var(--border)"
-                >
-                  <span class="text-sm font-medium" style="color: var(--text-muted)">
-                    Datas próximas
-                  </span>
-                  <div class="flex flex-wrap gap-2 mt-2">
-                    {#each upcomingDates as sd}
-                      <button
-                        onclick={() => { prefillSeasonalMessage(sd.template); nudgeOpen = true; }}
-                        class="text-sm px-4 py-2.5 rounded-full border transition-colors hover:bg-(--coral-pale)"
-                        style="border-color: var(--border-strong); color: var(--text-secondary)"
-                        title={sd.template.replace(
-                          "{name}",
-                          selected!.client_name ? selected!.client_name.split(" ")[0] : selected!.name,
-                        )}
-                      >
-                        {sd.label} · {sd.daysUntil}d
-                      </button>
-                    {/each}
-                  </div>
-                </div>
-              {/if}
-
-              {#if summaryText}
-                <div
-                  class={nudgeTier || nudgeText || upcomingDates.length > 0 ? "pt-2 border-t" : ""}
-                  style="border-color: var(--border)"
-                >
-                  <button
-                    onclick={() => { summaryOpen = !summaryOpen; }}
-                    class="flex items-center gap-1 w-full text-left py-1"
-                  >
-                    <span class="text-sm font-medium" style="color: var(--text-muted)">
-                      Resumo mensal · {clientHealth[selected!.id]?.postsThisMonth ?? 0} posts este mês
-                    </span>
-                    <span class="text-sm ml-auto" style="color: var(--text-muted)">{summaryOpen ? '▲' : '▼'}</span>
-                  </button>
-                  {#if summaryOpen}
-                    <textarea
-                      bind:value={summaryText}
-                      rows={3}
-                      class="w-full mt-1.5 px-3 py-3 rounded-xl text-base outline-none border resize-none"
-                      style="border-color: var(--border-strong); background: var(--surface); color: var(--text)"
-                    ></textarea>
-                    <div class="flex items-center gap-2 mt-2">
-                      <button
-                        onclick={sendSummary}
-                        disabled={sendingSummary || !summaryText.trim() || !!blockReason}
-                        title={blockReason ?? undefined}
-                        class="px-5 py-3 rounded-full text-sm font-medium transition-opacity"
-                        style="background: #25D366; color: #fff; opacity: {sendingSummary || !summaryText.trim() || blockReason ? '0.6' : '1'}; cursor: {sendingSummary || !summaryText.trim() || blockReason ? 'not-allowed' : 'pointer'}"
-                      >
-                        {sendingSummary ? "Enviando..." : "Enviar resumo"}
-                      </button>
-                      {#if blockReason && summaryText.trim()}
-                        <span class="text-sm" style="color: var(--text-muted)">{blockReason}</span>
-                      {/if}
-                      {#if sendSummaryError}
-                        <span class="text-sm" style="color: var(--destructive)">{sendSummaryError}</span>
-                      {/if}
-                    </div>
-                  {/if}
                 </div>
               {/if}
             </div>
           {/if}
 
           <!-- Message thread -->
-          <div bind:this={threadEl} class="flex-1 overflow-y-auto px-5 py-4 flex flex-col gap-3">
+          <div bind:this={threadEl} class="flex-1 overflow-y-auto px-4 py-3 flex flex-col gap-2">
             {#if groupedMessages.length === 0}
               <p class="text-base text-center py-8" style="color: var(--text-muted)">
                 Nenhuma mensagem ainda.
@@ -2110,12 +1797,10 @@
                   <hr class="flex-1" style="border-color: var(--border)" />
                 </div>
                 {#each group.msgs as msg (msg.id)}
-                  <div
-                    class="flex {msg.direction === 'outgoing' ? 'justify-end' : 'justify-start'}"
-                  >
+                  <div class="flex {msg.direction === 'outgoing' ? 'justify-end' : 'justify-start'}">
                     <div
-                      class="max-w-md rounded-2xl px-4 py-3 text-base"
-                      style="background: {msg.direction === 'outgoing' ? 'var(--coral-pale)' : 'var(--surface)'}; border: 1px solid {msg.direction === 'outgoing' ? 'var(--coral-light)' : 'var(--border)'}; color: var(--text)"
+                      class="rounded-2xl px-4 py-3 text-base"
+                      style="max-width: 280px; background: {msg.direction === 'outgoing' ? 'var(--coral-pale)' : 'var(--surface)'}; border: 1px solid {msg.direction === 'outgoing' ? 'var(--coral-light)' : 'var(--border)'}; color: var(--text); line-height: 1.5;"
                     >
                       {#if msg.type === "audio"}
                         <span class="text-sm font-medium block mb-1" style="color: var(--text-muted)">Áudio transcrito</span>
@@ -2126,7 +1811,7 @@
                           src={mediaUrl(msg)}
                           alt="Imagem do cliente"
                           class="rounded-xl mb-2 max-w-full"
-                          style="max-height: 300px"
+                          style="max-height: 240px"
                         />
                       {/if}
 
@@ -2157,9 +1842,9 @@
             >
               <input
                 bind:value={quickReply}
-                placeholder="Resposta rápida..."
+                placeholder="Resposta rápida pelo WhatsApp..."
                 class="flex-1 px-4 py-3 rounded-xl text-base outline-none border"
-                style="border-color: var(--border-strong); background: var(--bg); color: var(--text)"
+                style="border-color: var(--border-strong); background: var(--bg); color: var(--text); min-height: 48px;"
                 onkeydown={(e) => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); sendQuickReply(); } }}
               />
               <button
@@ -2185,12 +1870,12 @@
 
           <!-- Generate panel (bottom) -->
           <div
-            class="shrink-0 border-t px-5 py-4 overflow-y-auto max-h-[30vh] md:max-h-[50vh]"
-            style="border-color: var(--border); background: var(--surface)"
+            class="shrink-0 border-t px-4 py-3 overflow-y-auto max-h-[30vh] md:max-h-[50vh]"
+            style="border-top: 2px solid var(--border-strong); background: var(--surface)"
           >
-            <!-- Feature 7 — idea drafts UI -->
+            <!-- Feature 7 — idea drafts UI (desktop only; mobile uses full-screen overlay above) -->
             {#if ideaDrafts !== null}
-              <div class="flex flex-col gap-3">
+              <div class="hidden md:flex flex-col gap-3">
                 <div class="flex items-center justify-between">
                   <span class="text-sm font-medium" style="color: var(--text-muted)">
                     Escolha uma ideia
@@ -2214,7 +1899,7 @@
                     </p>
                     <button
                       onclick={() => { result = draft; isProactive = true; ideaDrafts = null; }}
-                      class="mt-3 px-5 py-3 rounded-full text-sm font-medium"
+                      class="mt-3 px-5 py-2.5 rounded-full text-sm font-medium"
                       style="background: var(--coral); color: #fff"
                     >
                       Usar este
@@ -2224,47 +1909,54 @@
               </div>
             {:else}
               <!-- Standard generate panel -->
-              <div class="flex flex-col md:flex-row gap-3 md:items-end">
-                <div class="flex-1">
-                  <textarea
-                    bind:value={message}
-                    placeholder="Mensagem do cliente para gerar post..."
-                    rows={3}
-                    class="w-full px-4 py-3 rounded-xl text-base outline-none border resize-none"
-                    style="border-color: var(--border-strong); background: var(--bg); color: var(--text)"
-                  ></textarea>
-                </div>
-                <div class="flex flex-col gap-2">
-                  <!-- Feature 1 — "Usar conversa recente" -->
-                  {#if recentContext && message !== recentContext}
-                    <button
-                      onclick={prefillGenerate}
-                      class="text-sm px-4 py-2.5 rounded-full font-medium"
-                      style="background: var(--sage-pale); color: var(--text)"
-                    >
-                      Usar conversa recente
-                    </button>
-                  {/if}
-                  <!-- Feature 7 — "Gerar 3 ideias" -->
-                  {#if showGenerateIdeasButton}
-                    <button
-                      onclick={generateIdeas}
-                      disabled={generatingIdeas}
-                      class="text-sm px-4 py-2.5 rounded-full font-medium transition-opacity"
-                      style="background: var(--sage-pale); color: var(--text); opacity: {generatingIdeas ? '0.6' : '1'}"
-                    >
-                      {generatingIdeas ? "Gerando..." : "Gerar 3 ideias"}
-                    </button>
-                  {/if}
+              <span class="text-xs font-bold tracking-wider uppercase block mb-2" style="color: var(--text-muted)">Gerar post</span>
+              <textarea
+                bind:value={message}
+                placeholder="Mensagem do cliente..."
+                rows={2}
+                class="w-full px-4 py-3 rounded-xl text-base outline-none border resize-none"
+                style="border-color: var(--border-strong); background: var(--bg); color: var(--text)"
+              ></textarea>
+              <div class="flex gap-2 mt-2 items-center">
+                <!-- Feature 1 — "Usar conversa" -->
+                {#if recentContext && message !== recentContext}
                   <button
-                    onclick={generate}
-                    disabled={generating || !message.trim()}
-                    class="px-6 py-3 rounded-full text-base font-medium transition-opacity"
-                    style="background: var(--coral); color: #fff; opacity: {generating || !message.trim() ? '0.6' : '1'}; cursor: {generating || !message.trim() ? 'not-allowed' : 'pointer'}"
+                    onclick={prefillGenerate}
+                    class="text-sm px-4 rounded-full font-medium"
+                    style="min-height: 48px; background: var(--sage-pale); color: var(--text-secondary);"
                   >
-                    {generating ? "Gerando..." : "Gerar post"}
+                    Usar conversa
                   </button>
-                </div>
+                {/if}
+                <!-- Feature 7 — "3 ideias" -->
+                {#if showGenerateIdeasButton}
+                  <button
+                    onclick={generateIdeas}
+                    disabled={generatingIdeas || generating}
+                    class="text-sm px-4 rounded-full font-medium flex items-center gap-2"
+                    style="min-height: 48px; background: var(--sage-pale); color: var(--text-secondary); opacity: {generatingIdeas || generating ? '0.5' : '1'}"
+                  >
+                    {#if generatingIdeas}
+                      <svg class="animate-spin" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M12 2v4M12 18v4M4.93 4.93l2.83 2.83M16.24 16.24l2.83 2.83M2 12h4M18 12h4M4.93 19.07l2.83-2.83M16.24 7.76l2.83-2.83"/></svg>
+                      Gerando...
+                    {:else}
+                      3 ideias
+                    {/if}
+                  </button>
+                {/if}
+                <button
+                  onclick={generate}
+                  disabled={generating || generatingIdeas || !message.trim()}
+                  class="px-6 rounded-full text-base font-bold ml-auto flex items-center gap-2"
+                  style="min-height: 48px; background: var(--coral); color: #fff; opacity: {generating || !message.trim() ? '0.6' : '1'}; cursor: {generating || !message.trim() ? 'not-allowed' : 'pointer'}"
+                >
+                  {#if generating}
+                    <svg class="animate-spin" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M12 2v4M12 18v4M4.93 4.93l2.83 2.83M16.24 16.24l2.83 2.83M2 12h4M18 12h4M4.93 19.07l2.83-2.83M16.24 7.76l2.83-2.83"/></svg>
+                    Gerando...
+                  {:else}
+                    Gerar
+                  {/if}
+                </button>
               </div>
 
               {#if ideaError}
