@@ -13,7 +13,7 @@ import (
 
 const geminiEndpoint = "https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent"
 
-// Client calls the Gemini API for audio transcription.
+// Client calls the Gemini API for media transcription and description.
 type Client struct {
 	apiKey string
 	http   *http.Client
@@ -47,7 +47,66 @@ func (c *Client) Transcribe(ctx context.Context, audio []byte) (string, error) {
 			},
 		},
 	}
+	return c.call(ctx, reqBody)
+}
 
+// DescribeImage sends image bytes to Gemini and returns a Portuguese description.
+// caption is optional context provided by the sender; empty string means no caption.
+func (c *Client) DescribeImage(ctx context.Context, imageBytes []byte, mimeType, caption string) (string, error) {
+	prompt := "Descreva esta imagem em português de forma concisa, em uma ou duas frases."
+	if caption != "" {
+		prompt = fmt.Sprintf("Descreva esta imagem em português de forma concisa, em uma ou duas frases. O cliente enviou com a legenda: %q.", caption)
+	}
+
+	reqBody := map[string]any{
+		"contents": []map[string]any{
+			{
+				"parts": []map[string]any{
+					{
+						"inline_data": map[string]any{
+							"mime_type": mimeType,
+							"data":      base64.StdEncoding.EncodeToString(imageBytes),
+						},
+					},
+					{
+						"text": prompt,
+					},
+				},
+			},
+		},
+	}
+	return c.call(ctx, reqBody)
+}
+
+// DescribeVideo sends video bytes to Gemini and returns a Portuguese description.
+// caption is optional context provided by the sender; empty string means no caption.
+func (c *Client) DescribeVideo(ctx context.Context, videoBytes []byte, mimeType, caption string) (string, error) {
+	prompt := "Descreva este vídeo em português de forma concisa, em uma ou duas frases."
+	if caption != "" {
+		prompt = fmt.Sprintf("Descreva este vídeo em português de forma concisa, em uma ou duas frases. O cliente enviou com a legenda: %q.", caption)
+	}
+
+	reqBody := map[string]any{
+		"contents": []map[string]any{
+			{
+				"parts": []map[string]any{
+					{
+						"inline_data": map[string]any{
+							"mime_type": mimeType,
+							"data":      base64.StdEncoding.EncodeToString(videoBytes),
+						},
+					},
+					{
+						"text": prompt,
+					},
+				},
+			},
+		},
+	}
+	return c.call(ctx, reqBody)
+}
+
+func (c *Client) call(ctx context.Context, reqBody any) (string, error) {
 	body, err := json.Marshal(reqBody)
 	if err != nil {
 		return "", fmt.Errorf("marshal request: %w", err)

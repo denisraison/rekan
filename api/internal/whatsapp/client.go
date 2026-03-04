@@ -3,7 +3,9 @@ package whatsapp
 import (
 	"context"
 	"fmt"
+	"io"
 	"log/slog"
+	"net/http"
 	"sync"
 
 	"go.mau.fi/whatsmeow"
@@ -199,6 +201,30 @@ func (c *Client) SendChatPresence(ctx context.Context, jid types.JID, state type
 // Download downloads media from a message.
 func (c *Client) Download(ctx context.Context, msg whatsmeow.DownloadableMessage) ([]byte, error) {
 	return c.wac.Download(ctx, msg)
+}
+
+// GetProfilePicture fetches the profile picture URL for a JID. existingID is
+// the last known picture ID — if the picture hasn't changed, returns nil, nil.
+// Returns ErrProfilePictureNotSet or ErrProfilePictureUnauthorized without error
+// logging; the caller should treat these as "no picture available".
+func (c *Client) GetProfilePicture(ctx context.Context, jid types.JID, existingID string) (*types.ProfilePictureInfo, error) {
+	return c.wac.GetProfilePictureInfo(ctx, jid, &whatsmeow.GetProfilePictureParams{
+		ExistingID: existingID,
+	})
+}
+
+// DownloadURL fetches raw bytes from an HTTPS URL (used for profile pictures).
+func (c *Client) DownloadURL(ctx context.Context, url string) ([]byte, error) {
+	req, err := http.NewRequestWithContext(ctx, http.MethodGet, url, nil)
+	if err != nil {
+		return nil, err
+	}
+	resp, err := http.DefaultClient.Do(req)
+	if err != nil {
+		return nil, err
+	}
+	defer resp.Body.Close()
+	return io.ReadAll(resp.Body)
 }
 
 // ResolveLID resolves a LID JID to its phone number JID, or returns the input unchanged

@@ -1,0 +1,98 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=390, initial-scale=1">
+  <title>Novo Cliente</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Urbanist:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+  <script src="https://cdn.tailwindcss.com"></script>
+  <style>
+    :root {
+      --coral: #F97368; --coral-light: #FDDCDA; --coral-pale: #FFF3F2;
+      --sage: #87AA8C; --sage-light: #C8DEC9; --sage-pale: #F0F6F0;
+      --charcoal: #111116; --text: #111116; --text-secondary: #555566;
+      --text-muted: #999AAA; --bg: #FAFAF7; --surface: #FFFFFF;
+      --border: rgba(17,17,22,0.07); --border-strong: rgba(17,17,22,0.14);
+      --radius-sm: 6px; --radius-md: 12px; --radius-lg: 20px; --radius-full: 9999px;
+    }
+    * { font-family: 'Urbanist', system-ui, sans-serif; box-sizing: border-box; }
+    body { background: var(--bg); color: var(--text); margin: 0; width: 390px; height: 844px; overflow: hidden; display: flex; flex-direction: column; }
+    label { display: block; font-size: 14px; font-weight: 600; color: var(--text-secondary); margin-bottom: 6px; }
+    input, select { width: 100%; padding: 12px 14px; border: 1.5px solid var(--border-strong); border-radius: var(--radius-md); font-size: 16px; font-family: 'Urbanist', system-ui, sans-serif; background: var(--surface); color: var(--text); outline: none; min-height: 48px; appearance: none; -webkit-appearance: none; }
+    select { background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 24 24' fill='none' stroke='%23999AAA' stroke-width='2'%3E%3Cpath d='M6 9l6 6 6-6'/%3E%3C/svg%3E"); background-repeat: no-repeat; background-position: right 14px center; padding-right: 40px; }
+  </style>
+</head>
+<body>
+  <!-- Header -->
+  <div style="background: var(--surface); border-bottom: 1px solid var(--border); padding: 14px 20px; display: flex; align-items: center; gap: 12px; flex-shrink: 0;">
+    <button style="width: 40px; height: 40px; border-radius: 50%; border: none; background: var(--bg); display: flex; align-items: center; justify-content: center;">
+      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="var(--text-secondary)" stroke-width="2"><path d="M19 12H5M5 12l7-7M5 12l7 7"/></svg>
+    </button>
+    <span style="font-size: 20px; font-weight: 700;">Novo cliente</span>
+  </div>
+
+  <!-- Scrollable content -->
+  <div style="flex: 1; overflow-y: auto; padding: 20px 20px 0;">
+
+    <!-- Basic fields — compact -->
+    <p style="font-size: 12px; font-weight: 700; letter-spacing: 0.08em; color: var(--text-muted); text-transform: uppercase; margin: 0 0 14px;">Dados básicos</p>
+
+    <div style="margin-bottom: 12px;">
+      <label>Nome do negócio</label>
+      <input type="text" placeholder="ex: Salão da Mari" value="Salão da Mari">
+    </div>
+
+    <div style="margin-bottom: 12px;">
+      <label>Tipo de negócio</label>
+      <select>
+        <option selected>Salão de Beleza</option>
+        <option>Restaurante</option>
+        <option>Nail Designer</option>
+        <option>Confeitaria</option>
+        <option>Personal Trainer</option>
+      </select>
+    </div>
+
+    <div style="display: grid; grid-template-columns: 1fr 88px; gap: 10px; margin-bottom: 12px;">
+      <div>
+        <label>Cidade</label>
+        <input type="text" placeholder="Manaus" value="Manaus">
+      </div>
+      <div>
+        <label>Estado</label>
+        <select style="padding-left: 10px;"><option selected>AM</option><option>SP</option><option>RJ</option></select>
+      </div>
+    </div>
+
+    <div style="margin-bottom: 0;">
+      <label>Telefone (WhatsApp)</label>
+      <input type="tel" placeholder="(92) 99999-9999" value="(92) 98765-4321">
+    </div>
+
+    <!-- Recording widget -->
+    <div style="background: var(--coral-pale); border: 1.5px solid var(--coral-light); border-radius: var(--radius-lg); padding: 20px; display: flex; align-items: center; gap: 16px; margin-bottom: 12px;">
+      <button style="width: 72px; height: 72px; border-radius: 50%; background: var(--coral); border: none; display: flex; align-items: center; justify-content: center; cursor: pointer; flex-shrink: 0; box-shadow: 0 4px 16px rgba(249,115,104,0.35);">
+        <svg width="30" height="30" viewBox="0 0 24 24" fill="white">
+          <path d="M12 2a3 3 0 0 1 3 3v6a3 3 0 0 1-6 0V5a3 3 0 0 1 3-3z"/>
+          <path d="M19 10v1a7 7 0 0 1-14 0v-1M12 18v4M8 22h8" stroke="white" stroke-width="1.5" fill="none" stroke-linecap="round"/>
+        </svg>
+      </button>
+      <div>
+        <p style="font-size: 17px; font-weight: 700; margin: 0 0 4px;">Gravar descrição</p>
+        <p style="font-size: 14px; color: var(--text-secondary); margin: 0; line-height: 1.4;">Toca no microfone e fala sobre a cliente</p>
+      </div>
+    </div>
+
+    <div style="text-align: center; padding-bottom: 8px;">
+      <button style="border: none; background: none; color: var(--text-muted); font-size: 14px; font-family: 'Urbanist', sans-serif; cursor: pointer; padding: 10px 12px; text-decoration: underline; text-underline-offset: 3px;">Preencher manualmente</button>
+    </div>
+  </div>
+
+  <!-- Bottom bar -->
+  <div style="padding: 12px 20px 28px; background: var(--surface); border-top: 1px solid var(--border); flex-shrink: 0;">
+    <button style="width: 100%; height: 54px; background: rgba(17,17,22,0.08); border: none; border-radius: var(--radius-full); font-size: 17px; font-weight: 700; color: var(--text-muted); cursor: not-allowed; font-family: 'Urbanist', sans-serif;">Salvar cliente</button>
+    <p style="text-align: center; font-size: 13px; color: var(--text-muted); margin: 8px 0 0;">Grave a descrição ou preencha manualmente pra salvar</p>
+  </div>
+</body>
+</html>

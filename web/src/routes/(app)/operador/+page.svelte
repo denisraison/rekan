@@ -668,6 +668,19 @@
     );
   }
 
+  function profilePictureUrl(business: Business): string | null {
+    if (!business.profile_picture) return null;
+    return pb.files.getURL(
+      { id: business.id, collectionId: business.collectionId },
+      business.profile_picture,
+    );
+  }
+
+  function initials(business: Business): string {
+    const name = business.client_name || business.name;
+    return name.split(' ').slice(0, 2).map((w: string) => w[0]).join('').toUpperCase();
+  }
+
   // --- Client form logic ---
 
   function resetForm() {
@@ -1506,6 +1519,14 @@
                   <svg viewBox="0 0 20 20" fill="currentColor" width="20" height="20"><path fill-rule="evenodd" d="M12.707 5.293a1 1 0 010 1.414L9.414 10l3.293 3.293a1 1 0 01-1.414 1.414l-4-4a1 1 0 010-1.414l4-4a1 1 0 011.414 0z" clip-rule="evenodd" /></svg>
                   Voltar
                 </button>
+                <!-- Avatar -->
+                <div style="width: 44px; height: 44px; border-radius: 9999px; overflow: hidden; flex-shrink: 0; display: flex; align-items: center; justify-content: center; font-size: 16px; font-weight: 600; background: var(--coral-pale); color: var(--coral);">
+                  {#if profilePictureUrl(selected)}
+                    <img src={profilePictureUrl(selected)!} alt={selected.name} style="width: 100%; height: 100%; object-fit: cover;" />
+                  {:else}
+                    {initials(selected)}
+                  {/if}
+                </div>
                 <div style="flex: 1; min-width: 0;">
                   <div style="font-size: 17px; font-weight: 600; color: var(--text); overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">{selected.name}</div>
                   <div style="font-size: 14px; color: var(--text-secondary);">{selected.type} — {selected.city}/{selected.state}</div>
@@ -1728,15 +1749,25 @@
               <!-- Tappable name opens info screen -->
               <button
                 onclick={() => { mobileView = 'info'; }}
-                class="min-w-0 flex-1 text-left"
+                class="min-w-0 flex-1 flex items-center gap-3 text-left"
               >
-                <h2 class="text-base font-semibold truncate" style="color: var(--text)">
-                  {selected.name}
-                </h2>
-                <p class="text-sm" style="color: var(--text-secondary)">
-                  {selected.type} — {selected.city}/{selected.state}
-                  <span class="ml-1 text-xs" style="color: var(--text-muted)">›</span>
-                </p>
+                <!-- Avatar -->
+                <div class="shrink-0 w-9 h-9 rounded-full overflow-hidden flex items-center justify-center text-sm font-semibold" style="background: var(--coral-pale); color: var(--coral);">
+                  {#if profilePictureUrl(selected)}
+                    <img src={profilePictureUrl(selected)!} alt={selected.name} class="w-full h-full object-cover" />
+                  {:else}
+                    {initials(selected)}
+                  {/if}
+                </div>
+                <div class="min-w-0">
+                  <h2 class="text-base font-semibold truncate" style="color: var(--text)">
+                    {selected.name}
+                  </h2>
+                  <p class="text-sm" style="color: var(--text-secondary)">
+                    {selected.type} — {selected.city}/{selected.state}
+                    <span class="ml-1 text-xs" style="color: var(--text-muted)">›</span>
+                  </p>
+                </div>
               </button>
             </div>
           </div>
@@ -1813,6 +1844,18 @@
                           class="rounded-xl mb-2 max-w-full"
                           style="max-height: 240px"
                         />
+                      {/if}
+
+                      {#if msg.type === "video" && msg.media}
+                        <!-- svelte-ignore a11y_media_has_caption -->
+                        <video
+                          src={mediaUrl(msg)}
+                          controls
+                          class="rounded-xl mb-2 max-w-full"
+                          style="max-height: 240px"
+                        >
+                          Vídeo do cliente
+                        </video>
                       {/if}
 
                       {#if msg.content}

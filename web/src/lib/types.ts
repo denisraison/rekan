@@ -21,6 +21,7 @@ export type Commitment = 'mensal' | 'trimestral';
 
 export interface Business {
 	id: string;
+	collectionId: string;
 	name: string;
 	type: string;
 	city: string;
@@ -43,6 +44,7 @@ export interface Business {
 	next_charge_date: string;
 	charge_pending: boolean;
 	terms_accepted_at: string;
+	profile_picture: string;
 }
 
 export interface GeneratedPost {
@@ -55,7 +57,7 @@ export interface Message {
 	id: string;
 	business: string;
 	phone: string;
-	type: 'text' | 'audio' | 'image';
+	type: 'text' | 'audio' | 'image' | 'video';
 	content: string;
 	media: string;
 	direction: 'incoming' | 'outgoing';

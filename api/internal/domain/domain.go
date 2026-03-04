@@ -39,6 +39,7 @@ const (
 	MsgTypeText  = "text"
 	MsgTypeAudio = "audio"
 	MsgTypeImage = "image"
+	MsgTypeVideo = "video"
 )
 
 // BillingType values for Asaas charges.

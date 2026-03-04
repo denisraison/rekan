@@ -2,9 +2,12 @@ package whatsapp
 
 import (
 	"context"
+	"errors"
 	"log/slog"
 	"time"
 
+	"go.mau.fi/whatsmeow"
+	"go.mau.fi/whatsmeow/types"
 	"go.mau.fi/whatsmeow/types/events"
 
 	"github.com/denisraison/rekan/api/internal/domain"
@@ -69,7 +72,7 @@ func handleMessage(deps HandlerDeps, evt *events.Message) {
 	waMessageID := string(evt.Info.ID)
 	waTimestamp := evt.Info.Timestamp
 
-	var msgType, content string
+	var msgType, content, extraCaption string
 	var mediaFile *filesystem.File
 
 	switch {
@@ -84,10 +87,18 @@ func handleMessage(deps HandlerDeps, evt *events.Message) {
 		content = transcribeAudio(ctx, deps, evt)
 	case msg.GetImageMessage() != nil:
 		msgType = domain.MsgTypeImage
-		if msg.GetImageMessage().GetCaption() != "" {
-			content = msg.GetImageMessage().GetCaption()
+		var caption string
+		content, caption, mediaFile = processImage(ctx, deps, evt)
+		if caption != "" {
+			extraCaption = caption
 		}
-		mediaFile = downloadImage(ctx, deps, evt)
+	case msg.GetVideoMessage() != nil:
+		msgType = domain.MsgTypeVideo
+		var caption string
+		content, caption, mediaFile = processVideo(ctx, deps, evt)
+		if caption != "" {
+			extraCaption = caption
+		}
 	default:
 		return
 	}
@@ -100,6 +111,12 @@ func handleMessage(deps HandlerDeps, evt *events.Message) {
 
 	// Find or create a business for this phone number.
 	businessID := findOrCreateBusiness(deps, phone, pushName)
+
+	// Refresh profile picture for incoming messages (we know the sender JID).
+	if direction == domain.DirectionIncoming && deps.Client != nil {
+		senderJID := types.JID{User: phone, Server: "s.whatsapp.net"}
+		go refreshProfilePicture(deps, businessID, senderJID)
+	}
 
 	collection, err := deps.App.FindCachedCollectionByNameOrId(domain.CollMessages)
 	if err != nil {
@@ -124,6 +141,24 @@ func handleMessage(deps HandlerDeps, evt *events.Message) {
 
 	if err := deps.App.Save(record); err != nil {
 		deps.Logger.Error("whatsapp: failed to save message", "error", err)
+	}
+
+	// If the media message carried a caption, save it as a separate text message
+	// so the operator sees both the media and the client's own words.
+	if extraCaption != "" {
+		captionRecord := core.NewRecord(collection)
+		if businessID != "" {
+			captionRecord.Set("business", businessID)
+		}
+		captionRecord.Set("phone", phone)
+		captionRecord.Set("type", domain.MsgTypeText)
+		captionRecord.Set("content", extraCaption)
+		captionRecord.Set("direction", direction)
+		captionRecord.Set("wa_timestamp", waTimestamp.UTC().Format(time.RFC3339))
+		captionRecord.Set("wa_message_id", waMessageID+"_caption")
+		if err := deps.App.Save(captionRecord); err != nil {
+			deps.Logger.Error("whatsapp: failed to save caption message", "error", err)
+		}
 	}
 }
 
@@ -198,20 +233,61 @@ func transcribeAudio(ctx context.Context, deps HandlerDeps, evt *events.Message)
 	return text
 }
 
-func downloadImage(ctx context.Context, deps HandlerDeps, evt *events.Message) *filesystem.File {
+func processVideo(ctx context.Context, deps HandlerDeps, evt *events.Message) (description, caption string, file *filesystem.File) {
+	vid := evt.Message.GetVideoMessage()
+	if vid == nil {
+		return "", "", nil
+	}
+
+	data, err := deps.Client.Download(ctx, vid)
+	if err != nil {
+		deps.Logger.Error("whatsapp: failed to download video", "error", err)
+		return "", "", nil
+	}
+
+	mimeType := vid.GetMimetype()
+	ext := ".mp4"
+	if mimeType == "video/3gpp" {
+		ext = ".3gp"
+	}
+
+	filename := string(evt.Info.ID) + ext
+	f, err := filesystem.NewFileFromBytes(data, filename)
+	if err != nil {
+		deps.Logger.Error("whatsapp: failed to create file from bytes", "error", err)
+		return "", "", nil
+	}
+
+	caption = vid.GetCaption()
+	description = caption // fallback if Gemini is unavailable
+
+	if deps.Transcribe != nil {
+		desc, err := deps.Transcribe.DescribeVideo(ctx, data, mimeType, caption)
+		if err != nil {
+			deps.Logger.Error("whatsapp: failed to describe video", "error", err)
+		} else {
+			description = desc
+		}
+	}
+
+	return description, caption, f
+}
+
+func processImage(ctx context.Context, deps HandlerDeps, evt *events.Message) (description, caption string, file *filesystem.File) {
 	img := evt.Message.GetImageMessage()
 	if img == nil {
-		return nil
+		return "", "", nil
 	}
 
 	data, err := deps.Client.Download(ctx, img)
 	if err != nil {
 		deps.Logger.Error("whatsapp: failed to download image", "error", err)
-		return nil
+		return "", "", nil
 	}
 
+	mimeType := img.GetMimetype()
 	ext := ".jpg"
-	switch img.GetMimetype() {
+	switch mimeType {
 	case "image/png":
 		ext = ".png"
 	case "image/webp":
@@ -222,8 +298,80 @@ func downloadImage(ctx context.Context, deps HandlerDeps, evt *events.Message) *
 	f, err := filesystem.NewFileFromBytes(data, filename)
 	if err != nil {
 		deps.Logger.Error("whatsapp: failed to create file from bytes", "error", err)
-		return nil
+		return "", "", nil
 	}
 
-	return f
+	caption = img.GetCaption()
+	description = caption // fallback if Gemini is unavailable
+
+	if deps.Transcribe != nil {
+		desc, err := deps.Transcribe.DescribeImage(ctx, data, mimeType, caption)
+		if err != nil {
+			deps.Logger.Error("whatsapp: failed to describe image", "error", err)
+		} else {
+			description = desc
+		}
+	}
+
+	return description, caption, f
+}
+
+// refreshProfilePicture fetches the WhatsApp profile picture for jid and stores
+// it on the business record. It skips the fetch if the picture was updated less
+// than 7 days ago and hasn't changed on WhatsApp. Runs in a goroutine.
+func refreshProfilePicture(deps HandlerDeps, businessID string, jid types.JID) {
+	if businessID == "" || deps.Client == nil {
+		return
+	}
+
+	ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
+	defer cancel()
+
+	business, err := deps.App.FindRecordById(domain.CollBusinesses, businessID)
+	if err != nil {
+		return
+	}
+
+	// Skip if refreshed within the last 7 days.
+	updatedAt := business.GetDateTime("profile_picture_updated")
+	if !updatedAt.IsZero() && time.Since(updatedAt.Time()) < 7*24*time.Hour {
+		return
+	}
+
+	existingID := business.GetString("profile_picture_id")
+	info, err := deps.Client.GetProfilePicture(ctx, jid, existingID)
+	if err != nil {
+		// Not-set and unauthorized are expected; anything else is worth logging.
+		if !errors.Is(err, whatsmeow.ErrProfilePictureNotSet) && !errors.Is(err, whatsmeow.ErrProfilePictureUnauthorized) {
+			deps.Logger.Warn("whatsapp: could not fetch profile picture", "phone", jid.User, "error", err)
+		}
+		// Still update the timestamp so we don't hammer the API on every message.
+		business.Set("profile_picture_updated", time.Now().UTC().Format(time.RFC3339))
+		_ = deps.App.Save(business)
+		return
+	}
+	if info == nil {
+		// Picture unchanged since last fetch.
+		return
+	}
+
+	data, err := deps.Client.DownloadURL(ctx, info.URL)
+	if err != nil {
+		deps.Logger.Warn("whatsapp: could not download profile picture", "phone", jid.User, "error", err)
+		return
+	}
+
+	f, err := filesystem.NewFileFromBytes(data, jid.User+"_avatar.jpg")
+	if err != nil {
+		deps.Logger.Error("whatsapp: failed to create profile picture file", "error", err)
+		return
+	}
+
+	business.Set("profile_picture", f)
+	business.Set("profile_picture_id", info.ID)
+	business.Set("profile_picture_updated", time.Now().UTC().Format(time.RFC3339))
+
+	if err := deps.App.Save(business); err != nil {
+		deps.Logger.Error("whatsapp: failed to save profile picture", "phone", jid.User, "error", err)
+	}
 }
