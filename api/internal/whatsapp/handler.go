@@ -12,27 +12,18 @@ import (
 
 	"github.com/denisraison/rekan/api/internal/domain"
 	"github.com/denisraison/rekan/api/internal/transcribe"
+	"github.com/denisraison/rekan/eval"
 	"github.com/pocketbase/pocketbase/core"
 	"github.com/pocketbase/pocketbase/tools/filesystem"
 )
-
-// ExtractSignalFunc checks whether a WhatsApp message contains profile-relevant information.
-// Returns nil when the message has no useful signal. Matches eval.ExtractSignalFunc.
-type ExtractSignalFunc func(ctx context.Context, message, businessType string) (*ProfileSignal, error)
-
-// ProfileSignal is a profile-relevant signal extracted from a WhatsApp message.
-type ProfileSignal struct {
-	Field string // "services", "quirks", "target_audience", "brand_vibe"
-	Value string // for services: "Name|price_brl"; for others: plain text
-}
 
 // HandlerDeps holds dependencies for the message event handler.
 type HandlerDeps struct {
 	Client        *Client
 	App           core.App
 	Logger        *slog.Logger
-	Transcribe    *transcribe.Client  // nil if GEMINI_API_KEY not set
-	ExtractSignal ExtractSignalFunc   // nil if GEMINI_API_KEY not set
+	Transcribe    *transcribe.Client     // nil if GEMINI_API_KEY not set
+	ExtractSignal eval.ExtractSignalFunc // nil if GEMINI_API_KEY not set
 }
 
 // RegisterMessageHandler wires incoming WhatsApp messages to PocketBase storage.
@@ -121,7 +112,7 @@ func handleMessage(deps HandlerDeps, evt *events.Message) {
 	}
 
 	// Find or create a business for this phone number.
-	businessID := findOrCreateBusiness(deps, phone, pushName)
+	businessID, inviteStatus, businessType := findOrCreateBusiness(deps, phone, pushName)
 
 	// Refresh profile picture for incoming messages (we know the sender JID).
 	if direction == domain.DirectionIncoming && deps.Client != nil {
@@ -155,8 +146,8 @@ func handleMessage(deps HandlerDeps, evt *events.Message) {
 	}
 
 	// Check incoming text messages for profile-relevant signals.
-	if direction == domain.DirectionIncoming && len(content) >= 20 && businessID != "" && deps.ExtractSignal != nil {
-		go extractAndSaveSignal(deps, businessID, content)
+	if direction == domain.DirectionIncoming && len(content) >= 20 && businessID != "" && deps.ExtractSignal != nil && inviteStatus == domain.InviteStatusActive {
+		go extractAndSaveSignal(deps, businessID, businessType, content)
 	}
 
 	// If the media message carried a caption, save it as a separate text message
@@ -178,10 +169,10 @@ func handleMessage(deps HandlerDeps, evt *events.Message) {
 	}
 }
 
-// findOrCreateBusiness returns the business ID for the given phone number,
-// creating a placeholder business if none exists yet. pushName is the sender's
-// WhatsApp display name (empty for outgoing messages).
-func findOrCreateBusiness(deps HandlerDeps, phone, pushName string) string {
+// findOrCreateBusiness returns the business ID, invite status, and type for the given
+// phone number, creating a placeholder business if none exists yet. pushName is the
+// sender's WhatsApp display name (empty for outgoing messages).
+func findOrCreateBusiness(deps HandlerDeps, phone, pushName string) (id, inviteStatus, businessType string) {
 	business, _ := deps.App.FindFirstRecordByFilter(domain.CollBusinesses, "phone = {:phone}", map[string]any{"phone": phone})
 	if business != nil {
 		// Update name if the placeholder still uses the raw phone and we now have a real name.
@@ -192,13 +183,13 @@ func findOrCreateBusiness(deps HandlerDeps, phone, pushName string) string {
 				deps.Logger.Error("whatsapp: failed to update placeholder name", "phone", phone, "error", err)
 			}
 		}
-		return business.Id
+		return business.Id, business.GetString("invite_status"), business.GetString("type")
 	}
 
 	collection, err := deps.App.FindCachedCollectionByNameOrId(domain.CollBusinesses)
 	if err != nil {
 		deps.Logger.Error("whatsapp: businesses collection not found", "error", err)
-		return ""
+		return "", "", ""
 	}
 
 	name := "+" + phone
@@ -216,11 +207,11 @@ func findOrCreateBusiness(deps HandlerDeps, phone, pushName string) string {
 
 	if err := deps.App.Save(record); err != nil {
 		deps.Logger.Error("whatsapp: failed to create placeholder business", "phone", phone, "error", err)
-		return ""
+		return "", "", ""
 	}
 
 	deps.Logger.Info("whatsapp: created placeholder business", "phone", phone, "name", name)
-	return record.Id
+	return record.Id, "", "Desconhecido"
 }
 
 func transcribeAudio(ctx context.Context, deps HandlerDeps, evt *events.Message) string {
@@ -334,18 +325,9 @@ func processImage(ctx context.Context, deps HandlerDeps, evt *events.Message) (d
 
 // extractAndSaveSignal checks whether the message content contains profile-relevant
 // information and saves a profile_suggestions row when it does. Runs in a goroutine.
-func extractAndSaveSignal(deps HandlerDeps, businessID, content string) {
+func extractAndSaveSignal(deps HandlerDeps, businessID, businessType, content string) {
 	ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
 	defer cancel()
-
-	business, err := deps.App.FindRecordById(domain.CollBusinesses, businessID)
-	if err != nil {
-		return
-	}
-	if business.GetString("invite_status") != domain.InviteStatusActive {
-		return
-	}
-	businessType := business.GetString("type")
 
 	signal, err := deps.ExtractSignal(ctx, content, businessType)
 	if err != nil {

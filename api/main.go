@@ -17,8 +17,8 @@ import (
 	"github.com/denisraison/rekan/api/internal/operator"
 	"github.com/denisraison/rekan/api/internal/transcribe"
 	"github.com/denisraison/rekan/api/internal/whatsapp"
-	"github.com/denisraison/rekan/eval"
 	_ "github.com/denisraison/rekan/api/migrations"
+	"github.com/denisraison/rekan/eval"
 )
 
 func main() {
@@ -62,16 +62,10 @@ func run(ctx context.Context, getenv func(string) string) error {
 			app.Logger().Warn("whatsapp client failed to init", "error", err)
 		} else {
 			var whisperClient *transcribe.Client
-			var extractSignal whatsapp.ExtractSignalFunc
+			var extractSignal eval.ExtractSignalFunc
 			if key := getenv("GEMINI_API_KEY"); key != "" {
 				whisperClient = transcribe.NewClient(key)
-				extractSignal = func(ctx context.Context, message, businessType string) (*whatsapp.ProfileSignal, error) {
-					sig, err := eval.ExtractProfileSignal(ctx, message, businessType)
-					if err != nil || sig == nil {
-						return nil, err
-					}
-					return &whatsapp.ProfileSignal{Field: sig.Field, Value: sig.Value}, nil
-				}
+				extractSignal = eval.ExtractProfileSignal
 			}
 			whatsapp.RegisterMessageHandler(whatsapp.HandlerDeps{
 				Client:        wac,
