@@ -61,7 +61,7 @@
               pname = "rekan-web";
               version = "0.1.0";
               src = ./web;
-              hash = "sha256-NEDrn34DMoN5CpYLhosCD8rUvs3yj+RToNTqZPgTZUo=";
+              hash = "sha256-tfByhcdwjvXIU/IJkOLun8E7XxvoAPc64jSPKWS3heI=";
               fetcherVersion = 3;
             };
             buildPhase = let

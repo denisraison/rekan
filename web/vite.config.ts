@@ -17,7 +17,8 @@ export default defineConfig({
 			devOptions: { enabled: true },
 			workbox: {
 				navigateFallback: '/200.html',
-				globPatterns: ['**/*.{js,css,html,svg,png,woff2}']
+				globPatterns: ['**/*.{js,css,html,svg,png,woff2}'],
+				globIgnores: ['demo/**']
 			},
 			manifest: {
 				name: 'Rekan',
