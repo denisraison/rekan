@@ -307,6 +307,42 @@ func (t *PostClassView) Type() (baml.Type, error) {
 	return t.inner.Type()
 }
 
+type ProfileSignalClassView struct {
+	inner baml.ClassBuilder
+}
+
+func (t *ProfileSignalClassView) ListProperties() ([]ClassPropertyView, error) {
+	result, err := t.inner.ListProperties()
+	if err != nil {
+		return nil, err
+	}
+	builders := make([]ClassPropertyView, len(result))
+	for i, p := range result {
+		builders[i] = p
+	}
+	return builders, nil
+}
+
+func (t *ProfileSignalClassView) PropertyField() (ClassPropertyView, error) {
+	return t.inner.Property("field")
+}
+
+func (t *ProfileSignalClassView) PropertyValue() (ClassPropertyView, error) {
+	return t.inner.Property("value")
+}
+
+func (t *TypeBuilder) ProfileSignal() (*ProfileSignalClassView, error) {
+	bld, err := t.inner.Class("ProfileSignal")
+	if err != nil {
+		return nil, err
+	}
+	return &ProfileSignalClassView{inner: bld}, nil
+}
+
+func (t *ProfileSignalClassView) Type() (baml.Type, error) {
+	return t.inner.Type()
+}
+
 type ServiceClassView struct {
 	inner baml.ClassBuilder
 }

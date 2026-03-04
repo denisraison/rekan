@@ -62,14 +62,23 @@ func run(ctx context.Context, getenv func(string) string) error {
 			app.Logger().Warn("whatsapp client failed to init", "error", err)
 		} else {
 			var whisperClient *transcribe.Client
+			var extractSignal whatsapp.ExtractSignalFunc
 			if key := getenv("GEMINI_API_KEY"); key != "" {
 				whisperClient = transcribe.NewClient(key)
+				extractSignal = func(ctx context.Context, message, businessType string) (*whatsapp.ProfileSignal, error) {
+					sig, err := eval.ExtractProfileSignal(ctx, message, businessType)
+					if err != nil || sig == nil {
+						return nil, err
+					}
+					return &whatsapp.ProfileSignal{Field: sig.Field, Value: sig.Value}, nil
+				}
 			}
 			whatsapp.RegisterMessageHandler(whatsapp.HandlerDeps{
-				Client:     wac,
-				App:        app,
-				Logger:     app.Logger(),
-				Transcribe: whisperClient,
+				Client:        wac,
+				App:           app,
+				Logger:        app.Logger(),
+				Transcribe:    whisperClient,
+				ExtractSignal: extractSignal,
 			})
 			if err := wac.Connect(ctx); err != nil {
 				app.Logger().Warn("whatsapp connect failed", "error", err)

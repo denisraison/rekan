@@ -416,6 +416,54 @@ func (c Post) BamlTypeName() string {
 	return "Post"
 }
 
+type ProfileSignal struct {
+	Field *string `json:"field"`
+	Value *string `json:"value"`
+}
+
+func (c *ProfileSignal) Decode(holder *cffi.CFFIValueClass, typeMap baml.TypeMap) {
+	typeName := holder.Name
+	if typeName.Namespace != cffi.CFFITypeNamespace_STREAM_TYPES {
+		panic(fmt.Sprintf("expected cffi.CFFITypeNamespace_STREAM_TYPES, got %s", string(typeName.Namespace.String())))
+	}
+	if typeName.Name != "ProfileSignal" {
+		panic(fmt.Sprintf("expected ProfileSignal, got %s", typeName.Name))
+	}
+
+	for _, field := range holder.Fields {
+		key := field.Key
+		valueHolder := field.Value
+		switch key {
+
+		case "field":
+			c.Field = baml.Decode(valueHolder).Interface().(*string)
+
+		case "value":
+			c.Value = baml.Decode(valueHolder).Interface().(*string)
+
+		default:
+
+			panic(fmt.Sprintf("unexpected field: %s in class ProfileSignal", key))
+
+		}
+	}
+
+}
+
+func (c ProfileSignal) Encode() (*cffi.HostValue, error) {
+	fields := map[string]any{}
+
+	fields["field"] = c.Field
+
+	fields["value"] = c.Value
+
+	return baml.EncodeClass("ProfileSignal", fields, nil)
+}
+
+func (c ProfileSignal) BamlTypeName() string {
+	return "ProfileSignal"
+}
+
 type Service struct {
 	Name     *string  `json:"name"`
 	PriceBRL *float64 `json:"priceBRL"`

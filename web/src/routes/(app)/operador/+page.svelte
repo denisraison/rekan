@@ -8,6 +8,7 @@
     GeneratedPost,
     Message,
     Post,
+    ProfileSuggestion,
     ScheduledMessage,
     Service,
     WAStatus,
@@ -211,6 +212,12 @@
   let showApprovalPanel = $state(false);
   let approvingId = $state<string | null>(null);
   let dismissingId = $state<string | null>(null);
+
+  // Profile suggestions (Wave 3)
+  let suggestions = $state<ProfileSuggestion[]>([]);
+  let suggestionCounts = $state<Record<string, number>>({});
+  let suggestionsOpen = $state(false);
+  let unsubscribeSuggestions: (() => void) | null = null;
 
   // Nudge / engagement
   let clientFilter = $state<"todos" | "inativos" | "com_mensagens" | "sazonal" | "cobranca">("todos");
@@ -475,8 +482,8 @@
     // Load all messages and posts
     await Promise.all([loadMessages(), loadPosts()]);
 
-    // Load scheduled messages count
-    await loadScheduledMessages();
+    // Load scheduled messages count and suggestion badges in parallel
+    await Promise.all([loadScheduledMessages(), loadAllSuggestionCounts()]);
 
     // Subscribe to realtime updates
     unsubscribeMessages = await pb
@@ -525,6 +532,21 @@
         await loadScheduledMessages();
       });
 
+    unsubscribeSuggestions = await pb
+      .collection("profile_suggestions")
+      .subscribe<ProfileSuggestion>("*", (e) => {
+        if (e.action === "create" && !e.record.dismissed) {
+          const biz = e.record.business;
+          suggestionCounts = { ...suggestionCounts, [biz]: (suggestionCounts[biz] ?? 0) + 1 };
+          if (biz === selectedId) {
+            suggestions = [...suggestions, e.record];
+          }
+        } else if (e.action === "update" && e.record.dismissed) {
+          decrementSuggestionCount(e.record.business);
+          suggestions = suggestions.filter((s) => s.id !== e.record.id);
+        }
+      });
+
     connectWhatsAppStream();
   });
 
@@ -546,11 +568,21 @@
     if (threadEl) threadEl.scrollTop = threadEl.scrollHeight;
   });
 
+  $effect(() => {
+    suggestionsOpen = false;
+    if (selectedId) {
+      loadSuggestions(selectedId);
+    } else {
+      suggestions = [];
+    }
+  });
+
   onDestroy(() => {
     unsubscribeMessages?.();
     unsubscribeBusinesses?.();
     unsubscribePosts?.();
     unsubscribeScheduledMessages?.();
+    unsubscribeSuggestions?.();
     waAbortController?.abort();
   });
 
@@ -606,6 +638,81 @@
     } catch {
       // non-critical
     }
+  }
+
+  async function loadAllSuggestionCounts() {
+    try {
+      const res = await pb.collection("profile_suggestions").getList<ProfileSuggestion>(1, 500, {
+        filter: "dismissed = false",
+        fields: "business",
+      });
+      const counts: Record<string, number> = {};
+      for (const s of res.items) {
+        counts[s.business] = (counts[s.business] ?? 0) + 1;
+      }
+      suggestionCounts = counts;
+    } catch {
+      // non-critical
+    }
+  }
+
+  async function loadSuggestions(businessId: string) {
+    try {
+      const res = await pb.collection("profile_suggestions").getList<ProfileSuggestion>(1, 50, {
+        filter: `business = "${businessId}" && dismissed = false`,
+        sort: "created",
+      });
+      if (selectedId !== businessId) return;
+      suggestions = res.items;
+    } catch {
+      if (selectedId === businessId) suggestions = [];
+    }
+  }
+
+  function decrementSuggestionCount(businessId: string) {
+    suggestionCounts = {
+      ...suggestionCounts,
+      [businessId]: Math.max(0, (suggestionCounts[businessId] ?? 1) - 1),
+    };
+  }
+
+  async function acceptSuggestion(sug: ProfileSuggestion) {
+    const business = clients.find((c) => c.id === sug.business);
+    if (!business) return;
+
+    const update: Record<string, unknown> = {};
+    if (sug.field === "services") {
+      const parts = sug.suggestion.split("|");
+      const name = parts[0]?.trim() ?? sug.suggestion;
+      const price = parseFloat(parts[1] ?? "0") || 0;
+      update.services = [...(business.services ?? []), { name, price_brl: price }];
+    } else if (sug.field === "quirks") {
+      const existing = business.quirks ?? "";
+      update.quirks = existing ? existing + "\n" + sug.suggestion : sug.suggestion;
+    } else if (sug.field === "target_audience") {
+      const existing = business.target_audience ?? "";
+      update.target_audience = existing ? existing + ", " + sug.suggestion : sug.suggestion;
+    } else if (sug.field === "brand_vibe") {
+      const existing = business.brand_vibe ?? "";
+      update.brand_vibe = existing ? existing + ", " + sug.suggestion : sug.suggestion;
+    } else {
+      return;
+    }
+
+    await Promise.all([
+      pb.collection("businesses").update<Business>(business.id, update),
+      pb.collection("profile_suggestions").update(sug.id, { dismissed: true }),
+    ]);
+
+    clients = clients.map((c) => (c.id === business.id ? ({ ...c, ...update } as Business) : c));
+    suggestions = suggestions.filter((s) => s.id !== sug.id);
+    decrementSuggestionCount(sug.business);
+  }
+
+  async function dismissSuggestion(sug: ProfileSuggestion) {
+    await pb.collection("profile_suggestions").update(sug.id, { dismissed: true });
+    suggestions = suggestions.filter((s) => s.id !== sug.id);
+    decrementSuggestionCount(sug.business);
   }
 
   function selectClient(id: string) {
@@ -795,7 +902,7 @@
       recordingChunks = [];
       recorder.ondataavailable = (e) => { if (e.data.size > 0) recordingChunks.push(e.data); };
       recorder.onstop = async () => {
-        stream.getTracks().forEach((t) => t.stop());
+        for (const t of stream.getTracks()) t.stop();
         const blob = new Blob(recordingChunks, { type: recorder.mimeType || 'audio/webm' });
         await extractVoiceProfile(blob, recorder.mimeType || 'audio/webm');
       };
@@ -804,8 +911,15 @@
       recordingSeconds = 0;
       recordingTimer = setInterval(() => recordingSeconds++, 1000);
       voiceMode = 'recording';
-    } catch {
-      voiceError = 'Não foi possível acessar o microfone. Preencha os campos manualmente.';
+    } catch (err) {
+      const name = err instanceof DOMException ? err.name : '';
+      if (name === 'NotAllowedError' || name === 'PermissionDeniedError') {
+        voiceError = 'Permissão do microfone negada. Permita o acesso nas configurações do navegador ou preencha os campos manualmente.';
+      } else if (!navigator.mediaDevices) {
+        voiceError = 'O microfone requer uma conexão segura (HTTPS). Preencha os campos manualmente.';
+      } else {
+        voiceError = 'Não foi possível acessar o microfone. Preencha os campos manualmente.';
+      }
       voiceMode = 'manual';
     }
   }
@@ -1358,6 +1472,13 @@
                         {unread}
                       </span>
                     {/if}
+                    {#if (suggestionCounts[client.id] ?? 0) > 0}
+                      <span
+                        class="shrink-0 ml-1"
+                        title="Sugestões de perfil pendentes"
+                        style="width: 8px; height: 8px; border-radius: 9999px; background: var(--sage); display: inline-block;"
+                      ></span>
+                    {/if}
                   </div>
                   <div class="flex items-center justify-between mt-1 pl-5 gap-2">
                     <span class="text-sm truncate" style="color: var(--text-muted); min-width: 0;">{client.type} · {client.city}</span>
@@ -1743,6 +1864,42 @@
                   </div>
                 {/if}
 
+                <!-- Section: Sugestões de Perfil -->
+                {#if suggestions.length > 0}
+                  <button
+                    onclick={() => { suggestionsOpen = !suggestionsOpen; }}
+                    style="width: 100%; display: flex; align-items: center; justify-content: space-between; padding: 14px 20px 8px; background: var(--bg); border-top: 1px solid var(--border); border-left: none; border-right: none; border-bottom: none; cursor: pointer;"
+                  >
+                    <div style="display: flex; align-items: center; gap: 8px;">
+                      <span style="font-size: 11px; font-weight: 700; letter-spacing: 0.08em; text-transform: uppercase; color: var(--sage-dark);">Sugestões de perfil</span>
+                      <span style="font-size: 12px; font-weight: 700; padding: 1px 7px; border-radius: 9999px; background: var(--sage); color: #fff;">{suggestions.length}</span>
+                    </div>
+                    <span style="font-size: 13px; color: var(--text-muted);">{suggestionsOpen ? '▴' : '▾'}</span>
+                  </button>
+                  {#if suggestionsOpen}
+                    <div style="background: var(--surface);">
+                      {#each suggestions as sug (sug.id)}
+                        <div style="padding: 12px 20px; border-bottom: 1px solid var(--border);">
+                          <span style="font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.06em; color: var(--text-muted);">
+                            {sug.field === 'services' ? 'Serviço detectado' : sug.field === 'quirks' ? 'Diferencial detectado' : sug.field === 'target_audience' ? 'Público detectado' : 'Estilo detectado'}
+                          </span>
+                          <p style="font-size: 15px; color: var(--text-secondary); margin: 4px 0 10px; line-height: 1.5;">{sug.suggestion}</p>
+                          <div style="display: flex; gap: 8px;">
+                            <button
+                              onclick={() => acceptSuggestion(sug)}
+                              style="min-height: 40px; padding: 0 16px; border-radius: 9999px; font-size: 14px; font-weight: 600; background: var(--sage-pale); color: var(--sage-dark); border: 1px solid var(--sage-light);"
+                            >Adicionar</button>
+                            <button
+                              onclick={() => dismissSuggestion(sug)}
+                              style="min-height: 40px; padding: 0 16px; border-radius: 9999px; font-size: 14px; font-weight: 500; color: var(--text-muted); border: 1px solid var(--border-strong); background: none;"
+                            >Ignorar</button>
+                          </div>
+                        </div>
+                      {/each}
+                    </div>
+                  {/if}
+                {/if}
+
                 <!-- Section: Posts recentes -->
                 {#if clientPosts.length > 0}
                   <span style="font-size: 11px; font-weight: 700; letter-spacing: 0.08em; text-transform: uppercase; color: var(--text-muted); padding: 14px 20px 8px; background: var(--bg); border-top: 1px solid var(--border); display: block;">Posts recentes</span>
@@ -1974,6 +2131,7 @@
 
                       {#if msg.type === "video" && msg.media}
                         <!-- svelte-ignore a11y_media_has_caption -->
+                        <!-- biome-ignore lint/a11y/useMediaCaption: client-uploaded video, no captions available -->
                         <video
                           src={mediaUrl(msg)}
                           controls

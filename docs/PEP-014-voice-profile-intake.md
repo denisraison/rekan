@@ -1,6 +1,6 @@
 # PEP-014: Voice-Guided Business Profile Intake
 
-**Status:** Wave 1 + Wave 2 shipped. Wave 3 pending.
+**Status:** Wave 1 + Wave 2 + Wave 3 shipped.
 **Date:** 2026-03-04
 
 ## Context
@@ -142,7 +142,7 @@ Each label has a concrete hint example below it (14px, `--text-muted`).
 - `pnpm check` passes (0 errors, 0 warnings)
 - Playwright screenshots confirm: idle card visible without scrolling on 390×844, manual mode shows "Gravar →" banner + all fields + active save buttons
 
-### Wave 3: Progressive Profile Enrichment (Phase 2)
+### Wave 3: Progressive Profile Enrichment ✓
 
 After Wave 1 and Wave 2 ship, add a background enrichment layer: as the client sends WhatsApp messages, the system passively extracts profile-relevant signals and surfaces them as suggestions for Elenice to review.
 
@@ -173,11 +173,21 @@ Show a collapsible card listing pending suggestions. Each suggestion shows:
 
 Keep it subtle — a dot badge on the client list item when there are pending suggestions. This is a tool for Elenice to improve profiles over time, not an alert.
 
-**Gate:**
+**Gate:** ✓
 - Migration applies cleanly
 - On receiving a WhatsApp message containing "agora faço selagem também, R$150", a `profile_suggestions` row is created for that business
 - The "Sugestões de Perfil" card appears in the operator UI with the detected service
 - Accepting the suggestion adds it to `formServices` and saves
+
+**Shipped:**
+- `eval/baml_src/profile.baml` — `ProfileSignal` class + `ExtractProfileSignal` function (JudgeClient / Gemini Flash, temp 0.1)
+- `eval/profile.go` — `ProfileSignal`, `ExtractSignalFunc`, `ExtractProfileSignal()`
+- `api/internal/domain/domain.go` — `CollProfileSuggestions` constant
+- `api/migrations/1740000022_profile_suggestions.go` — new collection (business, field, suggestion, dismissed)
+- `api/internal/whatsapp/handler.go` — `ExtractSignalFunc` type, `ProfileSignal` type, `ExtractSignal` in `HandlerDeps`, `extractAndSaveSignal()` goroutine spawned after incoming text messages ≥ 20 chars
+- `api/main.go` — wires `ExtractSignal` when `GEMINI_API_KEY` is set
+- `web/src/lib/types.ts` — `ProfileSuggestion` interface
+- `web/src/routes/(app)/operador/+page.svelte` — `loadAllSuggestionCounts()`, `loadSuggestions()`, `acceptSuggestion()`, `dismissSuggestion()`, realtime subscription, dot badge on client list items, collapsible "Sugestões de Perfil" card with Adicionar/Ignorar buttons
 
 ## Consequences
 

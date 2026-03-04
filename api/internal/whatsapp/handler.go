@@ -16,12 +16,23 @@ import (
 	"github.com/pocketbase/pocketbase/tools/filesystem"
 )
 
+// ExtractSignalFunc checks whether a WhatsApp message contains profile-relevant information.
+// Returns nil when the message has no useful signal. Matches eval.ExtractSignalFunc.
+type ExtractSignalFunc func(ctx context.Context, message, businessType string) (*ProfileSignal, error)
+
+// ProfileSignal is a profile-relevant signal extracted from a WhatsApp message.
+type ProfileSignal struct {
+	Field string // "services", "quirks", "target_audience", "brand_vibe"
+	Value string // for services: "Name|price_brl"; for others: plain text
+}
+
 // HandlerDeps holds dependencies for the message event handler.
 type HandlerDeps struct {
-	Client     *Client
-	App        core.App
-	Logger     *slog.Logger
-	Transcribe *transcribe.Client // nil if GEMINI_API_KEY not set
+	Client        *Client
+	App           core.App
+	Logger        *slog.Logger
+	Transcribe    *transcribe.Client  // nil if GEMINI_API_KEY not set
+	ExtractSignal ExtractSignalFunc   // nil if GEMINI_API_KEY not set
 }
 
 // RegisterMessageHandler wires incoming WhatsApp messages to PocketBase storage.
@@ -141,6 +152,11 @@ func handleMessage(deps HandlerDeps, evt *events.Message) {
 
 	if err := deps.App.Save(record); err != nil {
 		deps.Logger.Error("whatsapp: failed to save message", "error", err)
+	}
+
+	// Check incoming text messages for profile-relevant signals.
+	if direction == domain.DirectionIncoming && len(content) >= 20 && businessID != "" && deps.ExtractSignal != nil {
+		go extractAndSaveSignal(deps, businessID, content)
 	}
 
 	// If the media message carried a caption, save it as a separate text message
@@ -314,6 +330,46 @@ func processImage(ctx context.Context, deps HandlerDeps, evt *events.Message) (d
 	}
 
 	return description, caption, f
+}
+
+// extractAndSaveSignal checks whether the message content contains profile-relevant
+// information and saves a profile_suggestions row when it does. Runs in a goroutine.
+func extractAndSaveSignal(deps HandlerDeps, businessID, content string) {
+	ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
+	defer cancel()
+
+	business, err := deps.App.FindRecordById(domain.CollBusinesses, businessID)
+	if err != nil {
+		return
+	}
+	if business.GetString("invite_status") != domain.InviteStatusActive {
+		return
+	}
+	businessType := business.GetString("type")
+
+	signal, err := deps.ExtractSignal(ctx, content, businessType)
+	if err != nil {
+		deps.Logger.Warn("whatsapp: profile signal extraction failed", "error", err)
+		return
+	}
+	if signal == nil {
+		return
+	}
+
+	collection, err := deps.App.FindCachedCollectionByNameOrId(domain.CollProfileSuggestions)
+	if err != nil {
+		deps.Logger.Error("whatsapp: profile_suggestions collection not found", "error", err)
+		return
+	}
+
+	record := core.NewRecord(collection)
+	record.Set("business", businessID)
+	record.Set("field", signal.Field)
+	record.Set("suggestion", signal.Value)
+
+	if err := deps.App.Save(record); err != nil {
+		deps.Logger.Error("whatsapp: failed to save profile suggestion", "error", err)
+	}
 }
 
 // refreshProfilePicture fetches the WhatsApp profile picture for jid and stores

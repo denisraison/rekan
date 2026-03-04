@@ -35,6 +35,8 @@ var typeMap = map[string]reflect.Type{
 	"STREAM_TYPES.PartialService":         reflect.TypeOf(stream_types.PartialService{}),
 	"TYPES.Post":                          reflect.TypeOf(types.Post{}),
 	"STREAM_TYPES.Post":                   reflect.TypeOf(stream_types.Post{}),
+	"TYPES.ProfileSignal":                 reflect.TypeOf(types.ProfileSignal{}),
+	"STREAM_TYPES.ProfileSignal":          reflect.TypeOf(stream_types.ProfileSignal{}),
 	"TYPES.Service":                       reflect.TypeOf(types.Service{}),
 	"STREAM_TYPES.Service":                reflect.TypeOf(stream_types.Service{}),
 }

@@ -72,6 +72,53 @@ func (*parse) ExtractBusinessProfile(text string, opts ...CallOptionFunc) (types
 	return casted, nil
 }
 
+// / Parse version of ExtractProfileSignal (Takes in string and returns *types.ProfileSignal)
+func (*parse) ExtractProfileSignal(text string, opts ...CallOptionFunc) (*types.ProfileSignal, error) {
+
+	var callOpts callOption
+	for _, opt := range opts {
+		opt(&callOpts)
+	}
+
+	args := baml.BamlFunctionArguments{
+		Kwargs: map[string]any{"text": text, "stream": false},
+		Env:    getEnvVars(callOpts.env),
+	}
+
+	if callOpts.clientRegistry != nil {
+		args.ClientRegistry = callOpts.clientRegistry
+	}
+
+	if callOpts.collectors != nil {
+		args.Collectors = callOpts.collectors
+	}
+
+	if callOpts.typeBuilder != nil {
+		args.TypeBuilder = callOpts.typeBuilder
+	}
+
+	if callOpts.tags != nil {
+		args.Tags = callOpts.tags
+	}
+
+	encoded, err := args.Encode()
+	if err != nil {
+		// This should never happen. if it does, please file an issue at https://github.com/boundaryml/baml/issues
+		// and include the type of the args you're passing in.
+		wrapped_err := fmt.Errorf("BAML INTERNAL ERROR: ExtractProfileSignal: %w", err)
+		panic(wrapped_err)
+	}
+
+	result, err := bamlRuntime.CallFunctionParse(context.Background(), "ExtractProfileSignal", encoded)
+	if err != nil {
+		return nil, err
+	}
+
+	casted := (result).(*types.ProfileSignal)
+
+	return casted, nil
+}
+
 // / Parse version of GenerateContent (Takes in string and returns []types.Post)
 func (*parse) GenerateContent(text string, opts ...CallOptionFunc) ([]types.Post, error) {
 

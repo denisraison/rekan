@@ -26,6 +26,17 @@ type PartialBusinessProfile struct {
 // ExtractFromAudioFunc is the signature for the combined audio transcription + profile extraction pipeline.
 type ExtractFromAudioFunc func(ctx context.Context, audioBytes []byte, mimeType string, businessType string) (PartialBusinessProfile, error)
 
+// ProfileSignal is a single profile-relevant signal extracted from a WhatsApp message.
+// Field is one of: "services", "quirks", "target_audience", "brand_vibe".
+// For services, Value is "Name|price_brl" (e.g. "Selagem|150.0"). For others, Value is plain text.
+type ProfileSignal struct {
+	Field string
+	Value string
+}
+
+// ExtractSignalFunc checks whether a WhatsApp message contains profile-relevant information.
+type ExtractSignalFunc func(ctx context.Context, message, businessType string) (*ProfileSignal, error)
+
 // ExtractBusinessProfile calls Gemini to extract structured profile fields from a transcript.
 func ExtractBusinessProfile(ctx context.Context, transcript string, businessType string) (PartialBusinessProfile, error) {
 	result, err := baml.ExtractBusinessProfile(ctx, transcript, businessType)
@@ -52,4 +63,20 @@ func ExtractBusinessProfile(ctx context.Context, transcript string, businessType
 	}
 
 	return profile, nil
+}
+
+// ExtractProfileSignal checks if a WhatsApp message contains profile-relevant information.
+// Returns nil when the message has no useful profile signal.
+func ExtractProfileSignal(ctx context.Context, message, businessType string) (*ProfileSignal, error) {
+	result, err := baml.ExtractProfileSignal(ctx, message, businessType)
+	if err != nil {
+		return nil, fmt.Errorf("extract profile signal: %w", err)
+	}
+	if result == nil {
+		return nil, nil
+	}
+	return &ProfileSignal{
+		Field: result.Field,
+		Value: result.Value,
+	}, nil
 }

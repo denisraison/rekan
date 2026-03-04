@@ -116,6 +116,80 @@ func (*stream) ExtractBusinessProfile(ctx context.Context, transcript string, bu
 	return channel, nil
 }
 
+// / Streaming version of ExtractProfileSignal
+func (*stream) ExtractProfileSignal(ctx context.Context, message string, businessType string, opts ...CallOptionFunc) (<-chan StreamValue[*stream_types.ProfileSignal, *types.ProfileSignal], error) {
+
+	var callOpts callOption
+	for _, opt := range opts {
+		opt(&callOpts)
+	}
+
+	args := baml.BamlFunctionArguments{
+		Kwargs: map[string]any{"message": message, "businessType": businessType},
+		Env:    getEnvVars(callOpts.env),
+	}
+
+	if callOpts.clientRegistry != nil {
+		args.ClientRegistry = callOpts.clientRegistry
+	}
+
+	if callOpts.collectors != nil {
+		args.Collectors = callOpts.collectors
+	}
+
+	if callOpts.typeBuilder != nil {
+		args.TypeBuilder = callOpts.typeBuilder
+	}
+
+	if callOpts.tags != nil {
+		args.Tags = callOpts.tags
+	}
+
+	encoded, err := args.Encode()
+	if err != nil {
+		// This should never happen. if it does, please file an issue at https://github.com/boundaryml/baml/issues
+		// and include the type of the args you're passing in.
+		wrapped_err := fmt.Errorf("BAML INTERNAL ERROR: ExtractProfileSignal: %w", err)
+		panic(wrapped_err)
+	}
+
+	internal_channel, err := bamlRuntime.CallFunctionStream(ctx, "ExtractProfileSignal", encoded, callOpts.onTick)
+	if err != nil {
+		return nil, err
+	}
+
+	channel := make(chan StreamValue[*stream_types.ProfileSignal, *types.ProfileSignal])
+	go func() {
+		for result := range internal_channel {
+			if result.Error != nil {
+				channel <- StreamValue[*stream_types.ProfileSignal, *types.ProfileSignal]{
+					IsError: true,
+					Error:   result.Error,
+				}
+				close(channel)
+				return
+			}
+			if result.HasData {
+				data := (result.Data).(*types.ProfileSignal)
+				channel <- StreamValue[*stream_types.ProfileSignal, *types.ProfileSignal]{
+					IsFinal:  true,
+					as_final: &data,
+				}
+			} else {
+				data := (result.StreamData).(*stream_types.ProfileSignal)
+				channel <- StreamValue[*stream_types.ProfileSignal, *types.ProfileSignal]{
+					IsFinal:   false,
+					as_stream: &data,
+				}
+			}
+		}
+
+		// when internal_channel is closed, close the output too
+		close(channel)
+	}()
+	return channel, nil
+}
+
 // / Streaming version of GenerateContent
 func (*stream) GenerateContent(ctx context.Context, profile types.BusinessProfile, roles []types.ContentRole, previousHooks []string, opts ...CallOptionFunc) (<-chan StreamValue[[]stream_types.Post, []types.Post], error) {
 

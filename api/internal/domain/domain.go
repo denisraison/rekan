@@ -55,5 +55,6 @@ const (
 
 // Operator collection names.
 const (
-	CollScheduledMessages = "scheduled_messages"
+	CollScheduledMessages  = "scheduled_messages"
+	CollProfileSuggestions = "profile_suggestions"
 )

@@ -90,3 +90,12 @@ export interface ScheduledMessage {
 	business: string;
 	text: string;
 }
+
+export interface ProfileSuggestion {
+	id: string;
+	business: string;
+	field: string; // "services", "quirks", "target_audience", "brand_vibe"
+	suggestion: string; // for services: "Name|price_brl"; for others: plain text
+	dismissed: boolean;
+	created: string;
+}

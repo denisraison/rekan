@@ -13,6 +13,7 @@ if (browser) {
 
 	// Sync auth state back to cookie on every change (login/logout/refresh).
 	pb.authStore.onChange(() => {
+		// biome-ignore lint/suspicious/noDocumentCookie: cookie store API not available in all targets
 		document.cookie = pb.authStore.isValid
 			? pb.authStore.exportToCookie({ httpOnly: false, secure: !dev, sameSite: 'Lax' })
 			: 'pb_auth=; path=/; expires=Thu, 01 Jan 1970 00:00:00 GMT';

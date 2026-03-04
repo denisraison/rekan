@@ -1,3 +1,4 @@
+import basicSsl from '@vitejs/plugin-basic-ssl';
 import { sveltekit } from '@sveltejs/kit/vite';
 import tailwindcss from '@tailwindcss/vite';
 import { defineConfig } from 'vite';
@@ -8,10 +9,12 @@ const apiTarget = process.env.VITE_API_URL ?? 'http://127.0.0.1:8090';
 export default defineConfig({
 	envDir: '..',
 	plugins: [
+		basicSsl(),
 		tailwindcss(),
 		sveltekit(),
 		VitePWA({
 			registerType: 'autoUpdate',
+			devOptions: { enabled: true },
 			workbox: {
 				navigateFallback: '/200.html',
 				globPatterns: ['**/*.{js,css,html,svg,png,woff2}']
