@@ -224,7 +224,7 @@ func transcribeAudio(ctx context.Context, deps HandlerDeps, evt *events.Message)
 		return ""
 	}
 
-	text, err := deps.Transcribe.Transcribe(ctx, data)
+	text, err := deps.Transcribe.Transcribe(ctx, data, "audio/ogg")
 	if err != nil {
 		deps.Logger.Error("whatsapp: transcription failed", "error", err)
 		return ""

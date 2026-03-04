@@ -21,6 +21,80 @@ import (
 	"github.com/denisraison/rekan/eval/baml_client/baml_client/types"
 )
 
+func ExtractBusinessProfile(ctx context.Context, transcript string, businessType string, opts ...CallOptionFunc) (types.PartialBusinessProfile, error) {
+
+	var callOpts callOption
+	for _, opt := range opts {
+		opt(&callOpts)
+	}
+
+	// Resolve client option to clientRegistry (client takes precedence)
+	if callOpts.client != nil {
+		if callOpts.clientRegistry == nil {
+			callOpts.clientRegistry = baml.NewClientRegistry()
+		}
+		callOpts.clientRegistry.SetPrimaryClient(*callOpts.client)
+	}
+
+	args := baml.BamlFunctionArguments{
+		Kwargs: map[string]any{"transcript": transcript, "businessType": businessType},
+		Env:    getEnvVars(callOpts.env),
+	}
+
+	if callOpts.clientRegistry != nil {
+		args.ClientRegistry = callOpts.clientRegistry
+	}
+
+	if callOpts.collectors != nil {
+		args.Collectors = callOpts.collectors
+	}
+
+	if callOpts.typeBuilder != nil {
+		args.TypeBuilder = callOpts.typeBuilder
+	}
+
+	if callOpts.tags != nil {
+		args.Tags = callOpts.tags
+	}
+
+	encoded, err := args.Encode()
+	if err != nil {
+		panic(err)
+	}
+
+	if callOpts.onTick == nil {
+		result, err := bamlRuntime.CallFunction(ctx, "ExtractBusinessProfile", encoded, callOpts.onTick)
+		if err != nil {
+			return types.PartialBusinessProfile{}, err
+		}
+
+		if result.Error != nil {
+			return types.PartialBusinessProfile{}, result.Error
+		}
+
+		casted := (result.Data).(types.PartialBusinessProfile)
+
+		return casted, nil
+	} else {
+		channel, err := bamlRuntime.CallFunctionStream(ctx, "ExtractBusinessProfile", encoded, callOpts.onTick)
+		if err != nil {
+			return types.PartialBusinessProfile{}, err
+		}
+
+		for result := range channel {
+			if result.Error != nil {
+				return types.PartialBusinessProfile{}, result.Error
+			}
+
+			if result.HasData {
+				return result.Data.(types.PartialBusinessProfile), nil
+			}
+		}
+
+		return types.PartialBusinessProfile{}, fmt.Errorf("No data returned from stream")
+	}
+}
+
 func GenerateContent(ctx context.Context, profile types.BusinessProfile, roles []types.ContentRole, previousHooks []string, opts ...CallOptionFunc) ([]types.Post, error) {
 
 	var callOpts callOption

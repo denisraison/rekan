@@ -254,6 +254,114 @@ func (c JudgeVariedadeResult) BamlTypeName() string {
 	return "JudgeVariedadeResult"
 }
 
+type PartialBusinessProfile struct {
+	Services       *[]PartialService `json:"services"`
+	TargetAudience *string           `json:"targetAudience"`
+	BrandVibe      *string           `json:"brandVibe"`
+	Quirks         *[]string         `json:"quirks"`
+}
+
+func (c *PartialBusinessProfile) Decode(holder *cffi.CFFIValueClass, typeMap baml.TypeMap) {
+	typeName := holder.Name
+	if typeName.Namespace != cffi.CFFITypeNamespace_TYPES {
+		panic(fmt.Sprintf("expected cffi.CFFITypeNamespace_TYPES, got %s", string(typeName.Namespace.String())))
+	}
+	if typeName.Name != "PartialBusinessProfile" {
+		panic(fmt.Sprintf("expected PartialBusinessProfile, got %s", typeName.Name))
+	}
+
+	for _, field := range holder.Fields {
+		key := field.Key
+		valueHolder := field.Value
+		switch key {
+
+		case "services":
+			c.Services = baml.Decode(valueHolder).Interface().(*[]PartialService)
+
+		case "targetAudience":
+			c.TargetAudience = baml.Decode(valueHolder).Interface().(*string)
+
+		case "brandVibe":
+			c.BrandVibe = baml.Decode(valueHolder).Interface().(*string)
+
+		case "quirks":
+			c.Quirks = baml.Decode(valueHolder).Interface().(*[]string)
+
+		default:
+
+			panic(fmt.Sprintf("unexpected field: %s in class PartialBusinessProfile", key))
+
+		}
+	}
+
+}
+
+func (c PartialBusinessProfile) Encode() (*cffi.HostValue, error) {
+	fields := map[string]any{}
+
+	fields["services"] = c.Services
+
+	fields["targetAudience"] = c.TargetAudience
+
+	fields["brandVibe"] = c.BrandVibe
+
+	fields["quirks"] = c.Quirks
+
+	return baml.EncodeClass("PartialBusinessProfile", fields, nil)
+}
+
+func (c PartialBusinessProfile) BamlTypeName() string {
+	return "PartialBusinessProfile"
+}
+
+type PartialService struct {
+	Name     string   `json:"name"`
+	PriceBRL *float64 `json:"priceBRL"`
+}
+
+func (c *PartialService) Decode(holder *cffi.CFFIValueClass, typeMap baml.TypeMap) {
+	typeName := holder.Name
+	if typeName.Namespace != cffi.CFFITypeNamespace_TYPES {
+		panic(fmt.Sprintf("expected cffi.CFFITypeNamespace_TYPES, got %s", string(typeName.Namespace.String())))
+	}
+	if typeName.Name != "PartialService" {
+		panic(fmt.Sprintf("expected PartialService, got %s", typeName.Name))
+	}
+
+	for _, field := range holder.Fields {
+		key := field.Key
+		valueHolder := field.Value
+		switch key {
+
+		case "name":
+			c.Name = baml.Decode(valueHolder).Interface().(string)
+
+		case "priceBRL":
+			c.PriceBRL = baml.Decode(valueHolder).Interface().(*float64)
+
+		default:
+
+			panic(fmt.Sprintf("unexpected field: %s in class PartialService", key))
+
+		}
+	}
+
+}
+
+func (c PartialService) Encode() (*cffi.HostValue, error) {
+	fields := map[string]any{}
+
+	fields["name"] = c.Name
+
+	fields["priceBRL"] = c.PriceBRL
+
+	return baml.EncodeClass("PartialService", fields, nil)
+}
+
+func (c PartialService) BamlTypeName() string {
+	return "PartialService"
+}
+
 type Post struct {
 	Caption        string   `json:"caption"`
 	Hashtags       []string `json:"hashtags"`

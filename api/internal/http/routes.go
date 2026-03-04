@@ -11,6 +11,9 @@ import (
 func RegisterRoutes(rtr *router.Router[*core.RequestEvent], deps handlers.Deps) {
 	auth := apis.RequireAuth()
 
+	// Voice profile extraction (no {id} — creates a new business profile from audio)
+	rtr.POST("/api/businesses/profile:extract", handlers.ExtractProfile(deps)).Bind(auth)
+
 	// Custom method on the business resource (Google API style: :verb suffix)
 	rtr.POST("/api/businesses/{id}/posts:generate", handlers.GeneratePosts(deps)).Bind(auth)
 

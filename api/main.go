@@ -86,6 +86,18 @@ func run(ctx context.Context, getenv func(string) string) error {
 			operator.QueueSeasonalMessages(app)
 		})
 
+		var extractFromAudio eval.ExtractFromAudioFunc
+		if key := getenv("GEMINI_API_KEY"); key != "" {
+			tc := transcribe.NewClient(key)
+			extractFromAudio = func(ctx context.Context, audioBytes []byte, mimeType string, businessType string) (eval.PartialBusinessProfile, error) {
+				transcript, err := tc.Transcribe(ctx, audioBytes, mimeType)
+				if err != nil {
+					return eval.PartialBusinessProfile{}, err
+				}
+				return eval.ExtractBusinessProfile(ctx, transcript, businessType)
+			}
+		}
+
 		apphttp.RegisterRoutes(se.Router, handlers.Deps{
 			App:                 app,
 			Asaas:               asaasClient,
@@ -94,6 +106,7 @@ func run(ctx context.Context, getenv func(string) string) error {
 			AppURL:              getenv("APP_URL"),
 			Generate:            eval.Generate,
 			GenerateFromMessage: eval.GenerateFromMessage,
+			ExtractFromAudio:    extractFromAudio,
 		})
 		return se.Next()
 	})

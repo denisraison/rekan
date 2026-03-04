@@ -28,15 +28,15 @@ func NewClient(apiKey string) *Client {
 }
 
 // Transcribe sends audio bytes to Gemini and returns the transcript.
-// The audio should be in OGG/Opus format (WhatsApp voice notes).
-func (c *Client) Transcribe(ctx context.Context, audio []byte) (string, error) {
+// mimeType is the MIME type of the audio (e.g. "audio/ogg", "audio/webm", "audio/mp4").
+func (c *Client) Transcribe(ctx context.Context, audio []byte, mimeType string) (string, error) {
 	reqBody := map[string]any{
 		"contents": []map[string]any{
 			{
 				"parts": []map[string]any{
 					{
 						"inline_data": map[string]any{
-							"mime_type": "audio/ogg",
+							"mime_type": mimeType,
 							"data":      base64.StdEncoding.EncodeToString(audio),
 						},
 					},

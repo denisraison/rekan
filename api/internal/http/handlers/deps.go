@@ -15,4 +15,5 @@ type Deps struct {
 	AppURL              string
 	Generate            eval.GenerateFunc
 	GenerateFromMessage eval.GenerateFromMessageFunc
+	ExtractFromAudio    eval.ExtractFromAudioFunc // nil when GEMINI_API_KEY is not set
 }

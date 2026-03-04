@@ -1,6 +1,6 @@
 # PEP-014: Voice-Guided Business Profile Intake
 
-**Status:** Draft
+**Status:** In Progress
 **Date:** 2026-03-04
 
 ## Context
@@ -25,11 +25,11 @@ This matters because first-batch post quality determines whether the client stay
 
 ## Waves
 
-### Wave 1: Backend — Transcribe + Extract
+### Wave 1: Backend — Transcribe + Extract ✓
 
 New endpoint that accepts an audio file, transcribes it with Gemini, extracts structured profile fields from the transcript, and returns them ready to pre-fill the form.
 
-**New BAML function** in `eval/baml_src/content.baml` (or a new `profile.baml`):
+**New BAML function** in `eval/baml_src/profile.baml`:
 
 ```
 function ExtractBusinessProfile(transcript: string, businessType: string) -> PartialBusinessProfile
@@ -63,9 +63,17 @@ Flow:
 
 No database writes. This is a pure computation endpoint. The operator reviews the result and saves via the normal business create/update flow.
 
-**Gate:**
+**Gate:** ✓
 - `go test ./api/...` passes
 - Unit test for the handler using a mock transcription response: given a transcript "Ela tem salão em Manaus, faz hidratação por R$80 e progressiva por R$200, público é mulher de 30 a 50 anos", the extractor returns services=[{name:"Hidratação",price:80},{name:"Progressiva",price:200}], targetAudience="mulheres de 30 a 50 anos"
+
+**Shipped:**
+- `eval/baml_src/profile.baml` — `PartialService`, `PartialBusinessProfile` types + `ExtractBusinessProfile` function (JudgeClient / Gemini Flash, temp 0.1)
+- `eval/profile.go` — Go wrapper: `ExtractFromAudioFunc` type, `ExtractBusinessProfile()`, `PartialBusinessProfile`, `PartialService`
+- `api/internal/transcribe/gemini.go` — `Transcribe()` now accepts `mimeType` parameter
+- `api/internal/http/handlers/extract_profile.go` — handler for `POST /api/businesses/profile:extract`
+- `api/internal/http/handlers/extract_profile_test.go` — success + missing-audio tests
+- Route registered in `routes.go`, wired in `main.go`
 
 ### Wave 2: Operator UI — Record, Extract, Pre-fill
 

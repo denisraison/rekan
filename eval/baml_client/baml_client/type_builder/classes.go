@@ -187,6 +187,86 @@ func (t *JudgeVariedadeResultClassView) Type() (baml.Type, error) {
 	return t.inner.Type()
 }
 
+type PartialBusinessProfileClassView struct {
+	inner baml.ClassBuilder
+}
+
+func (t *PartialBusinessProfileClassView) ListProperties() ([]ClassPropertyView, error) {
+	result, err := t.inner.ListProperties()
+	if err != nil {
+		return nil, err
+	}
+	builders := make([]ClassPropertyView, len(result))
+	for i, p := range result {
+		builders[i] = p
+	}
+	return builders, nil
+}
+
+func (t *PartialBusinessProfileClassView) PropertyServices() (ClassPropertyView, error) {
+	return t.inner.Property("services")
+}
+
+func (t *PartialBusinessProfileClassView) PropertyTargetAudience() (ClassPropertyView, error) {
+	return t.inner.Property("targetAudience")
+}
+
+func (t *PartialBusinessProfileClassView) PropertyBrandVibe() (ClassPropertyView, error) {
+	return t.inner.Property("brandVibe")
+}
+
+func (t *PartialBusinessProfileClassView) PropertyQuirks() (ClassPropertyView, error) {
+	return t.inner.Property("quirks")
+}
+
+func (t *TypeBuilder) PartialBusinessProfile() (*PartialBusinessProfileClassView, error) {
+	bld, err := t.inner.Class("PartialBusinessProfile")
+	if err != nil {
+		return nil, err
+	}
+	return &PartialBusinessProfileClassView{inner: bld}, nil
+}
+
+func (t *PartialBusinessProfileClassView) Type() (baml.Type, error) {
+	return t.inner.Type()
+}
+
+type PartialServiceClassView struct {
+	inner baml.ClassBuilder
+}
+
+func (t *PartialServiceClassView) ListProperties() ([]ClassPropertyView, error) {
+	result, err := t.inner.ListProperties()
+	if err != nil {
+		return nil, err
+	}
+	builders := make([]ClassPropertyView, len(result))
+	for i, p := range result {
+		builders[i] = p
+	}
+	return builders, nil
+}
+
+func (t *PartialServiceClassView) PropertyName() (ClassPropertyView, error) {
+	return t.inner.Property("name")
+}
+
+func (t *PartialServiceClassView) PropertyPriceBRL() (ClassPropertyView, error) {
+	return t.inner.Property("priceBRL")
+}
+
+func (t *TypeBuilder) PartialService() (*PartialServiceClassView, error) {
+	bld, err := t.inner.Class("PartialService")
+	if err != nil {
+		return nil, err
+	}
+	return &PartialServiceClassView{inner: bld}, nil
+}
+
+func (t *PartialServiceClassView) Type() (baml.Type, error) {
+	return t.inner.Type()
+}
+
 type PostClassView struct {
 	inner baml.ClassBuilder
 }
