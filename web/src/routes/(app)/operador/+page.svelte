@@ -162,6 +162,16 @@
   let formError = $state("");
   let formSaving = $state(false);
 
+  // Voice profile intake
+  type VoiceMode = 'idle' | 'recording' | 'analyzing' | 'done' | 'manual';
+  let voiceMode = $state<VoiceMode>('idle');
+  let voiceError = $state('');
+  let recordingSeconds = $state(0);
+  let aiFilledFields = $state(new Set<string>());
+  let mediaRecorderRef: MediaRecorder | null = null;
+  let recordingChunks: Blob[] = [];
+  let recordingTimer: ReturnType<typeof setInterval> | null = null;
+
   // Invite
   let inviteUrl = $state("");
   let inviteCopied = $state(false);
@@ -698,10 +708,12 @@
     formError = "";
     inviteUrl = "";
     editingId = null;
+    resetVoice();
   }
 
   function openNewForm() {
     resetForm();
+    voiceMode = 'idle';
     showForm = true;
     mobileView = 'detail';
   }
@@ -724,6 +736,9 @@
     formQuirks = biz.quirks || "";
     formError = "";
     inviteUrl = "";
+    voiceMode = 'manual';
+    voiceError = '';
+    aiFilledFields = new Set();
     showForm = true;
     mobileView = 'detail';
   }
@@ -740,6 +755,104 @@
 
   function removeService(i: number) {
     formServices = formServices.filter((_: Service, idx: number) => idx !== i);
+  }
+
+  function fmtTime(s: number): string {
+    return `${Math.floor(s / 60)}:${(s % 60).toString().padStart(2, '0')}`;
+  }
+
+  function cancelRecording() {
+    if (recordingTimer) { clearInterval(recordingTimer); recordingTimer = null; }
+    // Set idle before stop so the onstop guard skips extraction
+    voiceMode = 'idle';
+    recordingSeconds = 0;
+    recordingChunks = [];
+    if (mediaRecorderRef && mediaRecorderRef.state !== 'inactive') mediaRecorderRef.stop();
+    mediaRecorderRef = null;
+  }
+
+  function submitRecording() {
+    if (recordingTimer) { clearInterval(recordingTimer); recordingTimer = null; }
+    if (mediaRecorderRef && mediaRecorderRef.state !== 'inactive') {
+      voiceMode = 'analyzing';
+      mediaRecorderRef.stop();
+    }
+    mediaRecorderRef = null;
+  }
+
+  function resetVoice() {
+    cancelRecording();
+    voiceError = '';
+    aiFilledFields = new Set();
+    voiceMode = 'idle';
+  }
+
+  async function startVoiceRecording() {
+    voiceError = '';
+    try {
+      const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+      const recorder = new MediaRecorder(stream);
+      recordingChunks = [];
+      recorder.ondataavailable = (e) => { if (e.data.size > 0) recordingChunks.push(e.data); };
+      recorder.onstop = async () => {
+        stream.getTracks().forEach((t) => t.stop());
+        const blob = new Blob(recordingChunks, { type: recorder.mimeType || 'audio/webm' });
+        await extractVoiceProfile(blob, recorder.mimeType || 'audio/webm');
+      };
+      recorder.start(200);
+      mediaRecorderRef = recorder;
+      recordingSeconds = 0;
+      recordingTimer = setInterval(() => recordingSeconds++, 1000);
+      voiceMode = 'recording';
+    } catch {
+      voiceError = 'Não foi possível acessar o microfone. Preencha os campos manualmente.';
+      voiceMode = 'manual';
+    }
+  }
+
+  async function extractVoiceProfile(blob: Blob, mimeType: string) {
+    if (voiceMode !== 'analyzing') return; // recording was cancelled
+    try {
+      const form = new FormData();
+      form.append('audio', blob, 'recording.webm');
+      form.append('business_type', formType || '');
+      const res = await fetch(`${pb.baseUrl}/api/businesses/profile:extract`, {
+        method: 'POST',
+        headers: { Authorization: pb.authStore.token },
+        body: form,
+      });
+      if (!res.ok) throw new Error('extract failed');
+      const data = await res.json();
+
+      const filled = new Set<string>();
+      type ExtractedService = { name: string; price_brl: number | null };
+      const hasServices = formServices.some((s: Service) => s.name.trim());
+      if (data.services?.length) {
+        const newServices = (data.services as ExtractedService[]).map((s) => ({
+          name: s.name,
+          price_brl: s.price_brl ?? 0,
+        }));
+        formServices = hasServices ? [...formServices, ...newServices] : newServices;
+        filled.add('services');
+      }
+      if (data.target_audience && !formTargetAudience.trim()) {
+        formTargetAudience = data.target_audience;
+        filled.add('target_audience');
+      }
+      if (data.brand_vibe && !formBrandVibe.trim()) {
+        formBrandVibe = data.brand_vibe;
+        filled.add('brand_vibe');
+      }
+      if (data.quirks?.length && !formQuirks.trim()) {
+        formQuirks = (data.quirks as string[]).join('\n');
+        filled.add('quirks');
+      }
+      aiFilledFields = filled;
+      voiceMode = 'done';
+    } catch {
+      voiceError = 'Não foi possível analisar o áudio. Preencha os campos manualmente.';
+      voiceMode = 'manual';
+    }
   }
 
   function validateForm(requireInviteFields: boolean): string | null {
@@ -1281,228 +1394,241 @@
               </h2>
 
               {#if formError}
-                <p
-                  class="text-base mb-4 p-3 rounded-lg"
-                  style="color: #DC2626; background: #FEF2F2"
-                >
+                <p class="text-base mb-4 p-3 rounded-lg" style="color: #DC2626; background: #FEF2F2">
                   {formError}
                 </p>
               {/if}
 
-              <div class="flex flex-col gap-4">
-                <label class="flex flex-col gap-1.5">
-                  <span class="text-base font-medium" style="color: var(--text)">Nome do cliente</span>
-                  <input
-                    bind:value={formClientName}
-                    placeholder="Ex: Ana Silva"
-                    class="px-3 py-3 rounded-xl text-base outline-none border"
-                    style="border-color: var(--border-strong); background: var(--surface); color: var(--text)"
-                  />
-                </label>
+              {#if voiceMode === 'done'}
+                <!-- Done: summary chip + success banner + pre-filled content fields -->
+                <div class="flex items-center gap-3 mb-4 p-3 rounded-xl" style="background: var(--bg); border: 1px solid var(--border)">
+                  <div class="text-sm" style="flex: 1; min-width: 0;">
+                    <span class="font-semibold" style="color: var(--text)">{formName || 'Novo cliente'}</span>
+                    {#if formType || formCity}
+                      <span style="color: var(--text-muted)"> · {[formType, formCity].filter(Boolean).join(', ')}</span>
+                    {/if}
+                  </div>
+                  <button onclick={() => voiceMode = 'idle'} class="text-xs px-2 py-1 rounded-lg" style="color: var(--text-muted); border: 1px solid var(--border-strong)">Editar</button>
+                </div>
 
-                <label class="flex flex-col gap-1.5">
-                  <span class="text-base font-medium" style="color: var(--text)">Email do cliente</span>
-                  <input
-                    bind:value={formClientEmail}
-                    type="email"
-                    placeholder="ana@email.com"
-                    class="px-3 py-3 rounded-xl text-base outline-none border"
-                    style="border-color: var(--border-strong); background: var(--surface); color: var(--text)"
-                  />
-                </label>
+                <div class="flex items-center gap-3 mb-5 p-3 rounded-xl" style="background: var(--sage-pale); border: 1.5px solid var(--sage-light)">
+                  <div class="flex items-center justify-center flex-shrink-0" style="width: 32px; height: 32px; border-radius: 50%; background: var(--sage);">
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg>
+                  </div>
+                  <div>
+                    <p class="text-sm font-bold" style="color: var(--text); margin: 0 0 2px;">Perfil extraído da gravação</p>
+                    <p class="text-sm" style="color: var(--text-secondary); margin: 0;">Revise os campos antes de salvar.</p>
+                  </div>
+                </div>
 
-                <label class="flex flex-col gap-1.5">
-                  <span class="text-base font-medium" style="color: var(--text)">Nome do negócio</span>
-                  <input
-                    bind:value={formName}
-                    placeholder="Nome do negócio"
-                    class="px-3 py-3 rounded-xl text-base outline-none border"
-                    style="border-color: var(--border-strong); background: var(--surface); color: var(--text)"
-                  />
-                </label>
-
-                <label class="flex flex-col gap-1.5">
-                  <span class="text-base font-medium" style="color: var(--text)">Tipo de negócio</span>
-                  <select
-                    bind:value={formType}
-                    class="px-3 py-3 rounded-xl text-base outline-none border"
-                    style="border-color: var(--border-strong); background: var(--surface); color: var(--text)"
-                  >
-                    <option value="">Selecione...</option>
-                    {#each BUSINESS_TYPES as t}
-                      <option value={t}>{t}</option>
-                    {/each}
-                  </select>
-                </label>
-
-                <div class="flex gap-3">
-                  <label class="flex flex-col gap-1.5 flex-1">
-                    <span class="text-base font-medium" style="color: var(--text)">Cidade</span>
-                    <input
-                      bind:value={formCity}
-                      placeholder="Ex: São Paulo"
-                      class="px-3 py-3 rounded-xl text-base outline-none border"
-                      style="border-color: var(--border-strong); background: var(--surface); color: var(--text)"
-                    />
-                  </label>
-                  <label class="flex flex-col gap-1.5 w-28">
-                    <span class="text-base font-medium" style="color: var(--text)">Estado</span>
-                    <select
-                      bind:value={formState}
-                      class="px-3 py-3 rounded-xl text-base outline-none border"
-                      style="border-color: var(--border-strong); background: var(--surface); color: var(--text)"
-                    >
-                      <option value="">UF</option>
-                      {#each STATES as stateCode}
-                        <option value={stateCode}>{stateCode}</option>
+                <div class="flex flex-col gap-4">
+                  <div>
+                    <span class="text-base font-medium" style="color: var(--text)">Serviços</span>
+                    <div class="flex flex-col gap-2 mt-1.5">
+                      {#each formServices as service, i}
+                        <div class="flex gap-2 items-center">
+                          <input bind:value={service.name} placeholder="Nome do serviço" class="flex-1 px-3 py-3 rounded-xl text-base outline-none border" style="min-height: 52px; border-color: {aiFilledFields.has('services') ? 'var(--sage)' : 'var(--border-strong)'}; background: {aiFilledFields.has('services') ? 'var(--sage-pale)' : 'var(--surface)'}; color: var(--text)" />
+                          <div class="relative w-28">
+                            <span class="absolute left-3 top-1/2 -translate-y-1/2 text-base" style="color: var(--text-muted)">R$</span>
+                            <input type="number" bind:value={service.price_brl} min="0" class="w-full pl-9 pr-3 py-3 rounded-xl text-base outline-none border" style="min-height: 52px; border-color: {aiFilledFields.has('services') ? 'var(--sage)' : 'var(--border-strong)'}; background: {aiFilledFields.has('services') ? 'var(--sage-pale)' : 'var(--surface)'}; color: var(--text)" />
+                          </div>
+                          <button onclick={() => removeService(i)} style="width: 40px; height: 52px; border: none; background: none; color: var(--text-muted); font-size: 22px; cursor: pointer; display: flex; align-items: center; justify-content: center; flex-shrink: 0;">×</button>
+                        </div>
                       {/each}
+                      <button onclick={addService} class="text-base font-medium mt-1 py-1" style="color: var(--primary)">+ Adicionar serviço</button>
+                    </div>
+                  </div>
+                  <label class="flex flex-col gap-1.5">
+                    <span class="text-base font-medium" style="color: var(--text)">Quem são os clientes?</span>
+                    <span class="text-sm" style="color: var(--text-muted)">ex: mulheres de 25 a 50 anos que moram no bairro</span>
+                    <textarea bind:value={formTargetAudience} placeholder="Descreve quem costuma ir lá..." rows={2} class="px-3 py-3 rounded-xl text-base outline-none border resize-none" style="min-height: 52px; border-color: {aiFilledFields.has('target_audience') ? 'var(--sage)' : 'var(--border-strong)'}; background: {aiFilledFields.has('target_audience') ? 'var(--sage-pale)' : 'var(--surface)'}; color: var(--text)"></textarea>
+                  </label>
+                  <label class="flex flex-col gap-1.5">
+                    <span class="text-base font-medium" style="color: var(--text)">Como é o ambiente?</span>
+                    <span class="text-sm" style="color: var(--text-muted)">ex: acolhedor, descontraído, serve cafezinho</span>
+                    <textarea bind:value={formBrandVibe} placeholder="Conta um pouco sobre o clima do lugar..." rows={2} class="px-3 py-3 rounded-xl text-base outline-none border resize-none" style="min-height: 52px; border-color: {aiFilledFields.has('brand_vibe') ? 'var(--sage)' : 'var(--border-strong)'}; background: {aiFilledFields.has('brand_vibe') ? 'var(--sage-pale)' : 'var(--surface)'}; color: var(--text)"></textarea>
+                  </label>
+                  <label class="flex flex-col gap-1.5">
+                    <span class="text-base font-medium" style="color: var(--text)">O que faz diferente?</span>
+                    <span class="text-sm" style="color: var(--text-muted)">ex: agenda lotada às quintas</span>
+                    <textarea bind:value={formQuirks} placeholder="Detalhes que fazem a cliente escolher esse lugar..." rows={3} class="px-3 py-3 rounded-xl text-base outline-none border resize-none" style="border-color: {aiFilledFields.has('quirks') ? 'var(--sage)' : 'var(--border-strong)'}; background: {aiFilledFields.has('quirks') ? 'var(--sage-pale)' : 'var(--surface)'}; color: var(--text)"></textarea>
+                  </label>
+                </div>
+
+                <div class="text-center mt-4">
+                  <button onclick={resetVoice} class="text-sm inline-flex items-center gap-1.5 p-3" style="color: var(--text-muted); border: none; background: none; cursor: pointer;">
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M12 2a3 3 0 0 1 3 3v6a3 3 0 0 1-6 0V5a3 3 0 0 1 3-3z"/><path d="M19 10v1a7 7 0 0 1-14 0v-1M12 18v4M8 22h8"/></svg>
+                    Gravar de novo
+                  </button>
+                </div>
+
+                <div class="flex flex-col md:flex-row gap-3 mt-4">
+                  <button onclick={closeForm} class="px-5 py-3 rounded-full text-base font-medium border" style="border-color: var(--border-strong); color: var(--text-secondary)">Cancelar</button>
+                  <button onclick={saveClient} disabled={formSaving} class="px-5 py-3 rounded-full text-base font-medium" style="background: var(--coral); color: #fff; opacity: {formSaving ? '0.6' : '1'}; cursor: {formSaving ? 'not-allowed' : 'pointer'}">
+                    {formSaving ? "Salvando..." : "Salvar e continuar"}
+                  </button>
+                  <button onclick={saveAndInvite} disabled={formSaving} class="px-5 py-3 rounded-full text-base font-medium" style="background: #25D366; color: #fff; opacity: {formSaving ? '0.6' : '1'}; cursor: {formSaving ? 'not-allowed' : 'pointer'}">
+                    {formSaving ? "Salvando..." : "Salvar e Enviar Convite"}
+                  </button>
+                </div>
+
+              {:else}
+                <!-- idle / recording / analyzing / manual — basic fields always visible -->
+
+                {#if voiceMode === 'manual'}
+                  <button onclick={resetVoice} class="w-full flex items-center gap-3 mb-5" style="min-height: 64px; background: var(--coral-pale); border: none; border-bottom: 1.5px solid var(--coral-light); border-radius: 12px; padding: 14px 16px; cursor: pointer; text-align: left;">
+                    <div class="flex items-center justify-center flex-shrink-0" style="width: 36px; height: 36px; border-radius: 50%; background: var(--coral);">
+                      <svg width="16" height="16" viewBox="0 0 24 24" fill="white"><path d="M12 2a3 3 0 0 1 3 3v6a3 3 0 0 1-6 0V5a3 3 0 0 1 3-3z"/><path d="M19 10v1a7 7 0 0 1-14 0v-1M12 18v4M8 22h8" stroke="white" stroke-width="1.5" fill="none" stroke-linecap="round"/></svg>
+                    </div>
+                    <p class="text-sm flex-1" style="color: var(--text-secondary); margin: 0; line-height: 1.4;">Prefere gravar uma descrição? É mais rápido.</p>
+                    <span class="text-sm font-bold" style="color: var(--coral); white-space: nowrap;">Gravar →</span>
+                  </button>
+                {/if}
+
+                {#if voiceError}
+                  <p class="text-sm mb-4 p-3 rounded-lg" style="color: #DC2626; background: #FEF2F2">{voiceError}</p>
+                {/if}
+
+                <div class="flex flex-col gap-4">
+                  <label class="flex flex-col gap-1.5">
+                    <span class="text-base font-medium" style="color: var(--text)">Nome do cliente</span>
+                    <input bind:value={formClientName} placeholder="Ex: Ana Silva" class="px-3 py-3 rounded-xl text-base outline-none border" style="border-color: var(--border-strong); background: var(--surface); color: var(--text)" />
+                  </label>
+                  <label class="flex flex-col gap-1.5">
+                    <span class="text-base font-medium" style="color: var(--text)">Email do cliente</span>
+                    <input bind:value={formClientEmail} type="email" placeholder="ana@email.com" class="px-3 py-3 rounded-xl text-base outline-none border" style="border-color: var(--border-strong); background: var(--surface); color: var(--text)" />
+                  </label>
+                  <label class="flex flex-col gap-1.5">
+                    <span class="text-base font-medium" style="color: var(--text)">Nome do negócio</span>
+                    <input bind:value={formName} placeholder="Nome do negócio" class="px-3 py-3 rounded-xl text-base outline-none border" style="border-color: var(--border-strong); background: var(--surface); color: var(--text)" />
+                  </label>
+                  <label class="flex flex-col gap-1.5">
+                    <span class="text-base font-medium" style="color: var(--text)">Tipo de negócio</span>
+                    <select bind:value={formType} class="px-3 py-3 rounded-xl text-base outline-none border" style="border-color: var(--border-strong); background: var(--surface); color: var(--text)">
+                      <option value="">Selecione...</option>
+                      {#each BUSINESS_TYPES as t}<option value={t}>{t}</option>{/each}
                     </select>
                   </label>
-                </div>
+                  <div class="flex gap-3">
+                    <label class="flex flex-col gap-1.5 flex-1">
+                      <span class="text-base font-medium" style="color: var(--text)">Cidade</span>
+                      <input bind:value={formCity} placeholder="Ex: São Paulo" class="px-3 py-3 rounded-xl text-base outline-none border" style="border-color: var(--border-strong); background: var(--surface); color: var(--text)" />
+                    </label>
+                    <label class="flex flex-col gap-1.5 w-28">
+                      <span class="text-base font-medium" style="color: var(--text)">Estado</span>
+                      <select bind:value={formState} class="px-3 py-3 rounded-xl text-base outline-none border" style="border-color: var(--border-strong); background: var(--surface); color: var(--text)">
+                        <option value="">UF</option>
+                        {#each STATES as stateCode}<option value={stateCode}>{stateCode}</option>{/each}
+                      </select>
+                    </label>
+                  </div>
+                  <label class="flex flex-col gap-1.5">
+                    <span class="text-base font-medium" style="color: var(--text)">Telefone WhatsApp</span>
+                    <input bind:value={formPhone} placeholder="5511999998888" class="px-3 py-3 rounded-xl text-base outline-none border" style="border-color: var(--border-strong); background: var(--surface); color: var(--text)" />
+                  </label>
 
-                <label class="flex flex-col gap-1.5">
-                  <span class="text-base font-medium" style="color: var(--text)">Telefone WhatsApp</span>
-                  <input
-                    bind:value={formPhone}
-                    placeholder="5511999998888"
-                    class="px-3 py-3 rounded-xl text-base outline-none border"
-                    style="border-color: var(--border-strong); background: var(--surface); color: var(--text)"
-                  />
-                </label>
-
-                <div>
-                  <span class="text-base font-medium" style="color: var(--text)">Serviços</span>
-                  <div class="flex flex-col gap-2 mt-1.5">
-                    {#each formServices as service, i}
-                      <div class="flex gap-2 items-center">
-                        <input
-                          bind:value={service.name}
-                          placeholder="Nome do serviço"
-                          class="flex-1 px-3 py-3 rounded-xl text-base outline-none border"
-                          style="border-color: var(--border-strong); background: var(--surface); color: var(--text)"
-                        />
-                        <div class="relative w-28">
-                          <span
-                            class="absolute left-3 top-1/2 -translate-y-1/2 text-base"
-                            style="color: var(--text-muted)">R$</span
-                          >
-                          <input
-                            type="number"
-                            bind:value={service.price_brl}
-                            min="0"
-                            class="w-full pl-9 pr-3 py-3 rounded-xl text-base outline-none border"
-                            style="border-color: var(--border-strong); background: var(--surface); color: var(--text)"
-                          />
-                        </div>
-                        {#if formServices.length > 1}
-                          <button
-                            onclick={() => removeService(i)}
-                            class="p-2"
-                            style="color: var(--text-muted)"
-                            aria-label="Remover"
-                          >
-                            <svg viewBox="0 0 20 20" fill="currentColor" width="20" height="20"
-                              ><path
-                                fill-rule="evenodd"
-                                d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z"
-                                clip-rule="evenodd"
-                              /></svg
-                            >
-                          </button>
-                        {/if}
+                  {#if voiceMode === 'idle'}
+                    <!-- Idle: mic card -->
+                    <div class="flex items-center gap-4 p-5 rounded-2xl" style="background: var(--coral-pale); border: 1.5px solid var(--coral-light)">
+                      <button onclick={startVoiceRecording} aria-label="Gravar descrição" style="width: 72px; height: 72px; border-radius: 50%; background: var(--coral); border: none; display: flex; align-items: center; justify-content: center; cursor: pointer; flex-shrink: 0; box-shadow: 0 4px 16px rgba(249,115,104,0.35);">
+                        <svg width="30" height="30" viewBox="0 0 24 24" fill="white"><path d="M12 2a3 3 0 0 1 3 3v6a3 3 0 0 1-6 0V5a3 3 0 0 1 3-3z"/><path d="M19 10v1a7 7 0 0 1-14 0v-1M12 18v4M8 22h8" stroke="white" stroke-width="1.5" fill="none" stroke-linecap="round"/></svg>
+                      </button>
+                      <div>
+                        <p class="text-base font-bold" style="margin: 0 0 4px; color: var(--text)">Gravar descrição</p>
+                        <p class="text-sm" style="margin: 0; color: var(--text-secondary); line-height: 1.4;">Toca no microfone e fala sobre a cliente</p>
                       </div>
-                    {/each}
-                    <button
-                      onclick={addService}
-                      class="text-base font-medium mt-1 py-1"
-                      style="color: var(--primary)">+ Adicionar serviço</button
-                    >
-                  </div>
+                    </div>
+                    <div class="text-center">
+                      <button onclick={() => voiceMode = 'manual'} class="text-sm p-3" style="color: var(--text-muted); border: none; background: none; cursor: pointer; text-decoration: underline; text-underline-offset: 3px;">Preencher manualmente</button>
+                    </div>
+
+                  {:else if voiceMode === 'recording'}
+                    <!-- Recording bar: [X] [●timer] [↑] -->
+                    <div class="rounded-2xl overflow-hidden" style="border: 1.5px solid var(--border-strong);">
+                      <div class="flex items-center" style="height: 72px;">
+                        <button onclick={cancelRecording} aria-label="Cancelar gravação" style="width: 72px; height: 100%; background: #FEF2F2; border: none; border-right: 1px solid var(--border-strong); display: flex; align-items: center; justify-content: center; cursor: pointer; flex-shrink: 0;">
+                          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#EF4444" stroke-width="2.5" stroke-linecap="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+                        </button>
+                        <div class="flex-1 flex items-center justify-center gap-3">
+                          <div style="width: 10px; height: 10px; border-radius: 50%; background: #EF4444; flex-shrink: 0; animation: blink 1s ease-in-out infinite;"></div>
+                          <span style="font-size: 26px; font-weight: 700; letter-spacing: 0.04em; color: var(--text); font-variant-numeric: tabular-nums;">{fmtTime(recordingSeconds)}</span>
+                          <span class="text-sm" style="color: var(--text-muted)">Gravando</span>
+                        </div>
+                        <button onclick={submitRecording} aria-label="Enviar gravação" style="width: 72px; height: 100%; background: var(--coral); border: none; border-left: 1px solid var(--coral-light); display: flex; align-items: center; justify-content: center; cursor: pointer; flex-shrink: 0;">
+                          <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="19" x2="12" y2="5"/><polyline points="5 12 12 5 19 12"/></svg>
+                        </button>
+                      </div>
+                    </div>
+
+                  {:else if voiceMode === 'analyzing'}
+                    <!-- Analyzing bar -->
+                    <div class="rounded-2xl flex items-center justify-center gap-3" style="height: 72px; border: 1.5px solid var(--border-strong);">
+                      <div style="width: 22px; height: 22px; border-radius: 50%; border: 2.5px solid var(--coral); border-top-color: transparent; animation: spin 0.8s linear infinite; flex-shrink: 0;"></div>
+                      <span class="text-base font-medium" style="color: var(--text-secondary)">Analisando...</span>
+                    </div>
+
+                  {:else}
+                    <!-- Manual: content fields -->
+                    <div style="height: 1px; background: var(--border); margin: 4px 0;"></div>
+                    <div>
+                      <span class="text-base font-medium" style="color: var(--text)">Serviços</span>
+                      <p class="text-sm mt-0.5 mb-1.5" style="color: var(--text-muted)">Coloca os serviços mais pedidos e o preço de cada um.</p>
+                      <div class="flex flex-col gap-2">
+                        {#each formServices as service, i}
+                          <div class="flex gap-2 items-center">
+                            <input bind:value={service.name} placeholder="Nome do serviço" class="flex-1 px-3 py-3 rounded-xl text-base outline-none border" style="min-height: 52px; border-color: var(--border-strong); background: var(--surface); color: var(--text)" />
+                            <div class="relative w-28">
+                              <span class="absolute left-3 top-1/2 -translate-y-1/2 text-base" style="color: var(--text-muted)">R$</span>
+                              <input type="number" bind:value={service.price_brl} min="0" class="w-full pl-9 pr-3 py-3 rounded-xl text-base outline-none border" style="min-height: 52px; border-color: var(--border-strong); background: var(--surface); color: var(--text)" />
+                            </div>
+                            {#if formServices.length > 1}
+                              <button onclick={() => removeService(i)} style="width: 40px; height: 52px; border: none; background: none; color: var(--text-muted); font-size: 22px; cursor: pointer; display: flex; align-items: center; justify-content: center; flex-shrink: 0;">×</button>
+                            {/if}
+                          </div>
+                        {/each}
+                        <button onclick={addService} class="text-base font-medium mt-1 py-1" style="color: var(--primary)">+ Adicionar serviço</button>
+                      </div>
+                    </div>
+                    <label class="flex flex-col gap-1.5">
+                      <span class="text-base font-medium" style="color: var(--text)">Quem são os clientes?</span>
+                      <span class="text-sm" style="color: var(--text-muted)">ex: mulheres de 25 a 50 anos que moram no bairro</span>
+                      <textarea bind:value={formTargetAudience} placeholder="Descreve quem costuma ir lá..." rows={2} class="px-3 py-3 rounded-xl text-base outline-none border resize-none" style="min-height: 52px; border-color: var(--border-strong); background: var(--surface); color: var(--text)"></textarea>
+                    </label>
+                    <label class="flex flex-col gap-1.5">
+                      <span class="text-base font-medium" style="color: var(--text)">Como é o ambiente?</span>
+                      <span class="text-sm" style="color: var(--text-muted)">ex: acolhedor, descontraído, serve cafezinho</span>
+                      <textarea bind:value={formBrandVibe} placeholder="Conta um pouco sobre o clima do lugar..." rows={2} class="px-3 py-3 rounded-xl text-base outline-none border resize-none" style="min-height: 52px; border-color: var(--border-strong); background: var(--surface); color: var(--text)"></textarea>
+                    </label>
+                    <label class="flex flex-col gap-1.5">
+                      <span class="text-base font-medium" style="color: var(--text)">O que faz diferente?</span>
+                      <span class="text-sm" style="color: var(--text-muted)">ex: agenda lotada às quintas</span>
+                      <textarea bind:value={formQuirks} placeholder="Ex: Atendimento por WhatsApp, parcela em 3x" rows={2} class="px-3 py-3 rounded-xl text-base outline-none border resize-none" style="border-color: var(--border-strong); background: var(--surface); color: var(--text)"></textarea>
+                    </label>
+                  {/if}
                 </div>
 
-                <label class="flex flex-col gap-1.5">
-                  <span class="text-base font-medium" style="color: var(--text)"
-                    >Público-alvo <span class="font-normal" style="color: var(--text-muted)">— opcional</span></span
-                  >
-                  <input
-                    bind:value={formTargetAudience}
-                    placeholder="Ex: Mulheres de 25 a 40 anos"
-                    class="px-3 py-3 rounded-xl text-base outline-none border"
-                    style="border-color: var(--border-strong); background: var(--surface); color: var(--text)"
-                  />
-                </label>
-
-                <label class="flex flex-col gap-1.5">
-                  <span class="text-base font-medium" style="color: var(--text)"
-                    >Estilo da marca <span class="font-normal" style="color: var(--text-muted)">— opcional</span></span
-                  >
-                  <input
-                    bind:value={formBrandVibe}
-                    placeholder="Ex: Descontraido e moderno"
-                    class="px-3 py-3 rounded-xl text-base outline-none border"
-                    style="border-color: var(--border-strong); background: var(--surface); color: var(--text)"
-                  />
-                </label>
-
-                <label class="flex flex-col gap-1.5">
-                  <span class="text-base font-medium" style="color: var(--text)"
-                    >Diferenciais <span class="font-normal" style="color: var(--text-muted)">— opcional</span></span
-                  >
-                  <textarea
-                    bind:value={formQuirks}
-                    placeholder="Ex: Atendimento por WhatsApp, parcela em 3x"
-                    rows={2}
-                    class="px-3 py-3 rounded-xl text-base outline-none border resize-none"
-                    style="border-color: var(--border-strong); background: var(--surface); color: var(--text)"
-                  ></textarea>
-                </label>
-              </div>
-
-              {#if inviteUrl}
-                <div class="mt-4 rounded-xl p-4" style="background: var(--sage-pale); border: 1px solid var(--border)">
-                  <p class="text-base font-medium mb-2" style="color: var(--text)">Convite enviado!</p>
-                  <div class="flex items-center gap-2">
-                    <input
-                      readonly
-                      value={inviteUrl}
-                      class="flex-1 px-3 py-3 rounded-lg text-sm outline-none border"
-                      style="border-color: var(--border-strong); background: var(--surface); color: var(--text)"
-                    />
-                    <button
-                      onclick={copyInviteUrl}
-                      class="px-4 py-3 rounded-lg text-sm font-medium"
-                      style="background: var(--coral); color: #fff"
-                    >
-                      {inviteCopied ? "Copiado!" : "Copiar"}
-                    </button>
+                {#if inviteUrl}
+                  <div class="mt-4 rounded-xl p-4" style="background: var(--sage-pale); border: 1px solid var(--border)">
+                    <p class="text-base font-medium mb-2" style="color: var(--text)">Convite enviado!</p>
+                    <div class="flex items-center gap-2">
+                      <input readonly value={inviteUrl} class="flex-1 px-3 py-3 rounded-lg text-sm outline-none border" style="border-color: var(--border-strong); background: var(--surface); color: var(--text)" />
+                      <button onclick={copyInviteUrl} class="px-4 py-3 rounded-lg text-sm font-medium" style="background: var(--coral); color: #fff">{inviteCopied ? "Copiado!" : "Copiar"}</button>
+                    </div>
                   </div>
-                </div>
+                {/if}
+
+                {#if voiceMode !== 'recording' && voiceMode !== 'analyzing'}
+                  <div class="flex flex-col md:flex-row gap-3 mt-6">
+                    <button onclick={closeForm} class="px-5 py-3 rounded-full text-base font-medium border" style="border-color: var(--border-strong); color: var(--text-secondary)">Cancelar</button>
+                    {#if voiceMode === 'idle'}
+                      <button disabled class="px-5 py-3 rounded-full text-base font-medium" style="background: rgba(17,17,22,0.08); color: var(--text-muted); cursor: not-allowed;">Salvar cliente</button>
+                    {:else}
+                      <button onclick={saveClient} disabled={formSaving} class="px-5 py-3 rounded-full text-base font-medium" style="background: var(--coral); color: #fff; opacity: {formSaving ? '0.6' : '1'}; cursor: {formSaving ? 'not-allowed' : 'pointer'}">{formSaving ? "Salvando..." : "Salvar"}</button>
+                      <button onclick={saveAndInvite} disabled={formSaving} class="px-5 py-3 rounded-full text-base font-medium" style="background: #25D366; color: #fff; opacity: {formSaving ? '0.6' : '1'}; cursor: {formSaving ? 'not-allowed' : 'pointer'}">{formSaving ? "Salvando..." : "Salvar e Enviar Convite"}</button>
+                    {/if}
+                  </div>
+                {/if}
               {/if}
-
-              <div class="flex flex-col md:flex-row gap-3 mt-6">
-                <button
-                  onclick={closeForm}
-                  class="px-5 py-3 rounded-full text-base font-medium border"
-                  style="border-color: var(--border-strong); color: var(--text-secondary)"
-                  >Cancelar</button
-                >
-                <button
-                  onclick={saveClient}
-                  disabled={formSaving}
-                  class="px-5 py-3 rounded-full text-base font-medium transition-opacity"
-                  style="background: var(--coral); color: #fff; opacity: {formSaving ? '0.6' : '1'}; cursor: {formSaving ? 'not-allowed' : 'pointer'}"
-                >
-                  {formSaving ? "Salvando..." : "Salvar"}
-                </button>
-                <button
-                  onclick={saveAndInvite}
-                  disabled={formSaving}
-                  class="px-5 py-3 rounded-full text-base font-medium transition-opacity"
-                  style="background: #25D366; color: #fff; opacity: {formSaving ? '0.6' : '1'}; cursor: {formSaving ? 'not-allowed' : 'pointer'}"
-                >
-                  {formSaving ? "Salvando..." : "Salvar e Enviar Convite"}
-                </button>
-              </div>
             </div>
           </div>
         {:else if selected}
@@ -2126,4 +2252,22 @@
     {/if}
   {/if}
 </div>
+
+<style>
+  @keyframes pulse {
+    0%, 100% { transform: scale(1); opacity: 1; }
+    50% { transform: scale(1.12); opacity: 0.75; }
+  }
+  @keyframes ring {
+    0% { transform: scale(1); opacity: 0.6; }
+    100% { transform: scale(1.7); opacity: 0; }
+  }
+  @keyframes blink {
+    0%, 100% { opacity: 1; }
+    50% { opacity: 0.2; }
+  }
+  @keyframes spin {
+    to { transform: rotate(360deg); }
+  }
+</style>
 

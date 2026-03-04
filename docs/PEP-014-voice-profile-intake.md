@@ -1,6 +1,6 @@
 # PEP-014: Voice-Guided Business Profile Intake
 
-**Status:** In Progress
+**Status:** Wave 1 + Wave 2 shipped. Wave 3 pending.
 **Date:** 2026-03-04
 
 ## Context
@@ -75,80 +75,54 @@ No database writes. This is a pure computation endpoint. The operator reviews th
 - `api/internal/http/handlers/extract_profile_test.go` — success + missing-audio tests
 - Route registered in `routes.go`, wired in `main.go`
 
-### Wave 2: Operator UI — Record, Extract, Pre-fill
+### Wave 2: Operator UI — Record, Extract, Pre-fill ✓
 
-Add a voice recording widget to the business creation and edit form in `web/src/routes/(app)/operador/+page.svelte`.
+Voice recording widget added to the business creation and edit form in `web/src/routes/(app)/operador/+page.svelte`.
 
-**Recording widget behavior:**
-- Shows a microphone button labeled "Gravar descrição"
-- On tap: requests microphone permission, starts `MediaRecorder`, button turns red with a pulsing indicator and a "Parar" label
-- **While recording**, show a soft prompt card below the button — not a script, just anchors so Elenice doesn't freeze:
-  > *Fala do jeito que quiser, sem pressa. Que serviços ela faz e quanto cobra? Quem são os clientes? O que ela faz diferente das outras?*
-  She can answer in any order, skip anything she doesn't know, and talk as casually as she wants. Rambling is fine. The card is a visual cue, not a checklist.
-- **No auto-stop.** Recording continues until Elenice taps "Parar" — no timeout, no silence detection, no prediction of when she's done. She controls when it ends, just like Claude's voice mode.
-- On stop: sends audio to `POST /api/businesses/profile:extract` with current `formType` as `business_type`
-- Shows a loading spinner with "Analisando..." while waiting
-- On success: pre-fills `formServices`, `formTargetAudience`, `formBrandVibe`, `formQuirks` from the response. Fields that were already filled by Elenice are NOT overwritten — only empty fields get pre-filled.
-- Shows a subtle success banner: "Perfil extraído da gravação. Revise os campos antes de salvar."
-- On error: show "Não foi possível analisar o áudio. Preencha os campos manualmente." — the form remains fully editable
+**State machine (shipped):**
 
-**Placement:** The recording widget goes between the basic fields (name, type, city, phone) and the content fields (services, target_audience, brand_vibe, quirks). The idea: Elenice fills the objective fields first (30 seconds), then records the description, then reviews the pre-filled content fields.
+```
+'idle' → (tap mic) → 'recording' → (tap ↑) → 'analyzing' → 'done'
+                                 → (tap ×) → 'idle'
+'idle' → (tap "Preencher manualmente") → 'manual'
+'manual' → (tap "Gravar →") → 'idle'
+'done' → (tap "Gravar de novo") → 'idle'
+'done' → (tap "Editar") → 'idle'
+```
 
-**Services pre-fill:** The services field is currently a list with add/remove rows. When the extraction returns services, replace the list entirely if it was empty, or append if some services were already entered manually.
+New clients open in `idle`. Editing an existing client opens in `manual` (fields already filled, no reason to force the voice path).
 
-**Mobile-first:** The record button must be large enough for a fat thumb. The pulsing red indicator must be unmistakable. Test on a real phone.
+**Recording UX — diverged from prototype:**
 
-#### UI design decisions (from prototyping)
+The original design had the basic fields collapse to a summary chip during recording (full-screen takeover). During implementation this was replaced with a Claude-style recording bar: basic fields stay visible and editable, and the widget area transforms into a 72px full-width bar with three zones:
 
-Four states were prototyped and validated. Prototype HTML files are in [`docs/designs/PEP-014/`](designs/PEP-014/):
+- Left (red-tinted): **×** cancels recording with no audio sent
+- Center: blinking red dot + tabular-nums timer + "Gravando" label
+- Right (coral): **↑** stops recording and submits for extraction
 
-| File | State |
-|---|---|
-| [`voice-idle.html`](designs/PEP-014/voice-idle.html) | Ready to record |
-| [`voice-recording.html`](designs/PEP-014/voice-recording.html) | Recording in progress |
-| [`voice-done.html`](designs/PEP-014/voice-done.html) | Post-extraction review |
-| [`voice-manual.html`](designs/PEP-014/voice-manual.html) | Manual fallback form |
+This is simpler, less disorienting, and gives Elenice the option to correct a basic field mid-recording without cancelling.
 
-To preview: `open docs/designs/PEP-014/voice-idle.html` or screenshot with `npx playwright screenshot --viewport-size="390,844" "file:///path/to/file.html" out.png`.
+**Cancel vs submit separation:**
 
-**State 1: Idle (ready to record)**
+Two distinct functions handle the two exit paths from recording:
+- `cancelRecording()`: sets `voiceMode = 'idle'` *before* calling `recorder.stop()`, so the async `onstop` guard (`if voiceMode !== 'analyzing') return`) skips extraction entirely.
+- `submitRecording()`: sets `voiceMode = 'analyzing'` then stops, extraction proceeds.
 
-The recording widget is a full-width tappable card with a coral mic button (72px circle) and "Toca no microfone e fala sobre a cliente". It sits directly below the 4 basic fields, visible without scrolling. The save button is grey/disabled — Elenice can't save until she either records or fills manually.
+No explicit error state. On extraction failure, `voiceError` is shown and the form transitions to `manual` so Elenice can fill it herself.
 
-Layout: basic fields → recording card → "Preencher manualmente" link (quiet, secondary) → disabled save bar.
+**Save button logic:**
+- `idle`: greyed out, disabled — Elenice must either record or switch to manual
+- `recording` / `analyzing`: buttons hidden entirely (× and ↑ are the only actions)
+- `done`: enabled "Salvar e continuar" + "Salvar e Enviar Convite"
+- `manual`: full save buttons always enabled
 
-The card uses `--coral-pale` background and `--coral-light` border to draw the eye without being aggressive.
+**Pre-fill rules:**
+- Services: replace list entirely if empty, append if Elenice had entered some manually
+- `target_audience`, `brand_vibe`, `quirks`: only pre-fill if the field was empty
+- `quirks` from API is `string[]` — joined with `\n` into the single textarea
+- AI-filled fields get `--sage` border and `--sage-pale` background tint; tracked per-field via `aiFilledFields: Set<string>`
 
-**State 2: Recording in progress**
-
-The basic fields collapse into a single summary chip (business name + type + city) at the top. The whole screen becomes about one thing. Layout:
-
-- Summary chip (tappable to edit)
-- Large red pulsing mic button (96px) with two expanding ring animations
-- Timer counting up (e.g. "0:42") with a blinking red dot
-- "Gravando..." label
-- Prompt card below: "PODE FALAR SOBRE..." with 3 emoji-anchored lines and the italic note "Fala do jeito que quiser, sem pressa. Não precisa seguir a ordem."
-- Full-width black "Parar gravação" button pinned to bottom (60px tall)
-
-No auto-stop. Elenice controls when it ends.
-
-**State 3: Analyzing / done**
-
-After tapping stop, the mic area shows a spinner with "Analisando...". On success, transition to the review state:
-
-- Summary chip stays at top
-- Sage-green banner: checkmark + "Perfil extraído da gravação" + "Revise os campos antes de salvar."
-- Pre-filled fields rendered with `--sage` border and `--sage-pale` background tint to distinguish AI-filled from manually entered
-- Services appear as editable rows (name + price + × remove)
-- Público, Estilo, Diferenciais appear as editable textareas/rows
-- "Gravar de novo" link at bottom of fields (secondary, quiet)
-- Enabled coral "Salvar e continuar" pinned to bottom
-
-**State 4: Manual fallback**
-
-When Elenice taps "Preencher manualmente", the form expands with all fields. A "Gravar →" banner (full-width tappable, 64px tall, `--coral-pale` background) stays pinned at the top of the scroll area so she can switch back to voice any time.
-
-**Field label translations** — the technical field names are never shown to Elenice:
+**Field label translations:**
 
 | DB field | Label in UI |
 |---|---|
@@ -156,33 +130,17 @@ When Elenice taps "Preencher manualmente", the form expands with all fields. A "
 | `brand_vibe` | Como é o ambiente? |
 | `quirks` | O que faz diferente? |
 
-Each field has a hint line with a concrete example (14px, `--text-muted`):
-- Público: *ex: mulheres de 25 a 50 anos que moram no bairro*
-- Ambiente: *ex: acolhedor, descontraído, serve cafezinho*
-- Diferente: *ex: agenda lotada às quintas*
+Each label has a concrete hint example below it (14px, `--text-muted`).
 
-**Touch target rules confirmed:**
-- All inputs: min 52px tall
-- Primary buttons (Parar, Salvar): min 56-60px tall, full-width, `--radius-full`
-- Remove (×) buttons on service rows: 40px wide × 52px tall
-- "Gravar →" banner in manual fallback: 64px tall, entire row is tappable (not just the text)
-- Secondary text links ("Preencher manualmente", "Gravar de novo"): min 44px tap area via padding
+**Shipped:**
+- Voice state machine in `+page.svelte`: `voiceMode`, `aiFilledFields`, `recordingSeconds`, `mediaRecorderRef`
+- `startVoiceRecording()`, `cancelRecording()`, `submitRecording()`, `extractVoiceProfile()`, `resetVoice()`, `fmtTime()`
+- `POST /api/businesses/profile:extract` called via `fetch` with `Authorization` header (same pattern as WhatsApp stream)
+- CSS `@keyframes`: `pulse`, `ring`, `blink`, `spin` added in `<style>` block
 
-**Svelte state machine:**
-
-```
-'idle' → (tap mic) → 'recording' → (tap stop) → 'analyzing' → 'done'
-                                                              → 'error' → back to 'idle'
-'idle' → (tap "Preencher manualmente") → 'manual'
-'manual' → (tap "Gravar →") → 'idle'
-'done' → (tap "Gravar de novo") → 'idle'
-```
-
-**Gate:**
-- `cd web && pnpm check` passes (no type errors)
-- Playwright screenshot confirms recording card visible without scrolling on 390×844 viewport
-- Manual test on a real phone: recording card visible, tap starts mic, tap stops and shows analyzing spinner, fields pre-fill with sage tint, save button enables
-- Manual fallback: tapping "Preencher manualmente" shows full form; "Gravar →" banner switches back
+**Gate:** ✓
+- `pnpm check` passes (0 errors, 0 warnings)
+- Playwright screenshots confirm: idle card visible without scrolling on 390×844, manual mode shows "Gravar →" banner + all fields + active save buttons
 
 ### Wave 3: Progressive Profile Enrichment (Phase 2)
 
