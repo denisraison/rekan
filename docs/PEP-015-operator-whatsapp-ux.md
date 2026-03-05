@@ -1,6 +1,6 @@
 # PEP-015 — Operator WhatsApp-style UX
 
-**Status:** In Progress — Wave 3 done
+**Status:** In Progress — Wave 4 done
 **Date:** 2026-03-05
 
 ## Context
@@ -114,30 +114,38 @@ When toggling modes, clear `message` text and `selectedMessages` to avoid cross-
 - Edited caption persists through Voltar/reopen round-trips since the effect only fires when `result` changes
 - E2e tests added in `web/tests/post-review-overlay.spec.ts` covering overlay display, Voltar, Descartar, and caption edit persistence
 
-### Wave 4 — Multi-select Ideas
+### Wave 4 — Multi-select Ideas ✓ Done (2026-03-05)
 
 **Goal:** Change "3 ideias" from pick-one to pick-many, sending each selected idea as a separate WhatsApp message.
 
 **Files:** `web/src/routes/(app)/operador/+page.svelte`
 
 **State changes:**
-- Add `selectedIdeas: Set<number>` (indices into `ideaDrafts` array)
-- Add `sendingIdeas: boolean`
+- [x] Add `selectedIdeas: Set<number>` (indices into `ideaDrafts` array)
+- [x] Add `sendingIdeas: boolean`
 
 **UI changes to the ideas picker** (both mobile overlay and desktop panel):
-- Each idea card gets a selectable checkbox/indicator (tapping the card toggles selection)
-- Tapping still allows reading the full caption
-- Bottom action bar: "Enviar X selecionadas" button (green, shows count)
-- Tapping "Enviar X" sends each selected idea as a separate WhatsApp message via `/api/messages:send` sequentially (with the existing delay/typing simulation the backend already does)
-- Each sent idea is also saved as a proactive post (same `posts:saveProactive` logic)
-- Single-select behavior preserved: if only 1 is selected, it can also go through the review overlay (Wave 3) for editing before send
-- "Cancelar" button clears everything
+- [x] Each idea card gets a selectable checkbox/indicator (tapping the card toggles selection)
+- [x] Tapping still allows reading the full caption
+- [x] Bottom action bar: "Enviar X selecionadas" button (green, shows count)
+- [x] Tapping "Enviar X" sends each selected idea as a separate WhatsApp message via `/api/messages:send` sequentially (with the existing delay/typing simulation the backend already does)
+- [x] Each sent idea is also saved as a proactive post (same `posts:saveProactive` logic)
+- [x] Single-select behavior preserved: if only 1 is selected, it can also go through the review overlay (Wave 3) for editing before send
+- [x] "Cancelar" button clears everything
 
-**Gate:** `cd web && pnpm check`. In browser: generate 3 ideas, select 2, verify "Enviar 2 selecionadas" sends both as separate messages. Verify selecting just 1 and tapping it opens the review overlay. Verify all sent ideas appear in the message thread via realtime.
+**Gate:** `cd web && pnpm check` test in in browser with a new e2e test generate 3 ideas, select 2, verify "Enviar 2 selecionadas" sends both as separate messages. Verify selecting just 1 and tapping it opens the review overlay. Verify all sent ideas appear in the message thread via realtime.
+
+**Implementation notes:**
+- Idea cards changed from `<div>` with nested button to clickable `<button>` elements with a circular checkbox indicator
+- Selected cards get a coral border (2px) for clear visual feedback
+- Single selection opens the review overlay (Wave 3) via "Revisar e enviar" button, multi-selection shows "Enviar N selecionadas" green button
+- `sendSelectedIdeas()` iterates selected indices in order, calling `posts:saveProactive` then `messages:send` for each
+- `selectedIdeas` is cleared on client switch, on "Cancelar"/"Limpar", and when closing the ideas picker
+- Desktop and mobile overlays both support the same multi-select flow with consistent UI
 
 ### Wave 5 — Attach Button (Camera/Gallery)
 
-**Goal:** Let the operator send photos and files from the chat window, like WhatsApp's attach button.
+**Goal:** Let the operator send photos and files from the chat window, like WhatsApp's attach button and camera icons
 
 **Files:**
 - `web/src/routes/(app)/operador/+page.svelte` (frontend)
@@ -145,10 +153,7 @@ When toggling modes, clear `message` text and `selectedMessages` to avoid cross-
 - `api/internal/http/routes.go` (if new endpoint needed)
 
 **Frontend:**
-- A "+" icon button to the left of the text input (both modes)
-- Tapping opens a small popover/bottom sheet with options:
-  - "Camera" — `<input type="file" accept="image/*" capture="environment">`
-  - "Galeria" — `<input type="file" accept="image/*,video/*">`
+- A paperclip icon and a camera icon button to the left of the text input (both modes)
 - Selected file is sent as a WhatsApp media message
 - State: `showAttachMenu: boolean`, `sendingMedia: boolean`
 
@@ -159,7 +164,7 @@ When toggling modes, clear `message` text and `selectedMessages` to avoid cross-
 - Store the media file in PocketBase's `messages` collection `media` field
 - This is a significant backend addition. If it blocks, the attach button can be stubbed in the frontend (UI present but sends text-only for now) and the backend work tracked separately.
 
-**Gate:** `cd web && pnpm check`. In browser: verify the "+" button appears next to the input. Verify tapping it shows Camera/Gallery options. Verify selecting a photo sends it as a WhatsApp media message (if backend is ready) or shows a "em breve" toast (if stubbed). Backend: `cd api && go test ./...` passes.
+**Gate:** `cd web && pnpm check` test in in browser with a new e2e test verify the "+" button appears next to the input. Verify tapping it shows Camera/Gallery options. Verify selecting a photo sends it as a WhatsApp media message (if backend is ready) or shows a "em breve" toast (if stubbed). Backend: `cd api && go test ./...` passes.
 
 ## E2E Testing (Playwright)
 

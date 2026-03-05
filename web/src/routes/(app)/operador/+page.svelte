@@ -214,6 +214,10 @@
   let ideaError = $state("");
   let isProactive = $state(false);
 
+  // Wave 4 — multi-select ideas
+  let selectedIdeas = $state(new Set<number>());
+  let sendingIdeas = $state(false);
+
   let scheduledMessages = $state<ScheduledMessage[]>([]);
   let scheduledMessageCount = $derived(scheduledMessages.length);
   let showApprovalPanel = $state(false);
@@ -735,6 +739,8 @@
     ideaDrafts = null;
     ideaError = "";
     isProactive = false;
+    selectedIdeas = new Set();
+    sendingIdeas = false;
     inputMode = 'chat';
     message = "";
     quickReplyError = "";
@@ -1225,6 +1231,41 @@
       sendError = "Erro ao enviar. Tente novamente.";
     } finally {
       sending = false;
+    }
+  }
+
+  async function sendSelectedIdeas() {
+    if (!selectedId || !ideaDrafts || selectedIdeas.size === 0) return;
+    sendingIdeas = true;
+    sendError = "";
+    try {
+      const indices = [...selectedIdeas].sort((a, b) => a - b);
+      for (const idx of indices) {
+        const draft = ideaDrafts[idx];
+        await pb.send(`/api/businesses/${selectedId}/posts:saveProactive`, {
+          method: "POST",
+          body: JSON.stringify({
+            caption: draft.caption,
+            hashtags: draft.hashtags,
+            production_note: draft.production_note || "",
+          }),
+        });
+        await pb.send("/api/messages:send", {
+          method: "POST",
+          body: JSON.stringify({
+            business_id: selectedId,
+            caption: draft.caption,
+            hashtags: draft.hashtags.join(" "),
+            production_note: draft.production_note || "",
+          }),
+        });
+      }
+      ideaDrafts = null;
+      selectedIdeas = new Set();
+    } catch {
+      sendError = "Erro ao enviar ideias. Tente novamente.";
+    } finally {
+      sendingIdeas = false;
     }
   }
 
@@ -2106,7 +2147,7 @@
               <div class="flex items-center gap-3 px-4 shrink-0" style="min-height: 60px; background: var(--surface); border-bottom: 1px solid var(--border);">
                 {#if !generatingIdeas}
                   <button
-                    onclick={() => { ideaDrafts = null; }}
+                    onclick={() => { ideaDrafts = null; selectedIdeas = new Set(); }}
                     style="display: flex; align-items: center; gap: 4px; min-height: 60px; padding: 0 12px 0 0; font-size: 14px; font-weight: 500; color: var(--coral); flex-shrink: 0;"
                   >
                     <svg viewBox="0 0 20 20" fill="currentColor" width="20" height="20"><path fill-rule="evenodd" d="M12.707 5.293a1 1 0 010 1.414L9.414 10l3.293 3.293a1 1 0 01-1.414 1.414l-4-4a1 1 0 010-1.414l4-4a1 1 0 011.414 0z" clip-rule="evenodd"/></svg>
@@ -2114,7 +2155,7 @@
                   </button>
                 {/if}
                 <span class="text-base font-semibold" style="color: var(--text)">
-                  {generatingIdeas ? 'Gerando ideias...' : 'Escolha uma ideia'}
+                  {generatingIdeas ? 'Gerando ideias...' : 'Selecione ideias'}
                 </span>
               </div>
               {#if generatingIdeas}
@@ -2124,20 +2165,65 @@
                 </div>
               {:else}
                 <div class="flex-1 overflow-y-auto p-4 flex flex-col gap-4">
-                  {#each ideaDrafts! as draft}
-                    <div class="rounded-2xl p-5" style="background: var(--surface); border: 1px solid var(--border)">
-                      <p class="text-base leading-relaxed" style="color: var(--text); white-space: pre-wrap">{draft.caption}</p>
-                      {#if draft.hashtags?.length}
-                        <p class="text-sm mt-3" style="color: var(--text-muted)">{draft.hashtags.join(' ')}</p>
-                      {/if}
-                      <button
-                        onclick={() => { result = draft; isProactive = true; ideaDrafts = null; }}
-                        class="mt-4 w-full rounded-full text-base font-semibold"
-                        style="min-height: 52px; background: var(--coral); color: #fff;"
-                      >Usar este</button>
-                    </div>
+                  {#each ideaDrafts! as draft, i}
+                    <button
+                      onclick={() => {
+                        if (selectedIdeas.has(i)) {
+                          const next = new Set(selectedIdeas);
+                          next.delete(i);
+                          selectedIdeas = next;
+                        } else {
+                          selectedIdeas = new Set(selectedIdeas).add(i);
+                        }
+                      }}
+                      class="rounded-2xl p-5 text-left transition-colors"
+                      style="background: var(--surface); border: 2px solid {selectedIdeas.has(i) ? 'var(--coral)' : 'var(--border)'};"
+                    >
+                      <div class="flex items-start gap-3">
+                        <div class="shrink-0 w-6 h-6 rounded-full flex items-center justify-center mt-0.5" style="border: 2px solid {selectedIdeas.has(i) ? 'var(--coral)' : 'var(--border)'}; background: {selectedIdeas.has(i) ? 'var(--coral)' : 'transparent'};">
+                          {#if selectedIdeas.has(i)}
+                            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
+                          {/if}
+                        </div>
+                        <div class="min-w-0 flex-1">
+                          <p class="text-base leading-relaxed" style="color: var(--text); white-space: pre-wrap">{draft.caption}</p>
+                          {#if draft.hashtags?.length}
+                            <p class="text-sm mt-3" style="color: var(--text-muted)">{draft.hashtags.join(' ')}</p>
+                          {/if}
+                        </div>
+                      </div>
+                    </button>
                   {/each}
                 </div>
+                {#if selectedIdeas.size > 0}
+                  <div class="shrink-0 p-4 flex gap-2" style="background: var(--surface); border-top: 1px solid var(--border);">
+                    {#if selectedIdeas.size === 1}
+                      <button
+                        onclick={() => {
+                          const idx = [...selectedIdeas][0];
+                          result = ideaDrafts![idx];
+                          isProactive = true;
+                          ideaDrafts = null;
+                          selectedIdeas = new Set();
+                        }}
+                        class="flex-1 rounded-full text-base font-semibold"
+                        style="min-height: 52px; background: var(--coral); color: #fff;"
+                      >Revisar e enviar</button>
+                    {:else}
+                      <button
+                        onclick={sendSelectedIdeas}
+                        disabled={sendingIdeas}
+                        class="flex-1 rounded-full text-base font-semibold"
+                        style="min-height: 52px; background: #25D366; color: #fff; opacity: {sendingIdeas ? '0.6' : '1'}"
+                      >{sendingIdeas ? 'Enviando...' : `Enviar ${selectedIdeas.size} selecionadas`}</button>
+                    {/if}
+                    <button
+                      onclick={() => { selectedIdeas = new Set(); }}
+                      class="shrink-0 px-4 rounded-full text-base font-medium"
+                      style="min-height: 52px; color: var(--destructive); background: var(--bg); border: 1px solid var(--border);"
+                    >Cancelar</button>
+                  </div>
+                {/if}
               {/if}
             </div>
           {/if}
@@ -2304,34 +2390,72 @@
               <div class="hidden md:flex flex-col gap-3 mb-2">
                 <div class="flex items-center justify-between">
                   <span class="text-sm font-medium" style="color: var(--text-muted)">
-                    Escolha uma ideia
+                    Selecione ideias
                   </span>
                   <button
-                    onclick={() => { ideaDrafts = null; }}
+                    onclick={() => { ideaDrafts = null; selectedIdeas = new Set(); }}
                     class="text-sm py-1"
                     style="color: var(--text-muted)"
                   >Cancelar</button>
                 </div>
                 {#each ideaDrafts as draft, i}
-                  <div
-                    class="rounded-xl p-4"
-                    style="background: var(--bg); border: 1px solid var(--border)"
+                  <button
+                    onclick={() => {
+                      if (selectedIdeas.has(i)) {
+                        const next = new Set(selectedIdeas);
+                        next.delete(i);
+                        selectedIdeas = next;
+                      } else {
+                        selectedIdeas = new Set(selectedIdeas).add(i);
+                      }
+                    }}
+                    class="rounded-xl p-4 text-left transition-colors"
+                    style="background: var(--bg); border: 2px solid {selectedIdeas.has(i) ? 'var(--coral)' : 'var(--border)'};"
                   >
-                    <p
-                      class="text-base leading-relaxed"
-                      style="color: var(--text); display: -webkit-box; -webkit-line-clamp: 3; -webkit-box-orient: vertical; overflow: hidden"
-                    >
-                      {draft.caption}
-                    </p>
-                    <button
-                      onclick={() => { result = draft; isProactive = true; ideaDrafts = null; }}
-                      class="mt-3 px-5 py-2.5 rounded-full text-sm font-medium"
-                      style="background: var(--coral); color: #fff"
-                    >
-                      Usar este
-                    </button>
-                  </div>
+                    <div class="flex items-start gap-3">
+                      <div class="shrink-0 w-5 h-5 rounded-full flex items-center justify-center mt-0.5" style="border: 2px solid {selectedIdeas.has(i) ? 'var(--coral)' : 'var(--border)'}; background: {selectedIdeas.has(i) ? 'var(--coral)' : 'transparent'};">
+                        {#if selectedIdeas.has(i)}
+                          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
+                        {/if}
+                      </div>
+                      <p
+                        class="text-base leading-relaxed min-w-0 flex-1"
+                        style="color: var(--text); display: -webkit-box; -webkit-line-clamp: 3; -webkit-box-orient: vertical; overflow: hidden"
+                      >
+                        {draft.caption}
+                      </p>
+                    </div>
+                  </button>
                 {/each}
+                {#if selectedIdeas.size > 0}
+                  <div class="flex gap-2">
+                    {#if selectedIdeas.size === 1}
+                      <button
+                        onclick={() => {
+                          const idx = [...selectedIdeas][0];
+                          result = ideaDrafts![idx];
+                          isProactive = true;
+                          ideaDrafts = null;
+                          selectedIdeas = new Set();
+                        }}
+                        class="px-5 py-2.5 rounded-full text-sm font-medium"
+                        style="background: var(--coral); color: #fff"
+                      >Revisar e enviar</button>
+                    {:else}
+                      <button
+                        onclick={sendSelectedIdeas}
+                        disabled={sendingIdeas}
+                        class="px-5 py-2.5 rounded-full text-sm font-medium"
+                        style="background: #25D366; color: #fff; opacity: {sendingIdeas ? '0.6' : '1'}"
+                      >{sendingIdeas ? 'Enviando...' : `Enviar ${selectedIdeas.size} selecionadas`}</button>
+                    {/if}
+                    <button
+                      onclick={() => { selectedIdeas = new Set(); }}
+                      class="px-4 py-2.5 rounded-full text-sm font-medium"
+                      style="color: var(--destructive)"
+                    >Limpar</button>
+                  </div>
+                {/if}
               </div>
             {/if}
 
