@@ -1,6 +1,6 @@
 # PEP-015 — Operator WhatsApp-style UX
 
-**Status:** In Progress — Wave 2 done
+**Status:** In Progress — Wave 3 done
 **Date:** 2026-03-05
 
 ## Context
@@ -83,7 +83,7 @@ When toggling modes, clear `message` text and `selectedMessages` to avoid cross-
 - Selected messages get a coral left border and coral-pale background; the count badge appears as a chip above the input
 - "Selecionar recentes" chip only shows when no messages are selected yet (avoids confusion with manual selections)
 
-### Wave 3 — Post Review Overlay
+### Wave 3 — Post Review Overlay ✓ Done (2026-03-05)
 
 **Goal:** After generation completes, show the result in a full-screen overlay where the operator can review and edit the caption before sending.
 
@@ -105,7 +105,14 @@ When toggling modes, clear `message` text and `selectedMessages` to avoid cross-
 
 **Remove** the inline result display (lines ~2298-2367) that currently lives inside the generate panel.
 
-**Gate:** `cd web && pnpm check`. In browser: generate a post, verify the full-screen overlay appears. Verify the caption is editable. Verify editing the caption and sending uses the edited version. Verify "Voltar" closes overlay but preserves the result. Verify "Descartar" clears everything.
+**Gate:** `cd web && pnpm check` test in in browser with a new e2e test generate a post, verify the full-screen overlay appears. Verify the caption is editable. Verify editing the caption and sending uses the edited version. Verify "Voltar" closes overlay but preserves the result. Verify "Descartar" clears everything.
+
+**Implementation notes:**
+- Added `showReviewOverlay` boolean state to decouple overlay visibility from `result` presence, allowing "Voltar" to close the overlay while preserving the result
+- A `$effect` on `result` sets `editingCaption` and opens the overlay when result becomes non-null, closes it when null
+- "Ver post gerado" chip appears in the action chips bar when result exists but overlay is closed, letting the operator re-open it
+- Edited caption persists through Voltar/reopen round-trips since the effect only fires when `result` changes
+- E2e tests added in `web/tests/post-review-overlay.spec.ts` covering overlay display, Voltar, Descartar, and caption edit persistence
 
 ### Wave 4 — Multi-select Ideas
 

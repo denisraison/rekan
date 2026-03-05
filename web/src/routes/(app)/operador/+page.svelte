@@ -200,6 +200,10 @@
   // Wave 2 — message selection for generation
   let selectedMessages = $state(new Set<string>());
 
+  // Wave 3 — post review overlay
+  let editingCaption = $state("");
+  let showReviewOverlay = $state(false);
+
   // Feature 4 — post history
   let historyLimit = $state(10);
   let expandedPosts = $state(new Set<string>());
@@ -570,6 +574,15 @@
       loadSuggestions(selectedId);
     } else {
       suggestions = [];
+    }
+  });
+
+  $effect(() => {
+    if (result) {
+      editingCaption = result.caption;
+      showReviewOverlay = true;
+    } else {
+      showReviewOverlay = false;
     }
   });
 
@@ -1183,12 +1196,13 @@
     sending = true;
     sendError = "";
     try {
+      const caption = editingCaption || result.caption;
       // Feature 7 — if proactive, save the post first
       if (isProactive) {
         await pb.send(`/api/businesses/${selectedId}/posts:saveProactive`, {
           method: "POST",
           body: JSON.stringify({
-            caption: result.caption,
+            caption,
             hashtags: result.hashtags,
             production_note: result.production_note || "",
           }),
@@ -1199,7 +1213,7 @@
         method: "POST",
         body: JSON.stringify({
           business_id: selectedId,
-          caption: result.caption,
+          caption,
           hashtags: result.hashtags.join(" "),
           production_note: result.production_note || "",
         }),
@@ -2128,6 +2142,92 @@
             </div>
           {/if}
 
+          <!-- Post review overlay -->
+          {#if result && showReviewOverlay}
+            <div class="absolute inset-0 flex flex-col z-10" style="background: var(--bg)">
+              <div class="flex items-center gap-3 px-4 shrink-0" style="min-height: 60px; background: var(--surface); border-bottom: 1px solid var(--border);">
+                <button
+                  onclick={() => { showReviewOverlay = false; }}
+                  style="display: flex; align-items: center; gap: 4px; min-height: 60px; padding: 0 12px 0 0; font-size: 14px; font-weight: 500; color: var(--coral); flex-shrink: 0;"
+                >
+                  <svg viewBox="0 0 20 20" fill="currentColor" width="20" height="20"><path fill-rule="evenodd" d="M12.707 5.293a1 1 0 010 1.414L9.414 10l3.293 3.293a1 1 0 01-1.414 1.414l-4-4a1 1 0 010-1.414l4-4a1 1 0 011.414 0z" clip-rule="evenodd"/></svg>
+                  Voltar
+                </button>
+                <span class="text-base font-semibold" style="color: var(--text)">Post gerado</span>
+              </div>
+
+              <div class="flex-1 overflow-y-auto p-4 flex flex-col gap-4">
+                <div>
+                  <div class="flex items-center justify-between mb-1">
+                    <span class="text-sm font-medium" style="color: var(--text-muted)">Legenda</span>
+                    <button onclick={() => copyCaption(editingCaption)} class="text-sm py-1" style="color: var(--coral)">
+                      {captionCopied ? "Copiado!" : "Copiar"}
+                    </button>
+                  </div>
+                  <textarea
+                    bind:value={editingCaption}
+                    class="w-full rounded-xl p-3 text-base leading-relaxed resize-none"
+                    style="background: var(--surface); border: 1px solid var(--border); color: var(--text); field-sizing: content; min-height: 120px;"
+                  ></textarea>
+                </div>
+
+                <div>
+                  <div class="flex items-center justify-between mb-1">
+                    <span class="text-sm font-medium" style="color: var(--text-muted)">Hashtags</span>
+                    <button onclick={() => copyHashtags(result!.hashtags.join(" "))} class="text-sm py-1" style="color: var(--coral)">
+                      {hashtagsCopied ? "Copiado!" : "Copiar"}
+                    </button>
+                  </div>
+                  <p class="text-sm" style="color: var(--text-secondary)">
+                    {result.hashtags.join(" ")}
+                  </p>
+                </div>
+
+                {#if result.production_note}
+                  <div>
+                    <div class="flex items-center justify-between mb-1">
+                      <span class="text-sm font-medium" style="color: var(--text-muted)">Nota de produção</span>
+                      <button onclick={() => copyNote(result!.production_note!)} class="text-sm py-1" style="color: var(--coral)">
+                        {noteCopied ? "Copiado!" : "Copiar"}
+                      </button>
+                    </div>
+                    <p
+                      class="text-sm italic mt-1"
+                      style="color: var(--text-secondary); border-left: 2px solid var(--border-strong); padding-left: 0.75rem"
+                    >
+                      {result.production_note}
+                    </p>
+                  </div>
+                {/if}
+              </div>
+
+              <div class="shrink-0 px-4 py-3 flex flex-col gap-2" style="background: var(--surface); border-top: 1px solid var(--border);">
+                {#if blockReason}
+                  <span class="text-sm" style="color: var(--text-muted)">{blockReason} — não é possível enviar agora.</span>
+                {:else}
+                  <button
+                    onclick={sendViaWhatsApp}
+                    disabled={sending}
+                    class="w-full px-6 py-3 rounded-full text-base font-medium transition-opacity"
+                    style="background: #25D366; color: #fff; opacity: {sending ? '0.6' : '1'}; cursor: {sending ? 'not-allowed' : 'pointer'}"
+                  >
+                    {sending ? "Enviando..." : "Enviar pelo WhatsApp"}
+                  </button>
+                  {#if sendError}
+                    <span class="text-sm" style="color: var(--destructive)">{sendError}</span>
+                  {/if}
+                {/if}
+                <button
+                  onclick={() => { result = null; message = ""; isProactive = false; }}
+                  class="w-full py-2 text-sm font-medium"
+                  style="color: var(--destructive)"
+                >
+                  Descartar
+                </button>
+              </div>
+            </div>
+          {/if}
+
           <!-- Message thread -->
           <div bind:this={threadEl} class="flex-1 overflow-y-auto px-4 py-3 flex flex-col gap-2">
             {#if groupedMessages.length === 0}
@@ -2238,6 +2338,15 @@
             {#if !blockReason}
               <!-- Action chips bar -->
               <div class="flex gap-2 items-center flex-wrap">
+                {#if result && !showReviewOverlay}
+                  <button
+                    onclick={() => { showReviewOverlay = true; }}
+                    class="text-sm px-3 py-1.5 rounded-full font-medium flex items-center gap-1.5"
+                    style="background: var(--coral); color: #fff;"
+                  >
+                    Ver post gerado
+                  </button>
+                {/if}
                 {#if inputMode === 'generate' && ideaDrafts === null}
                   {#if selectedMessages.size > 0}
                     <span class="text-sm px-3 py-1.5 rounded-full font-medium" style="background: var(--coral-pale); color: var(--coral);">
@@ -2336,76 +2445,6 @@
               <span class="text-sm" style="color: var(--text-muted)">{blockReason}</span>
             {/if}
 
-            {#if result}
-              <div
-                class="mt-4 rounded-xl p-4"
-                style="background: var(--bg); border: 1px solid var(--border)"
-              >
-                <div class="mb-3">
-                  <div class="flex items-center justify-between mb-1">
-                    <span class="text-sm font-medium" style="color: var(--text-muted)">Legenda</span>
-                    <button onclick={() => copyCaption(result!.caption)} class="text-sm py-1" style="color: var(--coral)">
-                      {captionCopied ? "Copiado!" : "Copiar"}
-                    </button>
-                  </div>
-                  <p class="text-base leading-relaxed whitespace-pre-wrap" style="color: var(--text)">
-                    {result.caption}
-                  </p>
-                </div>
-
-                <div class="mb-3">
-                  <div class="flex items-center justify-between mb-1">
-                    <span class="text-sm font-medium" style="color: var(--text-muted)">Hashtags</span>
-                    <button onclick={() => copyHashtags(result!.hashtags.join(" "))} class="text-sm py-1" style="color: var(--coral)">
-                      {hashtagsCopied ? "Copiado!" : "Copiar"}
-                    </button>
-                  </div>
-                  <p class="text-sm" style="color: var(--text-secondary)">
-                    {result.hashtags.join(" ")}
-                  </p>
-                </div>
-
-                {#if result.production_note}
-                  <div>
-                    <div class="flex items-center justify-between mb-1">
-                      <span class="text-sm font-medium" style="color: var(--text-muted)">Nota de produção</span>
-                      <button onclick={() => copyNote(result!.production_note!)} class="text-sm py-1" style="color: var(--coral)">
-                        {noteCopied ? "Copiado!" : "Copiar"}
-                      </button>
-                    </div>
-                    <p
-                      class="text-sm italic mt-1"
-                      style="color: var(--text-secondary); border-left: 2px solid var(--border-strong); padding-left: 0.75rem"
-                    >
-                      {result.production_note}
-                    </p>
-                  </div>
-                {/if}
-
-                <div
-                  class="flex flex-col md:flex-row md:items-center gap-2 mt-4 pt-3 border-t"
-                  style="border-color: var(--border)"
-                >
-                  {#if blockReason}
-                    <span class="text-sm" style="color: var(--text-muted)"
-                      >{blockReason} — não é possível enviar agora.</span
-                    >
-                  {:else}
-                    <button
-                      onclick={sendViaWhatsApp}
-                      disabled={sending}
-                      class="w-full md:w-auto px-6 py-3 rounded-full text-base font-medium transition-opacity"
-                      style="background: #25D366; color: #fff; opacity: {sending ? '0.6' : '1'}; cursor: {sending ? 'not-allowed' : 'pointer'}"
-                    >
-                      {sending ? "Enviando..." : "Enviar pelo WhatsApp"}
-                    </button>
-                    {#if sendError}
-                      <span class="text-sm" style="color: var(--destructive)">{sendError}</span>
-                    {/if}
-                  {/if}
-                </div>
-              </div>
-            {/if}
           </div>
           </div>
         {:else}
