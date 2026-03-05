@@ -1,13 +1,13 @@
 # PEP-015 — Operator WhatsApp-style UX
 
-**Status:** In Progress — Wave 1 done
+**Status:** In Progress — Wave 2 done
 **Date:** 2026-03-05
 
 ## Context
 
 The operator page has two text inputs visible simultaneously: a "quick reply" input between the message thread and the generate panel, and a "Gerar post" textarea in a separate bottom panel with its own label, buttons, and result area. This is confusing. The operator must decide which input to use and context-switch between two workflows that look similar but behave differently.
 
-WhatsApp solves this with one input bar that does one thing at a time. We adopt the same pattern: a single text input at the bottom, with a mode toggle ("Gerar Post" chip) in the client header bar that switches the input's purpose. The chat stays visible in both modes. When in generate mode, the operator can tap messages in the thread to select them as source material (including images and video descriptions). Generated posts appear in a full-screen review overlay where the caption is editable. The "3 ideias" feature changes from pick-one to pick-many, sending each selected idea as a separate WhatsApp message. An attach button lets the operator send photos from the chat window.
+WhatsApp solves this with one input bar that does one thing at a time. We adopt the same pattern: a single text input at the bottom, with a mode toggle pill on the action chips bar that switches the input's purpose. The chat stays visible in both modes. When in generate mode, the operator can tap messages in the thread to select them as source material (including images and video descriptions). Generated posts appear in a full-screen review overlay where the caption is editable. The "3 ideias" feature changes from pick-one to pick-many, sending each selected idea as a separate WhatsApp message. An attach button lets the operator send photos from the chat window.
 
 ## Waves
 
@@ -28,13 +28,13 @@ One bar at the bottom of the chat area, always visible when `!blockReason`:
 - **Chat mode (default):** placeholder "Mensagem...", green send button, Enter submits. Calls the existing `sendQuickReply` logic (rewritten to use `message` instead of `quickReply`).
 - **Generate mode:** placeholder "Descreva o post...", coral "Gerar" button, existing "Usar conversa" and "3 ideias" buttons appear as compact chips above the input. The input bar gets a colored top border (coral) so the mode change is visually obvious.
 
-**Mode toggle in client header bar (around line 2020-2056):**
+**Mode toggle (action chips bar, right-aligned):**
 
-Add a "Gerar Post" chip/pill next to the client name/info. When tapped, toggles `inputMode` between `'chat'` and `'generate'`. Visual states:
-- Inactive: outlined chip, muted color
-- Active: filled coral background, white text
+A pill button on the right side of the action chips bar above the input. Uses icon + short label:
+- In chat mode: sparkle icon + "Post" (coral) to switch to generate mode
+- In generate mode: chat bubble icon + "Chat" (green) to switch back
 
-When toggling modes, clear the `message` text to avoid sending a half-typed reply as a generation prompt or vice versa.
+When toggling modes, clear `message` text and `selectedMessages` to avoid cross-mode confusion.
 
 **Remove:**
 - The "Quick reply row" section (lines ~2164-2196)
@@ -53,7 +53,7 @@ When toggling modes, clear the `message` text to avoid sending a half-typed repl
 - Result display kept inline for now (Wave 3 moves it to a full-screen overlay)
 - The input uses `<input>` (single line) rather than `<textarea>` to match WhatsApp feel; generate mode will get multi-line via message selection in Wave 2
 
-### Wave 2 — Message Selection for Generation
+### Wave 2 — Message Selection for Generation ✓ Done (2026-03-05)
 
 **Goal:** When in generate mode, the operator can tap messages in the thread to select them as source material for post generation.
 
@@ -75,6 +75,13 @@ When toggling modes, clear the `message` text to avoid sending a half-typed repl
 - Switching back to chat mode clears `selectedMessages`
 
 **Gate:** `cd web && pnpm check`. In browser: switch to generate mode, tap 2-3 messages, verify they get highlighted and the count badge updates. Verify generating with selected messages sends their concatenated content. Verify "Selecionar recentes" selects the right messages. Verify switching to chat mode clears selections.
+
+**Implementation notes:**
+- `recentContext` (string concatenation) removed; replaced by `recentContextIds` (Set of message IDs) for the "Selecionar recentes" button
+- `latestIncoming` derived removed; `message_id` optimization now uses `selectedMessages` directly (if exactly one selected and no typed text)
+- `buildSelectedContent()` concatenates selected messages sorted by thread order, with `[Imagem]`/`[Video]` markers for media without text content
+- Selected messages get a coral left border and coral-pale background; the count badge appears as a chip above the input
+- "Selecionar recentes" chip only shows when no messages are selected yet (avoids confusion with manual selections)
 
 ### Wave 3 — Post Review Overlay
 
@@ -146,6 +153,53 @@ When toggling modes, clear the `message` text to avoid sending a half-typed repl
 - This is a significant backend addition. If it blocks, the attach button can be stubbed in the frontend (UI present but sends text-only for now) and the backend work tracked separately.
 
 **Gate:** `cd web && pnpm check`. In browser: verify the "+" button appears next to the input. Verify tapping it shows Camera/Gallery options. Verify selecting a photo sends it as a WhatsApp media message (if backend is ready) or shows a "em breve" toast (if stubbed). Backend: `cd api && go test ./...` passes.
+
+## E2E Testing (Playwright)
+
+The operator page requires authentication and a running backend. Playwright tests live in `web/tests/`.
+
+**Setup:**
+- Config: `web/playwright.config.ts` (baseURL `http://localhost:5173`, `reuseExistingServer: true`)
+- Dev server uses HTTPS with a self-signed cert, so tests that hit the running server need `ignoreHTTPSErrors`:
+
+```ts
+import { expect, test } from '@playwright/test';
+
+test.use({ ignoreHTTPSErrors: true, baseURL: 'https://localhost:5173' });
+```
+
+**Login helper:**
+
+```ts
+async function loginAsOperador(page: any) {
+  await page.goto('/entrar');
+  await page.getByLabel('Email').fill('operador@rekan.local');
+  await page.getByLabel('Senha').fill('senha1234567');
+  await page.getByRole('button', { name: 'Entrar' }).click();
+  await page.waitForURL('**/operador**');
+  await page.waitForTimeout(2000); // SSE stream prevents networkidle
+}
+```
+
+**Gotchas:**
+- Do NOT use `waitForLoadState('networkidle')` on the operator page. The WhatsApp SSE stream keeps the connection open indefinitely. Use `waitForTimeout` instead.
+- "Post" as button text matches many elements ("sem postar", "Post criado" etc). Use `getByRole('button', { name: 'Post', exact: true })` or a more specific locator.
+- Both backend (`make dev-api`) and frontend (`make dev-web`) must be running. Use `make dev` to start both.
+- Seed the DB first with `make seed` if starting fresh.
+
+**Running:**
+
+```bash
+cd web && pnpm exec playwright test tests/my-test.spec.ts --reporter=list --timeout=30000
+```
+
+**Screenshots for visual verification:**
+
+```ts
+await page.screenshot({ path: '/tmp/my-screenshot.png', fullPage: true });
+```
+
+Then read the screenshot with the `Read` tool to verify visual output.
 
 ## Consequences
 

@@ -197,6 +197,9 @@
   let sendingQuick = $state(false);
   let quickReplyError = $state("");
 
+  // Wave 2 — message selection for generation
+  let selectedMessages = $state(new Set<string>());
+
   // Feature 4 — post history
   let historyLimit = $state(10);
   let expandedPosts = $state(new Set<string>());
@@ -262,24 +265,17 @@
       : [],
   );
 
-  // Feature 1 — recentContext: all incoming since last outgoing
-  let recentContext = $derived.by(() => {
+  // IDs of recent incoming messages (all incoming since last outgoing)
+  let recentContextIds = $derived.by(() => {
     const lastOut = [...threadMessages].reverse().find(m => m.direction === 'outgoing');
     const cutoff = lastOut
       ? lastOut.created
       : new Date(Date.now() - 86400000).toISOString();
-    return threadMessages
-      .filter(m => m.direction === 'incoming' && m.content && m.created > cutoff)
-      .map(m => m.content)
-      .join('\n');
-  });
-
-  // Latest incoming message — still used for message_id optimization in generate()
-  let latestIncoming = $derived.by(() => {
-    const incoming = threadMessages.filter(
-      (m) => m.direction === "incoming" && m.content,
+    return new Set(
+      threadMessages
+        .filter(m => m.direction === 'incoming' && m.content && m.created > cutoff)
+        .map(m => m.id)
     );
-    return incoming.length > 0 ? incoming[incoming.length - 1] : null;
   });
 
   type MessageGroup = { date: Date; label: string; msgs: Message[] };
@@ -729,6 +725,7 @@
     inputMode = 'chat';
     message = "";
     quickReplyError = "";
+    selectedMessages = new Set();
 
     // Mark as seen
     lastSeen = { ...lastSeen, [id]: new Date().toISOString() };
@@ -751,9 +748,34 @@
 
   }
 
-  // Feature 1 — prefill with recent conversation context
-  function prefillGenerate() {
-    message = recentContext;
+  // Wave 2 — select recent incoming messages for generation
+  function selectRecentMessages() {
+    selectedMessages = new Set(recentContextIds);
+  }
+
+  // Wave 2 — toggle a message in selectedMessages
+  function toggleMessageSelection(id: string) {
+    const next = new Set(selectedMessages);
+    if (next.has(id)) next.delete(id);
+    else next.add(id);
+    selectedMessages = next;
+  }
+
+  // Wave 2 — build generation payload from selected messages
+  function buildSelectedContent(): string {
+    const parts: string[] = [];
+    for (const msg of threadMessages) {
+      if (!selectedMessages.has(msg.id)) continue;
+      if (msg.type === 'image') {
+        parts.push(msg.content || '[Imagem]');
+      } else if (msg.type === 'video') {
+        parts.push(msg.content || '[Video]');
+      } else if (msg.content) {
+        parts.push(msg.content);
+      }
+    }
+    if (message.trim()) parts.push(message.trim());
+    return parts.join('\n');
   }
 
   // Quick reply (chat mode)
@@ -1104,14 +1126,22 @@
   }
 
   async function generate() {
-    if (!selectedId || !message.trim()) return;
+    const hasSelected = selectedMessages.size > 0;
+    const hasText = message.trim().length > 0;
+    if (!selectedId || (!hasSelected && !hasText)) return;
     generating = true;
     generateError = "";
     result = null;
     try {
-      const payload: Record<string, string> = { message: message.trim() };
-      if (latestIncoming && message.trim() === latestIncoming.content) {
-        payload.message_id = latestIncoming.id;
+      const payload: Record<string, string> = {};
+      // If exactly one message selected and no typed text, pass message_id
+      if (selectedMessages.size === 1 && !hasText) {
+        const [id] = selectedMessages;
+        payload.message_id = id;
+        const msg = threadMessages.find(m => m.id === id);
+        payload.message = msg?.content || '';
+      } else {
+        payload.message = buildSelectedContent();
       }
       const res = await pb.send(
         `/api/businesses/${selectedId}/posts:generateFromMessage`,
@@ -2053,16 +2083,6 @@
                   </p>
                 </div>
               </button>
-              <!-- Mode toggle chip -->
-              <button
-                onclick={() => { inputMode = inputMode === 'chat' ? 'generate' : 'chat'; message = ''; }}
-                class="shrink-0 px-4 py-1.5 rounded-full text-sm font-medium transition-colors"
-                style="{inputMode === 'generate'
-                  ? 'background: var(--coral); color: #fff;'
-                  : 'background: transparent; color: var(--text-muted); border: 1.5px solid var(--border-strong);'}"
-              >
-                Gerar Post
-              </button>
             </div>
           </div>
 
@@ -2123,9 +2143,11 @@
                 </div>
                 {#each group.msgs as msg (msg.id)}
                   <div class="flex {msg.direction === 'outgoing' ? 'justify-end' : 'justify-start'}">
+                    <!-- svelte-ignore a11y_click_events_have_key_events a11y_no_static_element_interactions -->
                     <div
                       class="rounded-2xl px-4 py-3 text-base"
-                      style="max-width: 280px; background: {msg.direction === 'outgoing' ? 'var(--coral-pale)' : 'var(--surface)'}; border: 1px solid {msg.direction === 'outgoing' ? 'var(--coral-light)' : 'var(--border)'}; color: var(--text); line-height: 1.5;"
+                      style="max-width: 280px; background: {selectedMessages.has(msg.id) ? 'var(--coral-pale)' : msg.direction === 'outgoing' ? 'var(--coral-pale)' : 'var(--surface)'}; border: 1px solid {msg.direction === 'outgoing' ? 'var(--coral-light)' : 'var(--border)'}; color: var(--text); line-height: 1.5; {inputMode === 'generate' ? 'cursor: pointer;' : ''} {selectedMessages.has(msg.id) ? 'border-left: 3px solid var(--coral);' : ''}"
+                      onclick={() => { if (inputMode === 'generate') toggleMessageSelection(msg.id); }}
                     >
                       {#if msg.type === "audio"}
                         <span class="text-sm font-medium block mb-1" style="color: var(--text-muted)">Áudio transcrito</span>
@@ -2213,37 +2235,54 @@
               </div>
             {/if}
 
-            <!-- Generate mode action chips -->
-            {#if inputMode === 'generate' && ideaDrafts === null}
-              <div class="flex gap-2 items-center flex-wrap">
-                {#if recentContext && message !== recentContext}
-                  <button
-                    onclick={prefillGenerate}
-                    class="text-sm px-3 py-1.5 rounded-full font-medium"
-                    style="background: var(--sage-pale); color: var(--text-secondary);"
-                  >
-                    Usar conversa
-                  </button>
-                {/if}
-                {#if showGenerateIdeasButton}
-                  <button
-                    onclick={generateIdeas}
-                    disabled={generatingIdeas || generating}
-                    class="text-sm px-3 py-1.5 rounded-full font-medium flex items-center gap-1.5"
-                    style="background: var(--sage-pale); color: var(--text-secondary); opacity: {generatingIdeas || generating ? '0.5' : '1'}"
-                  >
-                    {#if generatingIdeas}
-                      <svg class="animate-spin" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M12 2v4M12 18v4M4.93 4.93l2.83 2.83M16.24 16.24l2.83 2.83M2 12h4M18 12h4M4.93 19.07l2.83-2.83M16.24 7.76l2.83-2.83"/></svg>
-                      Gerando...
-                    {:else}
-                      3 ideias
-                    {/if}
-                  </button>
-                {/if}
-              </div>
-            {/if}
-
             {#if !blockReason}
+              <!-- Action chips bar -->
+              <div class="flex gap-2 items-center flex-wrap">
+                {#if inputMode === 'generate' && ideaDrafts === null}
+                  {#if selectedMessages.size > 0}
+                    <span class="text-sm px-3 py-1.5 rounded-full font-medium" style="background: var(--coral-pale); color: var(--coral);">
+                      {selectedMessages.size} {selectedMessages.size === 1 ? 'mensagem selecionada' : 'mensagens selecionadas'}
+                    </span>
+                  {/if}
+                  {#if recentContextIds.size > 0 && selectedMessages.size === 0}
+                    <button
+                      onclick={selectRecentMessages}
+                      class="text-sm px-3 py-1.5 rounded-full font-medium"
+                      style="background: var(--sage-pale); color: var(--text-secondary);"
+                    >
+                      Selecionar recentes
+                    </button>
+                  {/if}
+                  {#if showGenerateIdeasButton}
+                    <button
+                      onclick={generateIdeas}
+                      disabled={generatingIdeas || generating}
+                      class="text-sm px-3 py-1.5 rounded-full font-medium flex items-center gap-1.5"
+                      style="background: var(--sage-pale); color: var(--text-secondary); opacity: {generatingIdeas || generating ? '0.5' : '1'}"
+                    >
+                      {#if generatingIdeas}
+                        <svg class="animate-spin" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M12 2v4M12 18v4M4.93 4.93l2.83 2.83M16.24 16.24l2.83 2.83M2 12h4M18 12h4M4.93 19.07l2.83-2.83M16.24 7.76l2.83-2.83"/></svg>
+                        Gerando...
+                      {:else}
+                        3 ideias
+                      {/if}
+                    </button>
+                  {/if}
+                {/if}
+                <button
+                  onclick={() => { inputMode = inputMode === 'chat' ? 'generate' : 'chat'; message = ''; selectedMessages = new Set(); }}
+                  class="ml-auto text-sm px-3 py-1.5 rounded-full font-medium transition-colors flex items-center gap-1.5"
+                  style="background: {inputMode === 'generate' ? '#25D366' : 'var(--coral)'}; color: #fff;"
+                >
+                  {#if inputMode === 'generate'}
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
+                    Chat
+                  {:else}
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3l1.09 3.26L16.36 7.5l-3.27 1.15L12 12l-1.09-3.35L7.64 7.5l3.27-1.24L12 3z"/><path d="M5 16l.55 1.64L7.18 18.2 5.55 18.76 5 20.4l-.55-1.64L2.82 18.2l1.63-.56L5 16z"/><path d="M18 12l.55 1.64 1.63.56-1.63.56L18 16.4l-.55-1.64-1.63-.56 1.63-.56L18 12z"/></svg>
+                    Post
+                  {/if}
+                </button>
+              </div>
               <!-- Input row -->
               <div class="flex gap-2 items-center">
                 <input
@@ -2255,25 +2294,16 @@
                     if (e.key === 'Enter' && !e.shiftKey) {
                       e.preventDefault();
                       if (inputMode === 'chat') sendQuickReply();
-                      else if (message.trim()) generate();
+                      else if (message.trim() || selectedMessages.size > 0) generate();
                     }
                   }}
                 />
-                {#if inputMode === 'chat'}
-                  <button
-                    onclick={sendQuickReply}
-                    disabled={sendingQuick || !message.trim()}
-                    class="px-5 py-3 rounded-full text-sm font-medium transition-opacity"
-                    style="background: #25D366; color: #fff; opacity: {sendingQuick || !message.trim() ? '0.6' : '1'}"
-                  >
-                    {sendingQuick ? "..." : "Enviar"}
-                  </button>
-                {:else}
+                {#if inputMode === 'generate'}
                   <button
                     onclick={generate}
-                    disabled={generating || generatingIdeas || !message.trim()}
-                    class="px-5 py-3 rounded-full text-sm font-medium transition-opacity flex items-center gap-2"
-                    style="background: var(--coral); color: #fff; opacity: {generating || !message.trim() ? '0.6' : '1'}; cursor: {generating || !message.trim() ? 'not-allowed' : 'pointer'}"
+                    disabled={generating || generatingIdeas || (!message.trim() && selectedMessages.size === 0)}
+                    class="shrink-0 px-5 py-3 rounded-full text-sm font-medium transition-opacity flex items-center gap-2"
+                    style="background: var(--coral); color: #fff; opacity: {generating || (!message.trim() && selectedMessages.size === 0) ? '0.6' : '1'}; cursor: {generating || (!message.trim() && selectedMessages.size === 0) ? 'not-allowed' : 'pointer'}"
                   >
                     {#if generating}
                       <svg class="animate-spin" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M12 2v4M12 18v4M4.93 4.93l2.83 2.83M16.24 16.24l2.83 2.83M2 12h4M18 12h4M4.93 19.07l2.83-2.83M16.24 7.76l2.83-2.83"/></svg>
@@ -2281,6 +2311,15 @@
                     {:else}
                       Gerar
                     {/if}
+                  </button>
+                {:else}
+                  <button
+                    onclick={sendQuickReply}
+                    disabled={sendingQuick || !message.trim()}
+                    class="shrink-0 px-5 py-3 rounded-full text-sm font-medium transition-opacity"
+                    style="background: #25D366; color: #fff; opacity: {sendingQuick || !message.trim() ? '0.6' : '1'}"
+                  >
+                    {sendingQuick ? "..." : "Enviar"}
                   </button>
                 {/if}
               </div>
