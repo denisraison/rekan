@@ -1,4 +1,4 @@
-.PHONY: dev dev-api dev-web eval eval-judges eval-fast test-judges lint seed
+.PHONY: dev dev-mock dev-api dev-web eval eval-judges eval-fast test-judges lint seed
 
 dev:
 	$(MAKE) dev-api &
@@ -6,6 +6,13 @@ dev:
 	@while ! nc -z localhost 8090 2>/dev/null; do sleep 0.2; done
 	@echo "PocketBase ready"
 	$(MAKE) dev-web
+
+dev-mock:
+	$(MAKE) dev-api &
+	@echo "Waiting for PocketBase on :8090..."
+	@while ! nc -z localhost 8090 2>/dev/null; do sleep 0.2; done
+	@echo "PocketBase ready"
+	cd web && pnpm dev:mock --host 0.0.0.0
 
 dev-api:
 	set -a && . ./.env && set +a && cd api && go run . serve --http=0.0.0.0:8090

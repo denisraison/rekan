@@ -101,10 +101,16 @@ func run(ctx context.Context, getenv func(string) string) error {
 			}
 		}
 
+		var transcribeClient *transcribe.Client
+		if key := getenv("GEMINI_API_KEY"); key != "" {
+			transcribeClient = transcribe.NewClient(key)
+		}
+
 		apphttp.RegisterRoutes(se.Router, handlers.Deps{
 			App:                 app,
 			Asaas:               asaasClient,
 			WhatsApp:            waClient,
+			Transcribe:          transcribeClient,
 			WebhookToken:        getenv("ASAAS_WEBHOOK_TOKEN"),
 			AppURL:              getenv("APP_URL"),
 			Generate:            eval.Generate,

@@ -49,6 +49,8 @@ func RegisterRoutes(rtr *router.Router[*core.RequestEvent], deps handlers.Deps) 
 	rtr.GET("/api/whatsapp/status", handlers.WhatsAppStatus(deps)).Bind(auth)
 	rtr.GET("/api/whatsapp/stream", handlers.WhatsAppStatusStream(deps)).Bind(auth)
 	rtr.POST("/api/messages:send", handlers.SendMessage(deps)).Bind(auth)
+	rtr.POST("/api/messages:sendMedia", handlers.SendMedia(deps)).Bind(auth)
+	rtr.POST("/api/media:describe", handlers.DescribeMedia(deps)).Bind(auth)
 
 	// Asaas webhook (server-to-server, no auth middleware)
 	rtr.POST("/api/webhooks/asaas", handlers.AsaasWebhook(deps))

@@ -1,6 +1,6 @@
 # PEP-015 — Operator WhatsApp-style UX
 
-**Status:** In Progress — Wave 4 done
+**Status:** Complete — all 5 waves done
 **Date:** 2026-03-05
 
 ## Context
@@ -143,28 +143,51 @@ When toggling modes, clear `message` text and `selectedMessages` to avoid cross-
 - `selectedIdeas` is cleared on client switch, on "Cancelar"/"Limpar", and when closing the ideas picker
 - Desktop and mobile overlays both support the same multi-select flow with consistent UI
 
-### Wave 5 — Attach Button (Camera/Gallery)
+### Wave 5 — Attach Button (Camera/Gallery) ✓ Done (2026-03-05)
 
 **Goal:** Let the operator send photos and files from the chat window, like WhatsApp's attach button and camera icons
 
 **Files:**
 - `web/src/routes/(app)/operador/+page.svelte` (frontend)
-- `api/internal/http/handlers/send_message.go` (backend: add media support)
-- `api/internal/http/routes.go` (if new endpoint needed)
+- `api/internal/http/handlers/send_media.go` (new: send media via WhatsApp)
+- `api/internal/http/handlers/describe_media.go` (new: Gemini image description)
+- `api/internal/http/handlers/deps.go` (added Transcribe field)
+- `api/internal/whatsapp/client.go` (Upload method)
+- `api/internal/http/routes.go` (two new endpoints)
+- `api/main.go` (wire transcribe client into Deps)
 
 **Frontend:**
-- A paperclip icon and a camera icon button to the left of the text input (both modes)
-- Selected file is sent as a WhatsApp media message
-- State: `showAttachMenu: boolean`, `sendingMedia: boolean`
+- [x] A paperclip icon button to the left of the text input (both modes)
+- [x] Tapping opens a popup menu with Galeria, Camera, and Video options
+- [x] Selecting a file shows a thumbnail preview above the input (not sent immediately)
+- [x] Preview has a remove button to clear the attachment
+- [x] **Generate mode:** attached image is described via `/api/media:describe` (Gemini), then the description feeds into the generation prompt alongside selected messages and typed text
+- [x] **Chat mode:** attached image is sent directly via `/api/messages:sendMedia` as a WhatsApp media message
+- [x] State: `showAttachMenu`, `sendingMedia`, `attachedFile`, `attachedPreview`
+- [x] Attachment cleared on mode switch and client switch
+- [x] Toast notification system for error feedback
+- [x] Backdrop closes menu when tapping outside
 
 **Backend:**
-- The current `SendMessage` handler only sends text (`waE2E.Message.Conversation`)
-- Need to add a new endpoint or extend existing one to accept `multipart/form-data` with a file field
-- Use whatsmeow's `Upload` + `SendMessage` with `ImageMessage` or `VideoMessage` proto
-- Store the media file in PocketBase's `messages` collection `media` field
-- This is a significant backend addition. If it blocks, the attach button can be stubbed in the frontend (UI present but sends text-only for now) and the backend work tracked separately.
+- [x] New `SendMedia` handler accepts `multipart/form-data` with `business_id`, `caption`, and `file` fields
+- [x] New `DescribeMedia` handler accepts `multipart/form-data` with `file`, returns `{ description }` via Gemini
+- [x] Added `Upload` method to whatsapp Client wrapper (wraps `whatsmeow.Upload`)
+- [x] Added `Transcribe` field to handler Deps, wired in main.go
+- [x] Uploads media to WhatsApp servers, sends as `ImageMessage` or `VideoMessage` based on MIME type
+- [x] Stores outgoing media in PocketBase's `messages` collection with correct type and `media` field
+- [x] New endpoints: `POST /api/messages:sendMedia`, `POST /api/media:describe`
 
-**Gate:** `cd web && pnpm check` test in in browser with a new e2e test verify the "+" button appears next to the input. Verify tapping it shows Camera/Gallery options. Verify selecting a photo sends it as a WhatsApp media message (if backend is ready) or shows a "em breve" toast (if stubbed). Backend: `cd api && go test ./...` passes.
+**Gate:** `cd web && pnpm check` test in in browser with a new e2e test verify the buttons appears next to the input. Verify tapping it shows Camera/Gallery options. Verify selecting a photo sends it as a WhatsApp media message (if backend is ready) or shows a "em breve" toast (if stubbed). Backend: `cd api && go test ./...` passes.
+
+**Implementation notes:**
+- Attach does NOT send immediately. It shows a preview, letting the operator use the photo as context for post generation (the main use case: visit customer, take photo, generate post from it)
+- In generate mode, `generate()` calls `/api/media:describe` first to get a Gemini description, then prepends `[Foto do operador] <description>` to the message payload sent to `posts:generateFromMessage`
+- In chat mode, `sendQuickReply()` delegates to `sendMedia()` when an attachment is present, sending directly via WhatsApp
+- Created separate `SendMedia` and `DescribeMedia` handlers rather than extending existing ones
+- Camera option uses `accept="image/*;capture=camera"` to trigger native camera on mobile devices
+- Video support included alongside images, auto-detected from MIME type
+- Toast notification system added (3s auto-dismiss) instead of blocking `alert()` for media errors
+- E2e tests (10 cases) cover: button visibility in both modes, menu options, backdrop close, preview display/remove, preview persistence, mode-switch clearing, and button enable state with attachment
 
 ## E2E Testing (Playwright)
 

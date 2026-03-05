@@ -198,6 +198,11 @@ func (c *Client) SendChatPresence(ctx context.Context, jid types.JID, state type
 	return c.wac.SendChatPresence(ctx, jid, state, media)
 }
 
+// Upload uploads media to WhatsApp servers for later inclusion in a message.
+func (c *Client) Upload(ctx context.Context, data []byte, mediaType whatsmeow.MediaType) (whatsmeow.UploadResponse, error) {
+	return c.wac.Upload(ctx, data, mediaType)
+}
+
 // Download downloads media from a message.
 func (c *Client) Download(ctx context.Context, msg whatsmeow.DownloadableMessage) ([]byte, error) {
 	return c.wac.Download(ctx, msg)

@@ -2,6 +2,7 @@ package handlers
 
 import (
 	"github.com/denisraison/rekan/api/internal/asaas"
+	"github.com/denisraison/rekan/api/internal/transcribe"
 	"github.com/denisraison/rekan/api/internal/whatsapp"
 	"github.com/denisraison/rekan/eval"
 	"github.com/pocketbase/pocketbase/core"
@@ -9,8 +10,9 @@ import (
 
 type Deps struct {
 	App                 core.App
-	Asaas               *asaas.Client    // nil when ASAAS_API_KEY is not set
-	WhatsApp            *whatsapp.Client // nil when WhatsApp is not connected
+	Asaas               *asaas.Client        // nil when ASAAS_API_KEY is not set
+	WhatsApp            *whatsapp.Client     // nil when WhatsApp is not connected
+	Transcribe          *transcribe.Client   // nil when GEMINI_API_KEY is not set
 	WebhookToken        string
 	AppURL              string
 	Generate            eval.GenerateFunc

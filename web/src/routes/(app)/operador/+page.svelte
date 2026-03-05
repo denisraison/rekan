@@ -218,6 +218,14 @@
   let selectedIdeas = $state(new Set<number>());
   let sendingIdeas = $state(false);
 
+  // Wave 5 — attach button (camera/gallery)
+  let showAttachMenu = $state(false);
+  let sendingMedia = $state(false);
+  let attachedFile = $state<File | null>(null);
+  let attachedPreview = $state<string>("");
+  let toastMessage = $state("");
+  let toastTimer: ReturnType<typeof setTimeout> | null = null;
+
   let scheduledMessages = $state<ScheduledMessage[]>([]);
   let scheduledMessageCount = $derived(scheduledMessages.length);
   let showApprovalPanel = $state(false);
@@ -745,6 +753,8 @@
     message = "";
     quickReplyError = "";
     selectedMessages = new Set();
+    showAttachMenu = false;
+    removeAttachment();
 
     // Mark as seen
     lastSeen = { ...lastSeen, [id]: new Date().toISOString() };
@@ -797,9 +807,13 @@
     return parts.join('\n');
   }
 
-  // Quick reply (chat mode)
+  // Quick reply (chat mode), sends media if attached
   async function sendQuickReply() {
-    if (!selectedId || !message.trim()) return;
+    if (!selectedId || (!message.trim() && !attachedFile)) return;
+    if (attachedFile) {
+      await sendMedia(attachedFile);
+      return;
+    }
     sendingQuick = true;
     quickReplyError = "";
     try {
@@ -818,6 +832,61 @@
     } finally {
       sendingQuick = false;
     }
+  }
+
+  function showToast(msg: string) {
+    toastMessage = msg;
+    if (toastTimer) clearTimeout(toastTimer);
+    toastTimer = setTimeout(() => { toastMessage = ""; }, 3000);
+  }
+
+  function attachFile(file: File) {
+    attachedFile = file;
+    attachedPreview = URL.createObjectURL(file);
+    showAttachMenu = false;
+  }
+
+  function removeAttachment() {
+    if (attachedPreview) URL.revokeObjectURL(attachedPreview);
+    attachedFile = null;
+    attachedPreview = "";
+  }
+
+  async function sendMedia(file: File) {
+    if (!selectedId) return;
+    sendingMedia = true;
+    try {
+      const form = new FormData();
+      form.append("business_id", selectedId);
+      form.append("file", file);
+      form.append("caption", message.trim());
+      await pb.send("/api/messages:sendMedia", { method: "POST", body: form });
+      message = "";
+      removeAttachment();
+    } catch {
+      showToast("Erro ao enviar midia. Tente novamente.");
+    } finally {
+      sendingMedia = false;
+    }
+  }
+
+  async function describeAttachment(): Promise<string> {
+    if (!attachedFile) return "";
+    const form = new FormData();
+    form.append("file", attachedFile);
+    const res = await pb.send("/api/media:describe", { method: "POST", body: form }) as { description: string };
+    return res.description;
+  }
+
+  function handleAttachFile(accept: string) {
+    const input = document.createElement("input");
+    input.type = "file";
+    input.accept = accept;
+    input.onchange = () => {
+      const file = input.files?.[0];
+      if (file) attachFile(file);
+    };
+    input.click();
   }
 
   function mediaUrl(msg: Message): string {
@@ -1147,20 +1216,32 @@
   async function generate() {
     const hasSelected = selectedMessages.size > 0;
     const hasText = message.trim().length > 0;
-    if (!selectedId || (!hasSelected && !hasText)) return;
+    const hasAttachment = !!attachedFile;
+    if (!selectedId || (!hasSelected && !hasText && !hasAttachment)) return;
     generating = true;
     generateError = "";
     result = null;
     try {
       const payload: Record<string, string> = {};
-      // If exactly one message selected and no typed text, pass message_id
-      if (selectedMessages.size === 1 && !hasText) {
+
+      // Describe attached image/video via Gemini
+      let imageDescription = "";
+      if (hasAttachment) {
+        imageDescription = await describeAttachment();
+      }
+
+      // If exactly one message selected and no typed text and no attachment, pass message_id
+      if (selectedMessages.size === 1 && !hasText && !hasAttachment) {
         const [id] = selectedMessages;
         payload.message_id = id;
         const msg = threadMessages.find(m => m.id === id);
         payload.message = msg?.content || '';
       } else {
-        payload.message = buildSelectedContent();
+        const parts: string[] = [];
+        if (imageDescription) parts.push("[Foto do operador] " + imageDescription);
+        const selected = buildSelectedContent();
+        if (selected) parts.push(selected);
+        payload.message = parts.join("\n\n");
       }
       const res = await pb.send(
         `/api/businesses/${selectedId}/posts:generateFromMessage`,
@@ -1170,6 +1251,7 @@
         },
       );
       result = res as GeneratedPost;
+      removeAttachment();
     } catch (err: unknown) {
       const e = err as { data?: { message?: string } };
       generateError =
@@ -2503,7 +2585,7 @@
                   {/if}
                 {/if}
                 <button
-                  onclick={() => { inputMode = inputMode === 'chat' ? 'generate' : 'chat'; message = ''; selectedMessages = new Set(); }}
+                  onclick={() => { inputMode = inputMode === 'chat' ? 'generate' : 'chat'; message = ''; selectedMessages = new Set(); removeAttachment(); }}
                   class="ml-auto text-sm px-3 py-1.5 rounded-full font-medium transition-colors flex items-center gap-1.5"
                   style="background: {inputMode === 'generate' ? '#25D366' : 'var(--coral)'}; color: #fff;"
                 >
@@ -2516,8 +2598,68 @@
                   {/if}
                 </button>
               </div>
+              <!-- Attachment preview -->
+              {#if attachedPreview}
+                <div class="flex items-center gap-2 px-1">
+                  <div class="relative">
+                    <img src={attachedPreview} alt="Anexo" class="w-16 h-16 rounded-lg object-cover border" style="border-color: var(--border-strong)" />
+                    <button
+                      onclick={removeAttachment}
+                      class="absolute -top-1.5 -right-1.5 w-5 h-5 rounded-full flex items-center justify-center text-white text-xs"
+                      style="background: var(--destructive)"
+                      aria-label="Remover anexo"
+                    >&times;</button>
+                  </div>
+                  <span class="text-xs truncate max-w-[200px]" style="color: var(--text-muted)">{attachedFile?.name}</span>
+                </div>
+              {/if}
               <!-- Input row -->
-              <div class="flex gap-2 items-center">
+              <div class="flex gap-2 items-center relative">
+                <!-- Attach button -->
+                <button
+                  onclick={() => { showAttachMenu = !showAttachMenu; }}
+                  disabled={sendingMedia}
+                  class="shrink-0 w-10 h-10 rounded-full flex items-center justify-center transition-colors"
+                  style="color: var(--text-muted); opacity: {sendingMedia ? '0.5' : '1'}"
+                  aria-label="Anexar arquivo"
+                >
+                  {#if sendingMedia}
+                    <svg class="animate-spin" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2v4M12 18v4M4.93 4.93l2.83 2.83M16.24 16.24l2.83 2.83M2 12h4M18 12h4M4.93 19.07l2.83-2.83M16.24 7.76l2.83-2.83"/></svg>
+                  {:else}
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21.44 11.05l-9.19 9.19a6 6 0 0 1-8.49-8.49l9.19-9.19a4 4 0 0 1 5.66 5.66l-9.2 9.19a2 2 0 0 1-2.83-2.83l8.49-8.48"/></svg>
+                  {/if}
+                </button>
+                <!-- Attach menu popup -->
+                {#if showAttachMenu}
+                  <!-- backdrop to close menu -->
+                  <button class="fixed inset-0 z-10" onclick={() => { showAttachMenu = false; }} aria-label="Fechar menu"></button>
+                  <div class="absolute bottom-12 left-0 z-20 rounded-xl shadow-lg border p-2 flex flex-col gap-1" style="background: var(--bg); border-color: var(--border-strong); min-width: 180px;">
+                    <button
+                      onclick={() => handleAttachFile("image/*")}
+                      class="flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm text-left transition-colors hover:bg-black/5"
+                      style="color: var(--text)"
+                    >
+                      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="2" ry="2"/><circle cx="8.5" cy="8.5" r="1.5"/><polyline points="21 15 16 10 5 21"/></svg>
+                      Galeria
+                    </button>
+                    <button
+                      onclick={() => handleAttachFile("image/*;capture=camera")}
+                      class="flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm text-left transition-colors hover:bg-black/5"
+                      style="color: var(--text)"
+                    >
+                      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/><circle cx="12" cy="13" r="4"/></svg>
+                      Camera
+                    </button>
+                    <button
+                      onclick={() => handleAttachFile("video/*")}
+                      class="flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm text-left transition-colors hover:bg-black/5"
+                      style="color: var(--text)"
+                    >
+                      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="23 7 16 12 23 17 23 7"/><rect x="1" y="5" width="15" height="14" rx="2" ry="2"/></svg>
+                      Video
+                    </button>
+                  </div>
+                {/if}
                 <input
                   bind:value={message}
                   placeholder={inputMode === 'generate' ? 'Descreva o post...' : 'Mensagem...'}
@@ -2527,16 +2669,16 @@
                     if (e.key === 'Enter' && !e.shiftKey) {
                       e.preventDefault();
                       if (inputMode === 'chat') sendQuickReply();
-                      else if (message.trim() || selectedMessages.size > 0) generate();
+                      else if (message.trim() || selectedMessages.size > 0 || attachedFile) generate();
                     }
                   }}
                 />
                 {#if inputMode === 'generate'}
                   <button
                     onclick={generate}
-                    disabled={generating || generatingIdeas || (!message.trim() && selectedMessages.size === 0)}
+                    disabled={generating || generatingIdeas || (!message.trim() && selectedMessages.size === 0 && !attachedFile)}
                     class="shrink-0 px-5 py-3 rounded-full text-sm font-medium transition-opacity flex items-center gap-2"
-                    style="background: var(--coral); color: #fff; opacity: {generating || (!message.trim() && selectedMessages.size === 0) ? '0.6' : '1'}; cursor: {generating || (!message.trim() && selectedMessages.size === 0) ? 'not-allowed' : 'pointer'}"
+                    style="background: var(--coral); color: #fff; opacity: {generating || (!message.trim() && selectedMessages.size === 0 && !attachedFile) ? '0.6' : '1'}; cursor: {generating || (!message.trim() && selectedMessages.size === 0 && !attachedFile) ? 'not-allowed' : 'pointer'}"
                   >
                     {#if generating}
                       <svg class="animate-spin" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M12 2v4M12 18v4M4.93 4.93l2.83 2.83M16.24 16.24l2.83 2.83M2 12h4M18 12h4M4.93 19.07l2.83-2.83M16.24 7.76l2.83-2.83"/></svg>
@@ -2548,9 +2690,9 @@
                 {:else}
                   <button
                     onclick={sendQuickReply}
-                    disabled={sendingQuick || !message.trim()}
+                    disabled={sendingQuick || sendingMedia || (!message.trim() && !attachedFile)}
                     class="shrink-0 px-5 py-3 rounded-full text-sm font-medium transition-opacity"
-                    style="background: #25D366; color: #fff; opacity: {sendingQuick || !message.trim() ? '0.6' : '1'}"
+                    style="background: #25D366; color: #fff; opacity: {sendingQuick || sendingMedia || (!message.trim() && !attachedFile) ? '0.6' : '1'}"
                   >
                     {sendingQuick ? "..." : "Enviar"}
                   </button>
@@ -2614,6 +2756,16 @@
     {/if}
   {/if}
 </div>
+
+<!-- Toast notification -->
+{#if toastMessage}
+  <div
+    class="fixed bottom-6 left-1/2 -translate-x-1/2 z-50 px-4 py-3 rounded-xl text-sm font-medium shadow-lg"
+    style="background: var(--surface); color: var(--text); border: 1px solid var(--border-strong);"
+  >
+    {toastMessage}
+  </div>
+{/if}
 
 <style>
   @keyframes pulse {
