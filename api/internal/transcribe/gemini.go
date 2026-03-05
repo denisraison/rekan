@@ -6,12 +6,18 @@ import (
 	"encoding/base64"
 	"encoding/json"
 	"fmt"
+	"image"
+	"image/jpeg"
+	_ "image/png"
 	"io"
 	"net/http"
+	"strings"
 	"time"
+
+	"golang.org/x/image/draw"
 )
 
-const geminiEndpoint = "https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent"
+const geminiEndpoint = "https://generativelanguage.googleapis.com/v1beta/models/gemini-3.1-flash-lite-preview:generateContent"
 
 // Client calls the Gemini API for media transcription and description.
 type Client struct {
@@ -50,9 +56,40 @@ func (c *Client) Transcribe(ctx context.Context, audio []byte, mimeType string) 
 	return c.call(ctx, reqBody)
 }
 
+const maxImageDim = 1024
+
+// downscaleImage resizes an image so neither dimension exceeds maxImageDim.
+// Returns JPEG bytes and "image/jpeg" mime type, or the original data unchanged if
+// decoding fails or the image is already small enough.
+func downscaleImage(data []byte, mimeType string) ([]byte, string) {
+	if !strings.HasPrefix(mimeType, "image/") {
+		return data, mimeType
+	}
+	src, _, err := image.Decode(bytes.NewReader(data))
+	if err != nil {
+		return data, mimeType
+	}
+	b := src.Bounds()
+	w, h := b.Dx(), b.Dy()
+	if w <= maxImageDim && h <= maxImageDim {
+		return data, mimeType
+	}
+	scale := float64(maxImageDim) / float64(max(w, h))
+	nw, nh := int(float64(w)*scale), int(float64(h)*scale)
+	dst := image.NewRGBA(image.Rect(0, 0, nw, nh))
+	draw.BiLinear.Scale(dst, dst.Bounds(), src, b, draw.Over, nil)
+	var buf bytes.Buffer
+	if err := jpeg.Encode(&buf, dst, &jpeg.Options{Quality: 80}); err != nil {
+		return data, mimeType
+	}
+	return buf.Bytes(), "image/jpeg"
+}
+
 // DescribeImage sends image bytes to Gemini and returns a Portuguese description.
 // caption is optional context provided by the sender; empty string means no caption.
 func (c *Client) DescribeImage(ctx context.Context, imageBytes []byte, mimeType, caption string) (string, error) {
+	imageBytes, mimeType = downscaleImage(imageBytes, mimeType)
+
 	prompt := "Descreva esta imagem em português de forma concisa, em uma ou duas frases."
 	if caption != "" {
 		prompt = fmt.Sprintf("Descreva esta imagem em português de forma concisa, em uma ou duas frases. O cliente enviou com a legenda: %q.", caption)

@@ -560,8 +560,25 @@
       });
 
     connectWhatsAppStream();
+
+    // Reconnect streams and refresh data when returning from lock screen / tab switch
+    function onVisibilityChange() {
+      if (document.visibilityState !== "visible") return;
+      // SSE stream dies when the browser suspends the page; restart it
+      waAbortController?.abort();
+      waChecking = true;
+      connectWhatsAppStream();
+      // Refresh data that may have arrived while suspended
+      loadMessages();
+      loadPosts();
+      loadScheduledMessages();
+      loadAllSuggestionCounts();
+    }
+    document.addEventListener("visibilitychange", onVisibilityChange);
+    cleanupVisibility = () => document.removeEventListener("visibilitychange", onVisibilityChange);
   });
 
+  let cleanupVisibility: (() => void) | null = null;
   let waAbortController: AbortController | null = null;
   let qrDataUrl = $state("");
 
@@ -599,6 +616,7 @@
   });
 
   onDestroy(() => {
+    cleanupVisibility?.();
     unsubscribeMessages?.();
     unsubscribeBusinesses?.();
     unsubscribePosts?.();
@@ -878,10 +896,11 @@
     return res.description;
   }
 
-  function handleAttachFile(accept: string) {
+  function handleAttachFile(accept: string, capture?: string) {
     const input = document.createElement("input");
     input.type = "file";
     input.accept = accept;
+    if (capture) input.setAttribute("capture", capture);
     input.onchange = () => {
       const file = input.files?.[0];
       if (file) attachFile(file);
@@ -2643,20 +2662,12 @@
                       Galeria
                     </button>
                     <button
-                      onclick={() => handleAttachFile("image/*;capture=camera")}
+                      onclick={() => handleAttachFile("image/*", "environment")}
                       class="flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm text-left transition-colors hover:bg-black/5"
                       style="color: var(--text)"
                     >
                       <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/><circle cx="12" cy="13" r="4"/></svg>
                       Camera
-                    </button>
-                    <button
-                      onclick={() => handleAttachFile("video/*")}
-                      class="flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm text-left transition-colors hover:bg-black/5"
-                      style="color: var(--text)"
-                    >
-                      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="23 7 16 12 23 17 23 7"/><rect x="1" y="5" width="15" height="14" rx="2" ry="2"/></svg>
-                      Video
                     </button>
                   </div>
                 {/if}

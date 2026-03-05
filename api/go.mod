@@ -8,6 +8,7 @@ require (
 	github.com/pocketbase/dbx v1.12.0
 	github.com/pocketbase/pocketbase v0.36.4
 	go.mau.fi/whatsmeow v0.0.0-20260219150138-7ae702b1eed4
+	golang.org/x/image v0.35.0
 	google.golang.org/protobuf v1.36.11
 )
 
@@ -41,7 +42,6 @@ require (
 	go.mau.fi/util v0.9.6 // indirect
 	golang.org/x/crypto v0.48.0 // indirect
 	golang.org/x/exp v0.0.0-20260212183809-81e46e3db34a // indirect
-	golang.org/x/image v0.35.0 // indirect
 	golang.org/x/net v0.50.0 // indirect
 	golang.org/x/oauth2 v0.34.0 // indirect
 	golang.org/x/sync v0.19.0 // indirect

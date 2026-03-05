@@ -1,6 +1,6 @@
 # PEP-015 — Operator WhatsApp-style UX
 
-**Status:** Complete — all 5 waves done
+**Status:** Complete — all 5 waves done + performance follow-up
 **Date:** 2026-03-05
 
 ## Context
@@ -235,6 +235,25 @@ await page.screenshot({ path: '/tmp/my-screenshot.png', fullPage: true });
 ```
 
 Then read the screenshot with the `Read` tool to verify visual output.
+
+### Performance Follow-up (2026-03-06)
+
+**Problem:** Attaching an image and clicking "Gerar Post" took over 10 seconds just for the image description step, with a 30s timeout risk on larger photos.
+
+**Changes:**
+- **Switched Gemini model** for image/video description from `gemini-2.5-flash` to `gemini-3.1-flash-lite-preview` (`api/internal/transcribe/gemini.go`)
+- **Added image downscaling** before sending to Gemini: images larger than 1024px in either dimension are resized proportionally and re-encoded as JPEG 80% quality. Uses `golang.org/x/image/draw` (promoted from indirect to direct dependency in `go.mod`). Reduces a typical 2MB phone photo to ~100-200KB. Result: description time dropped from ~10s to ~3s.
+- **Removed video attach button** from the operator generate UI. Video descriptions can't be optimized the same way without ffmpeg, and operators rarely attach video for post generation. Video handling remains in the WhatsApp message ingestion pipeline.
+- **Fixed camera capture attribute**: changed from `accept="image/*;capture=camera"` (non-standard) to separate `accept="image/*"` + `capture="environment"` HTML attribute, which correctly triggers native camera on mobile devices.
+
+### SSE Reconnection on Resume (2026-03-06)
+
+**Problem:** When the operator locks/unlocks their phone or switches tabs, the browser suspends the page. The SSE streams (WhatsApp status, message updates) die silently and never reconnect, leaving the UI stale until a manual refresh.
+
+**Changes:**
+- **Operator page** (`+page.svelte`): added a `visibilitychange` listener that aborts the current SSE connection and reconnects when the page becomes visible again. Also refreshes messages, posts, scheduled messages, and suggestion counts to catch anything missed while suspended.
+- **WhatsApp status page** (`whatsapp/+page.svelte`): same `visibilitychange` reconnection for the QR/status SSE stream.
+- Both listeners are cleaned up in `onDestroy`.
 
 ## Consequences
 

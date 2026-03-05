@@ -42,9 +42,22 @@
 		}
 	}
 
-	onMount(connect);
+	let cleanupVisibility: (() => void) | null = null;
+
+	onMount(() => {
+		connect();
+		function onVisibilityChange() {
+			if (document.visibilityState !== "visible") return;
+			abortController?.abort();
+			status = 'loading';
+			connect();
+		}
+		document.addEventListener("visibilitychange", onVisibilityChange);
+		cleanupVisibility = () => document.removeEventListener("visibilitychange", onVisibilityChange);
+	});
 
 	onDestroy(() => {
+		cleanupVisibility?.();
 		abortController?.abort();
 	});
 </script>
