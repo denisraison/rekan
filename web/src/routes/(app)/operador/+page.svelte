@@ -192,8 +192,8 @@
   let sending = $state(false);
   let sendError = $state("");
 
-  // Feature 1 — quick reply
-  let quickReply = $state("");
+  // Input mode: 'chat' for quick reply, 'generate' for post generation
+  let inputMode = $state<'chat' | 'generate'>('chat');
   let sendingQuick = $state(false);
   let quickReplyError = $state("");
 
@@ -726,7 +726,8 @@
     ideaDrafts = null;
     ideaError = "";
     isProactive = false;
-    quickReply = "";
+    inputMode = 'chat';
+    message = "";
     quickReplyError = "";
 
     // Mark as seen
@@ -755,9 +756,9 @@
     message = recentContext;
   }
 
-  // Feature 2 — quick reply
+  // Quick reply (chat mode)
   async function sendQuickReply() {
-    if (!selectedId || !quickReply.trim()) return;
+    if (!selectedId || !message.trim()) return;
     sendingQuick = true;
     quickReplyError = "";
     try {
@@ -765,12 +766,12 @@
         method: "POST",
         body: JSON.stringify({
           business_id: selectedId,
-          caption: quickReply.trim(),
+          caption: message.trim(),
           hashtags: "",
           production_note: "",
         }),
       });
-      quickReply = "";
+      message = "";
     } catch {
       quickReplyError = "Erro ao enviar. Tente novamente.";
     } finally {
@@ -2052,6 +2053,16 @@
                   </p>
                 </div>
               </button>
+              <!-- Mode toggle chip -->
+              <button
+                onclick={() => { inputMode = inputMode === 'chat' ? 'generate' : 'chat'; message = ''; }}
+                class="shrink-0 px-4 py-1.5 rounded-full text-sm font-medium transition-colors"
+                style="{inputMode === 'generate'
+                  ? 'background: var(--coral); color: #fff;'
+                  : 'background: transparent; color: var(--text-muted); border: 1.5px solid var(--border-strong);'}"
+              >
+                Gerar Post
+              </button>
             </div>
           </div>
 
@@ -2161,48 +2172,14 @@
             {/if}
           </div>
 
-          <!-- Feature 2 — Quick reply row -->
-          {#if !blockReason}
-            <div
-              class="shrink-0 border-t px-4 py-3 flex gap-2 items-center"
-              style="border-color: var(--border); background: var(--surface)"
-            >
-              <input
-                bind:value={quickReply}
-                placeholder="Resposta rápida pelo WhatsApp..."
-                class="flex-1 px-4 py-3 rounded-xl text-base outline-none border"
-                style="border-color: var(--border-strong); background: var(--bg); color: var(--text); min-height: 48px;"
-                onkeydown={(e) => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); sendQuickReply(); } }}
-              />
-              <button
-                onclick={sendQuickReply}
-                disabled={sendingQuick || !quickReply.trim()}
-                class="px-5 py-3 rounded-full text-sm font-medium transition-opacity"
-                style="background: #25D366; color: #fff; opacity: {sendingQuick || !quickReply.trim() ? '0.6' : '1'}"
-              >
-                {sendingQuick ? "..." : "Enviar"}
-              </button>
-              {#if quickReplyError}
-                <span class="text-sm" style="color: var(--destructive)">{quickReplyError}</span>
-              {/if}
-            </div>
-          {:else}
-            <div
-              class="shrink-0 border-t px-4 py-3"
-              style="border-color: var(--border); background: var(--surface)"
-            >
-              <span class="text-sm" style="color: var(--text-muted)">{blockReason}</span>
-            </div>
-          {/if}
-
-          <!-- Generate panel (bottom) -->
+          <!-- Unified input bar -->
           <div
-            class="shrink-0 border-t px-4 py-3 overflow-y-auto max-h-[30vh] md:max-h-[50vh]"
-            style="border-top: 2px solid var(--border-strong); background: var(--surface)"
+            class="shrink-0 border-t px-4 py-3 flex flex-col gap-2"
+            style="border-color: {inputMode === 'generate' ? 'var(--coral)' : 'var(--border)'}; background: var(--surface); {inputMode === 'generate' ? 'border-top-width: 2px;' : ''}"
           >
-            <!-- Feature 7 — idea drafts UI (desktop only; mobile uses full-screen overlay above) -->
+            <!-- Idea drafts (desktop only) -->
             {#if ideaDrafts !== null}
-              <div class="hidden md:flex flex-col gap-3">
+              <div class="hidden md:flex flex-col gap-3 mb-2">
                 <div class="flex items-center justify-between">
                   <span class="text-sm font-medium" style="color: var(--text-muted)">
                     Escolha uma ideia
@@ -2234,34 +2211,26 @@
                   </div>
                 {/each}
               </div>
-            {:else}
-              <!-- Standard generate panel -->
-              <span class="text-xs font-bold tracking-wider uppercase block mb-2" style="color: var(--text-muted)">Gerar post</span>
-              <textarea
-                bind:value={message}
-                placeholder="Mensagem do cliente..."
-                rows={2}
-                class="w-full px-4 py-3 rounded-xl text-base outline-none border resize-none"
-                style="border-color: var(--border-strong); background: var(--bg); color: var(--text)"
-              ></textarea>
-              <div class="flex gap-2 mt-2 items-center">
-                <!-- Feature 1 — "Usar conversa" -->
+            {/if}
+
+            <!-- Generate mode action chips -->
+            {#if inputMode === 'generate' && ideaDrafts === null}
+              <div class="flex gap-2 items-center flex-wrap">
                 {#if recentContext && message !== recentContext}
                   <button
                     onclick={prefillGenerate}
-                    class="text-sm px-4 rounded-full font-medium"
-                    style="min-height: 48px; background: var(--sage-pale); color: var(--text-secondary);"
+                    class="text-sm px-3 py-1.5 rounded-full font-medium"
+                    style="background: var(--sage-pale); color: var(--text-secondary);"
                   >
                     Usar conversa
                   </button>
                 {/if}
-                <!-- Feature 7 — "3 ideias" -->
                 {#if showGenerateIdeasButton}
                   <button
                     onclick={generateIdeas}
                     disabled={generatingIdeas || generating}
-                    class="text-sm px-4 rounded-full font-medium flex items-center gap-2"
-                    style="min-height: 48px; background: var(--sage-pale); color: var(--text-secondary); opacity: {generatingIdeas || generating ? '0.5' : '1'}"
+                    class="text-sm px-3 py-1.5 rounded-full font-medium flex items-center gap-1.5"
+                    style="background: var(--sage-pale); color: var(--text-secondary); opacity: {generatingIdeas || generating ? '0.5' : '1'}"
                   >
                     {#if generatingIdeas}
                       <svg class="animate-spin" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M12 2v4M12 18v4M4.93 4.93l2.83 2.83M16.24 16.24l2.83 2.83M2 12h4M18 12h4M4.93 19.07l2.83-2.83M16.24 7.76l2.83-2.83"/></svg>
@@ -2271,28 +2240,61 @@
                     {/if}
                   </button>
                 {/if}
-                <button
-                  onclick={generate}
-                  disabled={generating || generatingIdeas || !message.trim()}
-                  class="px-6 rounded-full text-base font-bold ml-auto flex items-center gap-2"
-                  style="min-height: 48px; background: var(--coral); color: #fff; opacity: {generating || !message.trim() ? '0.6' : '1'}; cursor: {generating || !message.trim() ? 'not-allowed' : 'pointer'}"
-                >
-                  {#if generating}
-                    <svg class="animate-spin" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M12 2v4M12 18v4M4.93 4.93l2.83 2.83M16.24 16.24l2.83 2.83M2 12h4M18 12h4M4.93 19.07l2.83-2.83M16.24 7.76l2.83-2.83"/></svg>
-                    Gerando...
-                  {:else}
-                    Gerar
-                  {/if}
-                </button>
               </div>
+            {/if}
 
+            {#if !blockReason}
+              <!-- Input row -->
+              <div class="flex gap-2 items-center">
+                <input
+                  bind:value={message}
+                  placeholder={inputMode === 'generate' ? 'Descreva o post...' : 'Mensagem...'}
+                  class="flex-1 px-4 py-3 rounded-xl text-base outline-none border"
+                  style="border-color: var(--border-strong); background: var(--bg); color: var(--text); min-height: 48px;"
+                  onkeydown={(e) => {
+                    if (e.key === 'Enter' && !e.shiftKey) {
+                      e.preventDefault();
+                      if (inputMode === 'chat') sendQuickReply();
+                      else if (message.trim()) generate();
+                    }
+                  }}
+                />
+                {#if inputMode === 'chat'}
+                  <button
+                    onclick={sendQuickReply}
+                    disabled={sendingQuick || !message.trim()}
+                    class="px-5 py-3 rounded-full text-sm font-medium transition-opacity"
+                    style="background: #25D366; color: #fff; opacity: {sendingQuick || !message.trim() ? '0.6' : '1'}"
+                  >
+                    {sendingQuick ? "..." : "Enviar"}
+                  </button>
+                {:else}
+                  <button
+                    onclick={generate}
+                    disabled={generating || generatingIdeas || !message.trim()}
+                    class="px-5 py-3 rounded-full text-sm font-medium transition-opacity flex items-center gap-2"
+                    style="background: var(--coral); color: #fff; opacity: {generating || !message.trim() ? '0.6' : '1'}; cursor: {generating || !message.trim() ? 'not-allowed' : 'pointer'}"
+                  >
+                    {#if generating}
+                      <svg class="animate-spin" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M12 2v4M12 18v4M4.93 4.93l2.83 2.83M16.24 16.24l2.83 2.83M2 12h4M18 12h4M4.93 19.07l2.83-2.83M16.24 7.76l2.83-2.83"/></svg>
+                      Gerando...
+                    {:else}
+                      Gerar
+                    {/if}
+                  </button>
+                {/if}
+              </div>
+              {#if quickReplyError}
+                <span class="text-sm" style="color: var(--destructive)">{quickReplyError}</span>
+              {/if}
               {#if ideaError}
-                <p class="mt-2 text-sm" style="color: var(--destructive)">{ideaError}</p>
+                <p class="text-sm" style="color: var(--destructive)">{ideaError}</p>
               {/if}
-
               {#if generateError}
-                <p class="mt-2 text-sm" style="color: var(--destructive)">{generateError}</p>
+                <p class="text-sm" style="color: var(--destructive)">{generateError}</p>
               {/if}
+            {:else}
+              <span class="text-sm" style="color: var(--text-muted)">{blockReason}</span>
             {/if}
 
             {#if result}
