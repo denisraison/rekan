@@ -16,6 +16,7 @@ export default defineConfig({
 		tailwindcss(),
 		sveltekit(),
 		VitePWA({
+			injectRegister: false,
 			registerType: 'autoUpdate',
 			devOptions: { enabled: true },
 			workbox: {

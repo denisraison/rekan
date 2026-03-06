@@ -132,6 +132,10 @@
   let mobileView = $state<'list' | 'detail' | 'info'>('list');
   let loading = $state(true);
 
+  // PWA install prompt
+  let installPromptEvent = $state<Event | null>(null);
+  let showInstallBanner = $state(false);
+
   // WhatsApp status
   let waConnected = $state(false);
   let waQR = $state("");
@@ -475,7 +479,32 @@
     ((clientHealth[selectedId!]?.daysSinceMsg ?? 999) >= 5 || threadMessages.length === 0)
   );
 
+  function onBeforeInstallPrompt(e: Event) {
+    e.preventDefault();
+    if (localStorage.getItem("rekan_install_dismissed")) return;
+    installPromptEvent = e;
+    showInstallBanner = true;
+  }
+
+  async function installPwa() {
+    if (!installPromptEvent) return;
+    (installPromptEvent as any).prompt();
+    const result = await (installPromptEvent as any).userChoice;
+    if (result.outcome === "accepted") {
+      showInstallBanner = false;
+    }
+    installPromptEvent = null;
+  }
+
+  function dismissInstallBanner() {
+    showInstallBanner = false;
+    installPromptEvent = null;
+    localStorage.setItem("rekan_install_dismissed", "1");
+  }
+
   onMount(async () => {
+    window.addEventListener("beforeinstallprompt", onBeforeInstallPrompt);
+
     lastSeen = JSON.parse(
       localStorage.getItem("rekan_operator_last_seen") ?? "{}",
     );
@@ -607,6 +636,7 @@
   });
 
   onDestroy(() => {
+    window.removeEventListener("beforeinstallprompt", onBeforeInstallPrompt);
     cleanupVisibility?.();
     unsubscribeMessages?.();
     unsubscribeBusinesses?.();
@@ -2752,6 +2782,32 @@
     {/if}
   {/if}
 </div>
+
+<!-- PWA install banner -->
+{#if showInstallBanner}
+  <div
+    class="fixed top-0 left-0 right-0 z-50 flex items-center justify-between px-4 py-3 text-sm"
+    style="background: var(--primary); color: white;"
+  >
+    <span>Instalar Rekan no seu celular</span>
+    <div class="flex gap-2">
+      <button
+        class="px-3 py-1 rounded-lg text-sm font-medium"
+        style="background: white; color: var(--primary);"
+        onclick={installPwa}
+      >
+        Instalar
+      </button>
+      <button
+        class="px-2 py-1 rounded-lg text-sm"
+        style="color: white; opacity: 0.8;"
+        onclick={dismissInstallBanner}
+      >
+        Fechar
+      </button>
+    </div>
+  </div>
+{/if}
 
 <!-- Toast notification -->
 {#if toastMessage}

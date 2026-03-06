@@ -67,22 +67,29 @@ Several UX issues degrade the mobile experience for our target audience (50+, lo
 
 **Goal:** Make the Chrome install prompt appear, and add a custom in-app install banner.
 
-**Files:** `web/vite.config.ts`, `web/src/routes/(app)/operador/+page.svelte`
+**Files:** `web/vite.config.ts`, `web/src/app.html`, `web/src/routes/(app)/operador/+page.svelte`
 
-**3a: Fix service worker config**
+**3a: Fix service worker registration**
 
-The `navigateFallback` is set to `/200.html` which SvelteKit does not generate. Investigate what the adapter actually outputs and fix or remove this setting. Verify the service worker registers correctly in production.
+- [x] The `navigateFallback` is set to `/200.html` which SvelteKit does not generate. Investigate what the adapter actually outputs and fix or remove this setting. Verify the service worker registers correctly in production.
+- [x] VitePWA's HTML injection (`transformIndexHtml`) does not work with SvelteKit (no `index.html` in the Vite pipeline). The built HTML had no `<link rel="manifest">` or SW registration script. Fix by adding them manually to `app.html`.
 
 **3b: Custom install banner**
 
-Listen for the `beforeinstallprompt` event, stash the event, and show a banner in Portuguese ("Instalar Rekan no seu celular") with a single button. Show once per session, remember dismissal in localStorage. Style it as a subtle top bar, not a modal.
+- [x] Listen for the `beforeinstallprompt` event, stash the event, and show a banner in Portuguese ("Instalar Rekan no seu celular") with a single button. Show once per session, remember dismissal in localStorage. Style it as a subtle top bar, not a modal.
+
+**Notes:**
+- 3a: `adapter-static` with `fallback: '200.html'` does generate `200.html` in the build output. The existing `navigateFallback: '/200.html'` config is correct. No change needed there.
+- 3a: VitePWA's `injectRegister` does not work with SvelteKit, so set `injectRegister: false` in `vite.config.ts`. Added `<link rel="manifest" href="/manifest.webmanifest" />` to `<head>` and an inline SW registration script to `<body>` in `app.html`. The script tries `/sw.js` (production) and falls back to `/dev-sw.js?dev-sw` (dev mode with `devOptions: { enabled: true }`).
+- 3b: Banner listens for `beforeinstallprompt`, stashes the event. Shows a fixed top bar with "Instalar" and "Fechar" buttons. Dismissal saved to `rekan_install_dismissed` in localStorage. Cleanup in `onDestroy`.
 
 **Gate:**
 
-1. `cd web && pnpm check`
-2. `cd web && pnpm build` — service worker generates without errors
-3. `cd web && npx playwright test` — full suite passes (no regressions)
-4. Manual verification on deployed environment (PWA installability requires real HTTPS):
+1. [x] `cd web && pnpm check`
+2. [x] `cd web && pnpm build` — service worker generates without errors, `200.html` contains manifest link and SW script
+3. [x] `cd web && npx playwright test` — full suite passes (41 passed, no regressions)
+4. [x] New e2e test `tests/pwa.spec.ts`: verifies SW registers and manifest link is present
+5. Manual verification on deployed environment (PWA installability requires real HTTPS):
    - Open in Chrome on Android. Verify the custom install banner appears.
    - Tap "Instalar", verify the native install flow triggers.
    - Dismiss the banner, reload, verify it does not reappear (localStorage persists dismissal).
