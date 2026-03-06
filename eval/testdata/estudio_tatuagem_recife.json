@@ -4,9 +4,9 @@
   "city": "Recife",
   "neighbourhood": "Boa Viagem",
   "services": [
-    { "name": "Tatuagem pequena (até 10cm)", "priceBRL": 200 },
-    { "name": "Tatuagem média (10-20cm)", "priceBRL": 450 },
-    { "name": "Cover-up", "priceBRL": 600 }
+    {"name": "Tatuagem pequena (até 10cm)", "priceBRL": 200},
+    {"name": "Tatuagem média (10-20cm)", "priceBRL": 450},
+    {"name": "Cover-up", "priceBRL": 600}
   ],
   "targetAudience": "jovens 18-35",
   "brandVibe": "autêntico",

@@ -74,7 +74,6 @@ Move subscription tracking to businesses, add invite infrastructure, create publ
 All items implemented. Key files: `api/internal/asaas/client.go` (added cpfCnpj, CreateAuthorization, CancelAuthorization), `api/migrations/1740000010_business_invite_fields.go`, `api/internal/http/handlers/invite.go` (InviteSend, InviteGet, InviteAccept, AuthorizationCancel), `api/internal/http/handlers/webhooks.go` (businesses instead of users), `api/internal/http/handlers/generate.go` (removed trial gate). Deleted `subscribe.go`. Handler tests pass.
 
 **Architectural deviation from plan:** The implementation uses Pix Automático (automatic debit authorizations) rather than Asaas subscriptions. Key differences:
-
 - Asaas client has `CreateAuthorization`/`CancelAuthorization` instead of `CreateSubscription`/`GetSubscription`/`CancelSubscription`
 - Business field is `authorization_id` + `customer_id` instead of `subscription_id`
 - Webhook events are `PIX_AUTOMATIC_RECURRING_*` instead of `PAYMENT_CONFIRMED`/`SUBSCRIPTION_DELETED`
@@ -88,18 +87,17 @@ All items implemented. Key files: `api/internal/asaas/client.go` (added cpfCnpj,
 
 New fields on the `businesses` collection:
 
-| Field               | Type         | Purpose                                                                 |
-| ------------------- | ------------ | ----------------------------------------------------------------------- |
-| `client_name`       | text         | Client's personal name (distinct from business name)                    |
-| `client_email`      | text         | Client's email (required by Asaas for customer creation)                |
-| `invite_token`      | text, unique | Unguessable token for the invite link                                   |
-| `invite_status`     | select       | `draft`, `invited`, `accepted`, `active`, `payment_failed`, `cancelled` |
-| `invite_sent_at`    | date         | When the invite was sent (for expiry check)                             |
-| `subscription_id`   | text         | Asaas subscription ID (moved from users)                                |
-| `terms_accepted_at` | date         | When the client accepted T&Cs                                           |
+| Field | Type | Purpose |
+|-------|------|---------|
+| `client_name` | text | Client's personal name (distinct from business name) |
+| `client_email` | text | Client's email (required by Asaas for customer creation) |
+| `invite_token` | text, unique | Unguessable token for the invite link |
+| `invite_status` | select | `draft`, `invited`, `accepted`, `active`, `payment_failed`, `cancelled` |
+| `invite_sent_at` | date | When the invite was sent (for expiry check) |
+| `subscription_id` | text | Asaas subscription ID (moved from users) |
+| `terms_accepted_at` | date | When the client accepted T&Cs |
 
 The `invite_status` lifecycle:
-
 - `draft`: Elenice is filling in details, hasn't sent the invite yet
 - `invited`: invite link sent via WhatsApp, waiting for client
 - `accepted`: client accepted T&Cs and completed payment setup, waiting for payment confirmation
@@ -126,7 +124,6 @@ Response: { invite_url: string }
 ```
 
 Flow:
-
 1. Verify the authenticated user owns the business
 2. Verify `phone` is set on the business (needed for WhatsApp delivery)
 3. Verify `invite_status` allows sending: must be `draft`, `invited`, `payment_failed`, or `cancelled`. Reject `accepted` (payment in progress) and `active` (already subscribed).
@@ -154,7 +151,6 @@ Response: { business_name, client_name, invite_status, price_first_month, price_
 ```
 
 Returns the business name and client name so the invite page can greet the client. Also returns `invite_status` so the frontend can route correctly:
-
 - `invited`: show the T&Cs + CPF/CNPJ form
 - `accepted`: redirect to confirmation page (client already accepted, waiting for payment or already paid)
 - `active`: show "already active" message with WhatsApp link
@@ -170,7 +166,6 @@ Response: { payment_url: string }
 ```
 
 Flow:
-
 1. Find business by `invite_token`
 2. Check token expiry (reject if >7 days since `invite_sent_at`)
 3. **Idempotency:** If `invite_status` is already `accepted` and `subscription_id` exists, call `asaas.GetSubscription(subscription_id)` and return its `paymentLink`. No new Asaas resources created.
@@ -194,7 +189,6 @@ The confirmation page URL (`{APP_URL}/convite/{token}/confirmacao`) is built cli
 **No `billing_type` parameter.** We create the subscription with `billingType: "PIX"`. The Asaas hosted payment page shows the PIX QR code. If we want to support credit card later, we change this field.
 
 **Redirect after payment:** The subscription is created with a `callback` object:
-
 ```json
 {
   "callback": {
@@ -203,7 +197,6 @@ The confirmation page URL (`{APP_URL}/convite/{token}/confirmacao`) is built cli
   }
 }
 ```
-
 After the client pays via PIX, Asaas auto-redirects them to our confirmation page. The `successUrl` domain must match the domain registered in Asaas account settings (Account Settings > Information > Commercial data).
 
 ### 1.4 Update webhook handler
@@ -211,7 +204,6 @@ After the client pays via PIX, Asaas auto-redirects them to our confirmation pag
 The webhook currently finds users by `subscription_id`. Change it to find businesses by `subscription_id` instead.
 
 Changes to `api/internal/http/handlers/webhooks.go`:
-
 - Query `businesses` collection instead of `users` collection: `dbx.HashExp{"subscription_id": subscriptionID}`
 - Update `invite_status` on the business instead of `subscription_status` on the user
 - `PAYMENT_CONFIRMED`: set `invite_status: "active"`
@@ -224,7 +216,6 @@ Changes to `api/internal/http/handlers/webhooks.go`:
 The generate handler (`api/internal/http/handlers/generate.go`) currently checks `subscription_status` on the user record and enforces the 3-generation trial limit.
 
 Changes:
-
 - Remove the trial generation limit check entirely (clients pay upfront)
 - The operator generate handler (`operator.go`) already has no subscription check, no changes needed
 - Remove the self-serve generate endpoint and `POST /api/subscriptions`, `GET /api/subscriptions/current` routes (dead code after self-serve removal). Handler code lives in `api/internal/http/handlers/subscribe.go` (delete file). Route registration in `api/internal/http/routes.go`.
@@ -319,7 +310,6 @@ Auth: required (Elenice)
 ```
 
 Flow:
-
 1. Verify the authenticated user owns the business
 2. Verify `subscription_id` exists and `invite_status` is `active`
 3. Call Asaas delete subscription API (new method: `asaas.CancelSubscription(ctx, id)`)
@@ -355,7 +345,6 @@ This gives Elenice a cancel button in the operator tool. The Asaas webhook for `
 Remove self-serve routes, enhance operator client creation with invite flow, add public invite pages. After this wave, the full onboarding cycle works from browser.
 
 **Implemented items:**
-
 - Deleted `/dashboard`, `/onboarding`, `/login` routes
 - Created `/entrar` with email/password login (replaces Google OAuth)
 - `(app)/+layout.svelte` redirects to `/entrar` when unauthenticated
@@ -378,20 +367,17 @@ Remove self-serve routes, enhance operator client creation with invite flow, add
 **Deviation from plan:** The confirmation page (`/convite/[token]/confirmacao`) is a simple redirect to `/convite/[token]` rather than a standalone polling page. The `accepted` state on the invite page shows the QR code inline and polls every 5 seconds (max 10 minutes) for payment confirmation, then transitions to the `active` success state.
 
 **Remaining before launch (ops, not code):**
-
 - Manual end-to-end test in Asaas sandbox
 - Asaas account setup: PIX key, production domain in account settings, webhook URL + token
 
 ### 2.1 Remove self-serve routes
 
 Delete:
-
 - `web/src/routes/(app)/dashboard/` (entire directory)
 - `web/src/routes/(app)/onboarding/` (entire directory)
 - `web/src/routes/login/` (entire directory)
 
 Keep:
-
 - `web/src/routes/(app)/operador/` (the operator tool)
 - `web/src/routes/(app)/+layout.ts` (SSR disabled, still needed for operator)
 - `web/src/routes/(marketing)/` (the landing page)
@@ -415,18 +401,15 @@ Also add `og:image` and `og:description` meta tags so the page renders a good pr
 The current form collects: name, type, city, state, phone, services, target_audience, brand_vibe, quirks.
 
 Add two fields at the top:
-
 - `client_name` (text, required): "Nome do cliente" (the person, not the business)
 - `client_email` (email, required): "Email do cliente" (needed for Asaas customer creation)
 
 Change the save button behavior:
-
 - "Salvar" creates/updates the business as before (sets `invite_status: "draft"` on create)
 - New "Salvar e Enviar Convite" button: saves, then calls `POST /api/businesses/{id}/invites:send`, which sends the invite link to the client via WhatsApp
 - After invite is sent, show the invite URL with a "Copiar link" button (fallback if WhatsApp delivery fails)
 
 Show invite status badge on each client in the sidebar:
-
 - `draft`: gray
 - `invited`: yellow
 - `accepted`: blue (payment in progress)
@@ -445,7 +428,6 @@ New route: `web/src/routes/convite/[token]/+page.svelte`
 This is a public page (no auth, no app layout). Clean, branded design (Rekan logo, coral accent color).
 
 Flow:
-
 1. On mount, call `GET /api/invites/{token}` to load business name, client name, and invite status
 2. **Route by status:**
    - `invited`: show the T&Cs + payment form (steps 3-7 below)
@@ -466,7 +448,6 @@ New route: `web/src/routes/convite/[token]/confirmacao/+page.svelte`
 This page is where the client lands after completing payment on Asaas (via browser back or Asaas redirect). It polls for payment confirmation.
 
 States:
-
 1. **Waiting for payment** (`invite_status: "accepted"`): show "Aguardando confirmação do pagamento..." with a subtle spinner. Poll `GET /api/invites/{token}` every 5 seconds. Stop polling after 10 minutes and show: "Ainda não recebemos o pagamento. Se você já pagou, aguarde alguns minutos ou fale com a Elenice." with a WhatsApp link.
 2. **Payment confirmed** (`invite_status: "active"`): show:
    - Rekan logo

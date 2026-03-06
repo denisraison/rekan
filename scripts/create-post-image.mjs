@@ -13,23 +13,23 @@
  * JSON config is an array of post objects (or a single object).
  */
 
-import { createRequire } from 'node:module';
-import { resolve, dirname, isAbsolute } from 'node:path';
-import { fileURLToPath } from 'node:url';
-import { readFileSync, existsSync } from 'node:fs';
+import { createRequire } from "node:module";
+import { resolve, dirname, isAbsolute } from "node:path";
+import { fileURLToPath } from "node:url";
+import { readFileSync, existsSync } from "node:fs";
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
-const require = createRequire(resolve(__dirname, '../web/') + '/');
-const { chromium } = require('@playwright/test');
+const require = createRequire(resolve(__dirname, "../web/") + "/");
+const { chromium } = require("@playwright/test");
 
 // -- Brand constants ----------------------------------------------------------
 
 const BRAND = {
-  coral: '#F97368',
-  green: '#87AA8C',
-  charcoal: '#44444A',
-  offWhite: '#F5F2ED',
-  darkBg: '#0a0a0c',
+  coral: "#F97368",
+  green: "#87AA8C",
+  charcoal: "#44444A",
+  offWhite: "#F5F2ED",
+  darkBg: "#0a0a0c",
 };
 
 const WIDTH = 1080;
@@ -43,8 +43,8 @@ function resolvePath(p) {
 }
 
 function readLogoSvg() {
-  const logoPath = resolve(__dirname, '../web/static/brand/logo-mark.svg');
-  return readFileSync(logoPath, 'utf-8');
+  const logoPath = resolve(__dirname, "../web/static/brand/logo-mark.svg");
+  return readFileSync(logoPath, "utf-8");
 }
 
 function imageToDataUri(imagePath) {
@@ -53,9 +53,9 @@ function imageToDataUri(imagePath) {
     throw new Error(`Background image not found: ${resolved}`);
   }
   const buf = readFileSync(resolved);
-  const ext = resolved.split('.').pop().toLowerCase();
-  const mime = ext === 'jpg' || ext === 'jpeg' ? 'image/jpeg' : `image/${ext}`;
-  return `data:${mime};base64,${buf.toString('base64')}`;
+  const ext = resolved.split(".").pop().toLowerCase();
+  const mime = ext === "jpg" || ext === "jpeg" ? "image/jpeg" : `image/${ext}`;
+  return `data:${mime};base64,${buf.toString("base64")}`;
 }
 
 /**
@@ -89,16 +89,16 @@ function applyEmphasis(text, emphasisWords, color) {
 
 function escapeHtml(s) {
   return s
-    .replace(/&/g, '&amp;')
-    .replace(/</g, '&lt;')
-    .replace(/>/g, '&gt;')
-    .replace(/"/g, '&quot;')
-    .replace(/\n/g, '<br>');
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;")
+    .replace(/\n/g, "<br>");
 }
 
 function resolveColor(name) {
   if (!name) return BRAND.coral;
-  if (name.startsWith('#')) return name;
+  if (name.startsWith("#")) return name;
   return BRAND[name] || BRAND.coral;
 }
 
@@ -107,7 +107,9 @@ function resolveColor(name) {
 function overlayTemplate(post, logoSvg) {
   const emphColor = resolveColor(post.emphasisColor);
   const hookHtml = applyEmphasis(post.hook, post.emphasis, emphColor);
-  const bgImage = post.backgroundImage ? imageToDataUri(post.backgroundImage) : null;
+  const bgImage = post.backgroundImage
+    ? imageToDataUri(post.backgroundImage)
+    : null;
   const bgColor = post.backgroundColor || BRAND.darkBg;
   const overlayOpacity = post.overlayOpacity ?? 0.6;
 
@@ -216,13 +218,13 @@ function overlayTemplate(post, logoSvg) {
   <div class="content">
     ${post.nicheTag ? `<div class="niche-tag">${escapeHtml(post.nicheTag)}</div>` : '<div style="margin-bottom:auto"></div>'}
     <div class="hook">${hookHtml}</div>
-    ${post.subtitle ? `<div class="subtitle">${escapeHtml(post.subtitle)}</div>` : ''}
+    ${post.subtitle ? `<div class="subtitle">${escapeHtml(post.subtitle)}</div>` : ""}
     <div class="bottom-bar">
       <div class="logo">
         ${logoSvg}
         <span class="logo-text">rekan</span>
       </div>
-      ${post.cta ? `<div class="cta">${escapeHtml(post.cta)}</div>` : ''}
+      ${post.cta ? `<div class="cta">${escapeHtml(post.cta)}</div>` : ""}
     </div>
   </div>
 </body>
@@ -233,11 +235,13 @@ function cardTemplate(post, logoSvg) {
   const emphColor = resolveColor(post.emphasisColor);
   const hookHtml = applyEmphasis(post.hook, post.emphasis, emphColor);
   const bgColor = post.backgroundColor || BRAND.offWhite;
-  const textColor = isLightColor(bgColor) ? BRAND.charcoal : '#ffffff';
+  const textColor = isLightColor(bgColor) ? BRAND.charcoal : "#ffffff";
   const subtitleColor = isLightColor(bgColor)
-    ? 'rgba(68, 68, 74, 0.6)'
-    : 'rgba(255, 255, 255, 0.55)';
-  const ctaColor = isLightColor(bgColor) ? 'rgba(68, 68, 74, 0.5)' : 'rgba(255, 255, 255, 0.6)';
+    ? "rgba(68, 68, 74, 0.6)"
+    : "rgba(255, 255, 255, 0.55)";
+  const ctaColor = isLightColor(bgColor)
+    ? "rgba(68, 68, 74, 0.5)"
+    : "rgba(255, 255, 255, 0.6)";
 
   return `<!DOCTYPE html>
 <html>
@@ -345,7 +349,7 @@ function cardTemplate(post, logoSvg) {
 <body>
   <div class="logo-mark">${logoSvg}</div>
   <div class="hook">${hookHtml}</div>
-  ${post.subtitle ? `<div class="divider"></div><div class="subtitle">${escapeHtml(post.subtitle)}</div>` : ''}
+  ${post.subtitle ? `<div class="divider"></div><div class="subtitle">${escapeHtml(post.subtitle)}</div>` : ""}
   <div class="bottom-bar">
     ${post.cta ? `<div class="cta">${whatsappSvg(ctaColor)} ${escapeHtml(post.cta)}</div>` : `<div class="brand-line">${logoSvg}<span>rekan</span></div>`}
   </div>
@@ -364,7 +368,7 @@ function customTemplate(post, logoSvg) {
   if (!existsSync(htmlPath)) {
     throw new Error(`HTML file not found: ${htmlPath}`);
   }
-  let body = readFileSync(htmlPath, 'utf-8');
+  let body = readFileSync(htmlPath, "utf-8");
   // Replace {{logo}} placeholder with the actual SVG
   body = body.replace(/\{\{logo\}\}/g, logoSvg);
   // Replace {{backgroundImage}} with base64 data URI
@@ -404,7 +408,7 @@ ${body}
 }
 
 function isLightColor(hex) {
-  const c = hex.replace('#', '');
+  const c = hex.replace("#", "");
   if (c.length < 6) return true;
   const r = parseInt(c.slice(0, 2), 16);
   const g = parseInt(c.slice(2, 4), 16);
@@ -424,19 +428,21 @@ const TEMPLATES = {
 async function generateImage(browser, post, logoSvg) {
   const templateFn = TEMPLATES[post.type];
   if (!templateFn) {
-    throw new Error(`Unknown template type: ${post.type}. Use "overlay" or "card".`);
+    throw new Error(
+      `Unknown template type: ${post.type}. Use "overlay" or "card".`,
+    );
   }
 
   const html = templateFn(post, logoSvg);
   const page = await browser.newPage();
   await page.setViewportSize({ width: WIDTH, height: HEIGHT });
-  await page.setContent(html, { waitUntil: 'networkidle' });
+  await page.setContent(html, { waitUntil: "networkidle" });
 
   // Wait for fonts
   await page.evaluate(() => document.fonts.ready);
 
   const output = resolvePath(post.output);
-  await page.screenshot({ path: output, type: 'png' });
+  await page.screenshot({ path: output, type: "png" });
   await page.close();
 
   console.log(`Saved: ${output}`);
@@ -444,14 +450,14 @@ async function generateImage(browser, post, logoSvg) {
 
 async function main() {
   const args = process.argv.slice(2);
-  const configIdx = args.indexOf('--config');
+  const configIdx = args.indexOf("--config");
   if (configIdx === -1 || !args[configIdx + 1]) {
-    console.error('Usage: create-post-image.mjs --config <posts.json>');
+    console.error("Usage: create-post-image.mjs --config <posts.json>");
     process.exit(1);
   }
 
   const configPath = resolvePath(args[configIdx + 1]);
-  const raw = readFileSync(configPath, 'utf-8');
+  const raw = readFileSync(configPath, "utf-8");
   const config = JSON.parse(raw);
   const posts = Array.isArray(config) ? config : [config];
 

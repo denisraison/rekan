@@ -1,381 +1,169 @@
-<!doctype html>
+<!DOCTYPE html>
 <html lang="pt-BR">
-  <head>
-    <meta charset="UTF-8" />
-    <meta name="viewport" content="width=390, initial-scale=1" />
-    <title>Preencher Manualmente</title>
-    <link rel="preconnect" href="https://fonts.googleapis.com" />
-    <link
-      href="https://fonts.googleapis.com/css2?family=Urbanist:wght@300;400;500;600;700&display=swap"
-      rel="stylesheet"
-    />
-    <script src="https://cdn.tailwindcss.com"></script>
-    <style>
-      :root {
-        --coral: #f97368;
-        --coral-light: #fddcda;
-        --coral-pale: #fff3f2;
-        --sage: #87aa8c;
-        --sage-light: #c8dec9;
-        --sage-pale: #f0f6f0;
-        --charcoal: #111116;
-        --text: #111116;
-        --text-secondary: #555566;
-        --text-muted: #999aaa;
-        --bg: #fafaf7;
-        --surface: #ffffff;
-        --border: rgba(17, 17, 22, 0.07);
-        --border-strong: rgba(17, 17, 22, 0.14);
-        --radius-sm: 6px;
-        --radius-md: 12px;
-        --radius-lg: 20px;
-        --radius-full: 9999px;
-      }
-      * {
-        font-family: 'Urbanist', system-ui, sans-serif;
-        box-sizing: border-box;
-      }
-      body {
-        background: var(--bg);
-        color: var(--text);
-        margin: 0;
-        width: 390px;
-        overflow-x: hidden;
-      }
-      label {
-        display: block;
-        font-size: 14px;
-        font-weight: 600;
-        color: var(--text-secondary);
-        margin-bottom: 6px;
-      }
-      .hint {
-        font-size: 14px;
-        color: var(--text-muted);
-        margin: -2px 0 8px;
-        line-height: 1.4;
-      }
-      input,
-      select,
-      textarea {
-        width: 100%;
-        padding: 13px 14px;
-        border: 1.5px solid var(--border-strong);
-        border-radius: var(--radius-md);
-        font-size: 16px;
-        font-family: 'Urbanist', system-ui, sans-serif;
-        background: var(--surface);
-        color: var(--text);
-        outline: none;
-        min-height: 52px;
-        appearance: none;
-        -webkit-appearance: none;
-        resize: none;
-      }
-      select {
-        background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 24 24' fill='none' stroke='%23999AAA' stroke-width='2'%3E%3Cpath d='M6 9l6 6 6-6'/%3E%3C/svg%3E");
-        background-repeat: no-repeat;
-        background-position: right 14px center;
-        padding-right: 40px;
-      }
-      textarea {
-        min-height: 80px;
-      }
-      .section-title {
-        font-size: 12px;
-        font-weight: 700;
-        letter-spacing: 0.08em;
-        color: var(--text-muted);
-        text-transform: uppercase;
-        margin: 0 0 16px;
-      }
-      .field {
-        margin-bottom: 18px;
-      }
-      .remove-btn {
-        width: 40px;
-        height: 52px;
-        border: none;
-        background: none;
-        color: var(--text-muted);
-        font-size: 22px;
-        cursor: pointer;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        flex-shrink: 0;
-        padding: 0;
-      }
-      .add-btn {
-        width: 100%;
-        height: 50px;
-        border: 1.5px dashed var(--border-strong);
-        border-radius: var(--radius-md);
-        background: none;
-        font-size: 15px;
-        color: var(--text-secondary);
-        cursor: pointer;
-        font-family: 'Urbanist', sans-serif;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        gap: 6px;
-      }
-    </style>
-  </head>
-  <body>
-    <!-- Header -->
-    <div
-      style="
-        background: var(--surface);
-        border-bottom: 1px solid var(--border);
-        padding: 14px 20px;
-        display: flex;
-        align-items: center;
-        gap: 12px;
-        position: sticky;
-        top: 0;
-        z-index: 10;
-      "
-    >
-      <button
-        style="
-          width: 40px;
-          height: 40px;
-          border-radius: 50%;
-          border: none;
-          background: var(--bg);
-          display: flex;
-          align-items: center;
-          justify-content: center;
-        "
-      >
-        <svg
-          width="20"
-          height="20"
-          viewBox="0 0 24 24"
-          fill="none"
-          stroke="var(--text-secondary)"
-          stroke-width="2"
-        >
-          <path d="M19 12H5M5 12l7-7M5 12l7 7" />
-        </svg>
-      </button>
-      <span style="font-size: 20px; font-weight: 700">Novo cliente</span>
-    </div>
-
-    <!-- Switch to voice banner — entire row is tappable -->
-    <button
-      style="
-        width: 100%;
-        background: var(--coral-pale);
-        border: none;
-        border-bottom: 1.5px solid var(--coral-light);
-        padding: 14px 20px;
-        display: flex;
-        align-items: center;
-        gap: 12px;
-        cursor: pointer;
-        text-align: left;
-        min-height: 64px;
-      "
-    >
-      <div
-        style="
-          width: 36px;
-          height: 36px;
-          border-radius: 50%;
-          background: var(--coral);
-          display: flex;
-          align-items: center;
-          justify-content: center;
-          flex-shrink: 0;
-        "
-      >
-        <svg width="16" height="16" viewBox="0 0 24 24" fill="white">
-          <path d="M12 2a3 3 0 0 1 3 3v6a3 3 0 0 1-6 0V5a3 3 0 0 1 3-3z" />
-          <path
-            d="M19 10v1a7 7 0 0 1-14 0v-1M12 18v4M8 22h8"
-            stroke="white"
-            stroke-width="1.5"
-            fill="none"
-            stroke-linecap="round"
-          />
-        </svg>
-      </div>
-      <p
-        style="
-          font-size: 15px;
-          color: var(--text-secondary);
-          margin: 0;
-          line-height: 1.4;
-          flex: 1;
-          font-family: 'Urbanist', sans-serif;
-        "
-      >
-        Prefere gravar uma descrição? É mais rápido.
-      </p>
-      <span style="font-size: 15px; font-weight: 700; color: var(--coral); white-space: nowrap"
-        >Gravar →</span
-      >
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=390, initial-scale=1">
+  <title>Preencher Manualmente</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Urbanist:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+  <script src="https://cdn.tailwindcss.com"></script>
+  <style>
+    :root {
+      --coral: #F97368; --coral-light: #FDDCDA; --coral-pale: #FFF3F2;
+      --sage: #87AA8C; --sage-light: #C8DEC9; --sage-pale: #F0F6F0;
+      --charcoal: #111116; --text: #111116; --text-secondary: #555566;
+      --text-muted: #999AAA; --bg: #FAFAF7; --surface: #FFFFFF;
+      --border: rgba(17,17,22,0.07); --border-strong: rgba(17,17,22,0.14);
+      --radius-sm: 6px; --radius-md: 12px; --radius-lg: 20px; --radius-full: 9999px;
+    }
+    * { font-family: 'Urbanist', system-ui, sans-serif; box-sizing: border-box; }
+    body { background: var(--bg); color: var(--text); margin: 0; width: 390px; overflow-x: hidden; }
+    label { display: block; font-size: 14px; font-weight: 600; color: var(--text-secondary); margin-bottom: 6px; }
+    .hint { font-size: 14px; color: var(--text-muted); margin: -2px 0 8px; line-height: 1.4; }
+    input, select, textarea {
+      width: 100%; padding: 13px 14px; border: 1.5px solid var(--border-strong);
+      border-radius: var(--radius-md); font-size: 16px;
+      font-family: 'Urbanist', system-ui, sans-serif;
+      background: var(--surface); color: var(--text); outline: none;
+      min-height: 52px; appearance: none; -webkit-appearance: none; resize: none;
+    }
+    select { background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 24 24' fill='none' stroke='%23999AAA' stroke-width='2'%3E%3Cpath d='M6 9l6 6 6-6'/%3E%3C/svg%3E"); background-repeat: no-repeat; background-position: right 14px center; padding-right: 40px; }
+    textarea { min-height: 80px; }
+    .section-title { font-size: 12px; font-weight: 700; letter-spacing: 0.08em; color: var(--text-muted); text-transform: uppercase; margin: 0 0 16px; }
+    .field { margin-bottom: 18px; }
+    .remove-btn { width: 40px; height: 52px; border: none; background: none; color: var(--text-muted); font-size: 22px; cursor: pointer; display: flex; align-items: center; justify-content: center; flex-shrink: 0; padding: 0; }
+    .add-btn { width: 100%; height: 50px; border: 1.5px dashed var(--border-strong); border-radius: var(--radius-md); background: none; font-size: 15px; color: var(--text-secondary); cursor: pointer; font-family: 'Urbanist', sans-serif; display: flex; align-items: center; justify-content: center; gap: 6px; }
+  </style>
+</head>
+<body>
+  <!-- Header -->
+  <div style="background: var(--surface); border-bottom: 1px solid var(--border); padding: 14px 20px; display: flex; align-items: center; gap: 12px; position: sticky; top: 0; z-index: 10;">
+    <button style="width: 40px; height: 40px; border-radius: 50%; border: none; background: var(--bg); display: flex; align-items: center; justify-content: center;">
+      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="var(--text-secondary)" stroke-width="2"><path d="M19 12H5M5 12l7-7M5 12l7 7"/></svg>
     </button>
+    <span style="font-size: 20px; font-weight: 700;">Novo cliente</span>
+  </div>
 
-    <div style="padding: 24px 20px 140px">
-      <!-- Dados básicos -->
-      <p class="section-title">Dados básicos</p>
+  <!-- Switch to voice banner — entire row is tappable -->
+  <button style="width: 100%; background: var(--coral-pale); border: none; border-bottom: 1.5px solid var(--coral-light); padding: 14px 20px; display: flex; align-items: center; gap: 12px; cursor: pointer; text-align: left; min-height: 64px;">
+    <div style="width: 36px; height: 36px; border-radius: 50%; background: var(--coral); display: flex; align-items: center; justify-content: center; flex-shrink: 0;">
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="white">
+        <path d="M12 2a3 3 0 0 1 3 3v6a3 3 0 0 1-6 0V5a3 3 0 0 1 3-3z"/>
+        <path d="M19 10v1a7 7 0 0 1-14 0v-1M12 18v4M8 22h8" stroke="white" stroke-width="1.5" fill="none" stroke-linecap="round"/>
+      </svg>
+    </div>
+    <p style="font-size: 15px; color: var(--text-secondary); margin: 0; line-height: 1.4; flex: 1; font-family: 'Urbanist', sans-serif;">Prefere gravar uma descrição? É mais rápido.</p>
+    <span style="font-size: 15px; font-weight: 700; color: var(--coral); white-space: nowrap;">Gravar →</span>
+  </button>
 
-      <div class="field">
-        <label>Nome do negócio</label>
-        <input type="text" placeholder="ex: Salão da Mari" />
+  <div style="padding: 24px 20px 140px;">
+
+    <!-- Dados básicos -->
+    <p class="section-title">Dados básicos</p>
+
+    <div class="field">
+      <label>Nome do negócio</label>
+      <input type="text" placeholder="ex: Salão da Mari">
+    </div>
+
+    <div class="field">
+      <label>Tipo de negócio</label>
+      <select>
+        <option value="" disabled selected>Escolha o tipo</option>
+        <option>Salão de Beleza</option>
+        <option>Restaurante</option>
+        <option>Nail Designer</option>
+        <option>Confeitaria</option>
+        <option>Personal Trainer</option>
+        <option>Barbearia</option>
+        <option>Pet Shop</option>
+        <option>Outro</option>
+      </select>
+    </div>
+
+    <div style="display: grid; grid-template-columns: 1fr 90px; gap: 10px; margin-bottom: 18px;">
+      <div>
+        <label>Cidade</label>
+        <input type="text" placeholder="ex: Manaus">
       </div>
-
-      <div class="field">
-        <label>Tipo de negócio</label>
-        <select>
-          <option value="" disabled selected>Escolha o tipo</option>
-          <option>Salão de Beleza</option>
-          <option>Restaurante</option>
-          <option>Nail Designer</option>
-          <option>Confeitaria</option>
-          <option>Personal Trainer</option>
-          <option>Barbearia</option>
-          <option>Pet Shop</option>
-          <option>Outro</option>
-        </select>
-      </div>
-
-      <div style="display: grid; grid-template-columns: 1fr 90px; gap: 10px; margin-bottom: 18px">
-        <div>
-          <label>Cidade</label>
-          <input type="text" placeholder="ex: Manaus" />
-        </div>
-        <div>
-          <label>Estado</label>
-          <select style="padding-left: 10px; padding-right: 28px">
-            <option value="" disabled selected>UF</option>
-            <option>AM</option>
-            <option>SP</option>
-            <option>RJ</option>
-            <option>MG</option>
-          </select>
-        </div>
-      </div>
-
-      <div class="field">
-        <label>Telefone (WhatsApp)</label>
-        <input type="tel" placeholder="(92) 99999-9999" />
-      </div>
-
-      <!-- Divider -->
-      <div style="height: 1px; background: var(--border); margin: 24px 0"></div>
-
-      <!-- Perfil do negócio -->
-      <p class="section-title">Perfil do negócio</p>
-
-      <!-- Services -->
-      <div class="field">
-        <label>Serviços e preços</label>
-        <p class="hint">Coloca os serviços mais pedidos e o preço de cada um.</p>
-        <div style="display: flex; flex-direction: column; gap: 10px">
-          <div style="display: flex; gap: 8px; align-items: center">
-            <input type="text" placeholder="ex: Corte feminino" style="flex: 1" />
-            <input type="text" placeholder="R$ 0" style="width: 84px" />
-            <button class="remove-btn">×</button>
-          </div>
-          <div style="display: flex; gap: 8px; align-items: center">
-            <input type="text" placeholder="ex: Progressiva" style="flex: 1" />
-            <input type="text" placeholder="R$ 0" style="width: 84px" />
-            <button class="remove-btn">×</button>
-          </div>
-          <button class="add-btn">
-            <svg
-              width="16"
-              height="16"
-              viewBox="0 0 24 24"
-              fill="none"
-              stroke="currentColor"
-              stroke-width="2"
-            >
-              <path d="M12 5v14M5 12h14" />
-            </svg>
-            Adicionar serviço
-          </button>
-        </div>
-      </div>
-
-      <!-- Target audience -->
-      <div class="field">
-        <label>Quem são os clientes?</label>
-        <p class="hint">ex: mulheres de 25 a 50 anos que moram no bairro</p>
-        <textarea placeholder="Descreve quem costuma ir lá..."></textarea>
-      </div>
-
-      <!-- Brand vibe -->
-      <div class="field">
-        <label>Como é o ambiente?</label>
-        <p class="hint">ex: acolhedor, descontraído, serve cafezinho</p>
-        <textarea placeholder="Conta um pouco sobre o clima do lugar..."></textarea>
-      </div>
-
-      <!-- Quirks -->
-      <div class="field">
-        <label>O que faz diferente?</label>
-        <p class="hint">Detalhes que fazem a cliente escolher esse lugar. Um por linha.</p>
-        <div style="display: flex; flex-direction: column; gap: 10px">
-          <div style="display: flex; gap: 8px; align-items: center">
-            <input type="text" placeholder="ex: agenda lotada às quintas" style="flex: 1" />
-            <button class="remove-btn">×</button>
-          </div>
-          <div style="display: flex; gap: 8px; align-items: center">
-            <input type="text" placeholder="ex: aceita criança" style="flex: 1" />
-            <button class="remove-btn">×</button>
-          </div>
-          <button class="add-btn">
-            <svg
-              width="16"
-              height="16"
-              viewBox="0 0 24 24"
-              fill="none"
-              stroke="currentColor"
-              stroke-width="2"
-            >
-              <path d="M12 5v14M5 12h14" />
-            </svg>
-            Adicionar detalhe
-          </button>
-        </div>
+      <div>
+        <label>Estado</label>
+        <select style="padding-left: 10px; padding-right: 28px;"><option value="" disabled selected>UF</option><option>AM</option><option>SP</option><option>RJ</option><option>MG</option></select>
       </div>
     </div>
 
-    <!-- Bottom bar -->
-    <div
-      style="
-        position: fixed;
-        bottom: 0;
-        left: 0;
-        width: 390px;
-        padding: 14px 20px 32px;
-        background: var(--surface);
-        border-top: 1px solid var(--border);
-      "
-    >
-      <button
-        style="
-          width: 100%;
-          height: 56px;
-          background: var(--coral);
-          border: none;
-          border-radius: var(--radius-full);
-          font-size: 18px;
-          font-weight: 700;
-          color: white;
-          cursor: pointer;
-          font-family: 'Urbanist', sans-serif;
-          box-shadow: 0 4px 16px rgba(249, 115, 104, 0.3);
-        "
-      >
-        Salvar cliente
-      </button>
+    <div class="field">
+      <label>Telefone (WhatsApp)</label>
+      <input type="tel" placeholder="(92) 99999-9999">
     </div>
-  </body>
+
+    <!-- Divider -->
+    <div style="height: 1px; background: var(--border); margin: 24px 0;"></div>
+
+    <!-- Perfil do negócio -->
+    <p class="section-title">Perfil do negócio</p>
+
+    <!-- Services -->
+    <div class="field">
+      <label>Serviços e preços</label>
+      <p class="hint">Coloca os serviços mais pedidos e o preço de cada um.</p>
+      <div style="display: flex; flex-direction: column; gap: 10px;">
+        <div style="display: flex; gap: 8px; align-items: center;">
+          <input type="text" placeholder="ex: Corte feminino" style="flex: 1;">
+          <input type="text" placeholder="R$ 0" style="width: 84px;">
+          <button class="remove-btn">×</button>
+        </div>
+        <div style="display: flex; gap: 8px; align-items: center;">
+          <input type="text" placeholder="ex: Progressiva" style="flex: 1;">
+          <input type="text" placeholder="R$ 0" style="width: 84px;">
+          <button class="remove-btn">×</button>
+        </div>
+        <button class="add-btn">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 5v14M5 12h14"/></svg>
+          Adicionar serviço
+        </button>
+      </div>
+    </div>
+
+    <!-- Target audience -->
+    <div class="field">
+      <label>Quem são os clientes?</label>
+      <p class="hint">ex: mulheres de 25 a 50 anos que moram no bairro</p>
+      <textarea placeholder="Descreve quem costuma ir lá..."></textarea>
+    </div>
+
+    <!-- Brand vibe -->
+    <div class="field">
+      <label>Como é o ambiente?</label>
+      <p class="hint">ex: acolhedor, descontraído, serve cafezinho</p>
+      <textarea placeholder="Conta um pouco sobre o clima do lugar..."></textarea>
+    </div>
+
+    <!-- Quirks -->
+    <div class="field">
+      <label>O que faz diferente?</label>
+      <p class="hint">Detalhes que fazem a cliente escolher esse lugar. Um por linha.</p>
+      <div style="display: flex; flex-direction: column; gap: 10px;">
+        <div style="display: flex; gap: 8px; align-items: center;">
+          <input type="text" placeholder="ex: agenda lotada às quintas" style="flex: 1;">
+          <button class="remove-btn">×</button>
+        </div>
+        <div style="display: flex; gap: 8px; align-items: center;">
+          <input type="text" placeholder="ex: aceita criança" style="flex: 1;">
+          <button class="remove-btn">×</button>
+        </div>
+        <button class="add-btn">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 5v14M5 12h14"/></svg>
+          Adicionar detalhe
+        </button>
+      </div>
+    </div>
+
+  </div>
+
+  <!-- Bottom bar -->
+  <div style="position: fixed; bottom: 0; left: 0; width: 390px; padding: 14px 20px 32px; background: var(--surface); border-top: 1px solid var(--border);">
+    <button style="width: 100%; height: 56px; background: var(--coral); border: none; border-radius: var(--radius-full); font-size: 18px; font-weight: 700; color: white; cursor: pointer; font-family: 'Urbanist', sans-serif; box-shadow: 0 4px 16px rgba(249,115,104,0.3);">Salvar cliente</button>
+  </div>
+</body>
 </html>

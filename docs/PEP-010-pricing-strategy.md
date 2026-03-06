@@ -41,17 +41,17 @@ Everything needed to go live. Three tiers, commitment plans, automatic payments 
 
 ### Tier design
 
-|                                       | Basico  | **Parceiro**              | Profissional |
-| ------------------------------------- | ------- | ------------------------- | ------------ |
-| Monthly (listed)                      | R$69,90 | ~~R$149,90~~ **R$108,90** | R$249,90     |
-| Posts/month                           | 8       | 12                        | 16           |
-| Legendas + hashtags                   | Yes     | Yes                       | Yes          |
-| Direcao de foto/video                 | No      | **Yes**                   | Yes          |
-| Roteiros de reels                     | No      | **Yes**                   | Yes          |
-| Melhor horario pra postar             | No      | **Yes**                   | Yes          |
-| Chamada mensal de estrategia (30 min) | No      | No                        | **Yes**      |
-| Calendario de stories                 | No      | No                        | **Yes**      |
-| Resposta prioritaria (mesma hora)     | No      | No                        | **Yes**      |
+| | Basico | **Parceiro** | Profissional |
+|---|---|---|---|
+| Monthly (listed) | R$69,90 | ~~R$149,90~~ **R$108,90** | R$249,90 |
+| Posts/month | 8 | 12 | 16 |
+| Legendas + hashtags | Yes | Yes | Yes |
+| Direcao de foto/video | No | **Yes** | Yes |
+| Roteiros de reels | No | **Yes** | Yes |
+| Melhor horario pra postar | No | **Yes** | Yes |
+| Chamada mensal de estrategia (30 min) | No | No | **Yes** |
+| Calendario de stories | No | No | **Yes** |
+| Resposta prioritaria (mesma hora) | No | No | **Yes** |
 
 **Why these tiers:**
 
@@ -61,11 +61,11 @@ Everything needed to go live. Three tiers, commitment plans, automatic payments 
 
 ### Commitment pricing
 
-| Plan         | Mensal       | Trimestral                 |
-| ------------ | ------------ | -------------------------- |
-| Basico       | R$69,90      | R$179,70 (R$59,90/mes)     |
+| Plan | Mensal | Trimestral |
+|---|---|---|
+| Basico | R$69,90 | R$179,70 (R$59,90/mes) |
 | **Parceiro** | **R$149,90** | **R$299,70 (R$99,90/mes)** |
-| Profissional | R$249,90     | R$599,70 (R$199,90/mes)    |
+| Profissional | R$249,90 | R$599,70 (R$199,90/mes) |
 
 Note: the monthly Parceiro price is R$149.90 (full price). The "preco de lançamento" R$108.90 only applies to the monthly plan during the launch period, which makes the trimestral at R$99.90/month look like an even better deal. The MEI thinks: "I can pay R$149.90/month (or R$108.90 with the launch discount), OR I can commit to 3 months and pay R$99.90/month. Easy choice."
 
@@ -109,13 +109,13 @@ Pix Automatico eliminates this. The customer authorizes recurring debits once. A
 
 **What this replaces:**
 
-| Old (subscription + PIX)                        | New (Pix Automatico)                                    |
-| ----------------------------------------------- | ------------------------------------------------------- |
-| `POST /subscriptions` creates recurring billing | `POST` authorization endpoint on signup                 |
-| Asaas generates charges + QR codes each cycle   | Cron creates charges, Asaas auto-debits                 |
-| Customer scans QR code every month/quarter      | Customer authorizes once, never thinks about it         |
-| Store `subscription_id` per business            | Store `pix_authorization_id` per business               |
-| Webhook: `PAYMENT_CONFIRMED`                    | Same + `PIX_AUTOMATIC_RECURRING_AUTHORIZATION_*` events |
+| Old (subscription + PIX) | New (Pix Automatico) |
+|---|---|
+| `POST /subscriptions` creates recurring billing | `POST` authorization endpoint on signup |
+| Asaas generates charges + QR codes each cycle | Cron creates charges, Asaas auto-debits |
+| Customer scans QR code every month/quarter | Customer authorizes once, never thinks about it |
+| Store `subscription_id` per business | Store `pix_authorization_id` per business |
+| Webhook: `PAYMENT_CONFIRMED` | Same + `PIX_AUTOMATIC_RECURRING_AUTHORIZATION_*` events |
 
 **DB schema changes (businesses collection):**
 
@@ -132,7 +132,6 @@ Pix Automatico eliminates this. The customer authorizes recurring debits once. A
 **Webhook changes:**
 
 New events to handle:
-
 - `PIX_AUTOMATIC_RECURRING_AUTHORIZATION_ACTIVATED`: authorization confirmed, mark business as `active`
 - `PIX_AUTOMATIC_RECURRING_AUTHORIZATION_CANCELLED`: customer or merchant cancelled, mark as `cancelled`
 - `PIX_AUTOMATIC_RECURRING_AUTHORIZATION_REFUSED`: QR code expired without payment, mark as `payment_failed`
@@ -199,7 +198,6 @@ Use pricing structure to amplify acquisition channels from PEP-009.
 Current plan (BUSINESS.md): "indica alguem, 1 semana gratis pra voces duas." This is weak. Cohen says pay affiliates a lot because it's worth it.
 
 New structure:
-
 - Referred person gets the standard offer: full price + 30-day money-back guarantee. No special discount. The friend's recommendation + the guarantee is enough trust.
 - Referrer gets 1 free month, but only after the referred person stays past the 30-day guarantee window. This aligns incentives: the referrer recommends Rekan to people who'll actually use it, not just anyone.
 - Implementation: Elenice tracks "Client A referred Client B" in a spreadsheet. After 30 days, if B is still active, Elenice opens PocketBase admin and pushes Client A's `next_charge_date` forward by one month. The billing cron skips the cycle automatically (it only picks up businesses where `next_charge_date` is within 7 days). Zero code changes, zero complexity.

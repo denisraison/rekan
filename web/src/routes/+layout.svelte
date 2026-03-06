@@ -1,12 +1,12 @@
 <script lang="ts">
-  import '../app.css';
+	import '../app.css';
 
-  let { children } = $props();
+	let { children } = $props();
 </script>
 
 <svelte:head>
-  <link rel="icon" href="/brand/favicon.png" />
-  <link rel="apple-touch-icon" href="/icons/icon-192.png" />
+	<link rel="icon" href="/brand/favicon.png" />
+	<link rel="apple-touch-icon" href="/icons/icon-192.png" />
 </svelte:head>
 
 {@render children()}

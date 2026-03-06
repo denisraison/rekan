@@ -4,9 +4,9 @@ A living reference of principles, strategies, and tactics for building Rekan as 
 
 ## Sources
 
-| #   | Source                                                                   | Link                         | Key topic                                       |
-| --- | ------------------------------------------------------------------------ | ---------------------------- | ----------------------------------------------- |
-| 1   | Jason Cohen, MicroConf 2013: "Designing the Ideal Bootstrapped Business" | https://youtu.be/otbnC2zE2rw | Pricing, markets, acquisition, the cash machine |
+| # | Source | Link | Key topic |
+|---|---|---|---|
+| 1 | Jason Cohen, MicroConf 2013: "Designing the Ideal Bootstrapped Business" | https://youtu.be/otbnC2zE2rw | Pricing, markets, acquisition, the cash machine |
 
 ---
 
@@ -310,4 +310,4 @@ Options Cohen lists: sell the company, raise prices to reduce volume, raise mone
 
 ---
 
-_Last updated: 2026-02-24. Add new sources and principles as we find them._
+*Last updated: 2026-02-24. Add new sources and principles as we find them.*

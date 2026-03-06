@@ -84,7 +84,6 @@ Print a summary: what changed, what improved, what regressed across all cycles. 
 ### Task 1: Create plugin manifest
 
 **Files:**
-
 - Create: `.claude/plugins/rekan-eval/.claude-plugin/plugin.json`
 
 **Step 1: Create the plugin manifest**
@@ -107,11 +106,9 @@ Expected: `plugin.json` exists
 ### Task 2: Write the optimizer SKILL.md
 
 **Files:**
-
 - Create: `.claude/plugins/rekan-eval/skills/optimize/SKILL.md`
 
 The SKILL.md must follow these conventions:
-
 - YAML frontmatter with `name` and `description` (third-person trigger phrases)
 - Body in imperative/infinitive form (not second person)
 - Rigid checklist structure (follow exactly, no adaptation)
@@ -122,7 +119,6 @@ The skill body must encode:
 **Frontmatter description triggers:** "optimize prompts", "run optimization loop", "improve content quality", "optimize eval", "optimize judges", "prompt optimization"
 
 **Pre-loop setup section:**
-
 1. Determine target: `eval/baml_src/content.baml` (default) or `eval/baml_src/judges.baml` (if user says "optimize judges")
 2. Read the target file, store contents mentally as revert baseline
 3. Run `make eval-judges` (working directory must be project root)
@@ -130,7 +126,6 @@ The skill body must encode:
 5. Read the run JSON to get structured baseline results
 
 **Cycle section (max 5 iterations):**
-
 1. Parse the run JSON `summary.judgeTotals` to find the criterion with lowest count out of 12. Tiebreaker order: variedade > engajamento > naturalidade > especificidade > acionavel
 2. Scan `results[]` for a business where that judge's verdict is false. Prefer businesses that also have failed heuristic checks
 3. Read that business's judge reasoning from the run JSON
@@ -141,12 +136,10 @@ The skill body must encode:
 8. Report: cycle number, what was changed, which criterion was targeted, delta in judge totals
 
 **Stopping conditions:**
-
 - After 5 cycles, stop
 - If 2 consecutive cycles produce no improvement, stop early
 
 **Summary section:**
-
 - After the loop ends, print a table of all cycles: cycle number, target criterion, hypothesis, result (kept/reverted), judge totals delta
 
 **Step 2: Verify the skill file**
@@ -163,7 +156,6 @@ Expected: `SKILL.md` exists
 Run: `find .claude/plugins/rekan-eval -type f`
 
 Expected output:
-
 ```
 .claude/plugins/rekan-eval/.claude-plugin/plugin.json
 .claude/plugins/rekan-eval/skills/optimize/SKILL.md

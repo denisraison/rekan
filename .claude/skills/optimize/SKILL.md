@@ -44,7 +44,6 @@ From the same run JSON entry, read the `reasoning` field for the failing judge. 
 Before editing, remember the current file contents as the cycle baseline (distinct from the original baseline, since previous cycles may have made improvements that were kept).
 
 Using the judge reasoning AND the attempt history, generate **3 distinct candidate edits** to the target BAML file. Each candidate should:
-
 - Address the same failing criterion from a different angle
 - Be a focused, single-concept change (not a batch of changes)
 - Not repeat any hypothesis already in the attempt history
@@ -54,7 +53,6 @@ Present the 3 candidates briefly (one line each describing the hypothesis), then
 ### Step 5: Eval all candidates
 
 For each candidate:
-
 1. Copy it over the target BAML file.
 2. Run eval:
    - If optimizing `content.baml`: run `make eval-fast`.
@@ -66,7 +64,6 @@ After all 3 candidates are evaluated, restore the cycle baseline to the target f
 ### Step 6: Select the best candidate
 
 Compare all 3 candidates against the cycle baseline:
-
 - A candidate is **valid** if the target criterion improved (higher count) and no other criterion regressed (lower count).
 - Among valid candidates, pick the one with the highest total score across all criteria.
 - If no candidate is valid, all 3 failed this cycle.
@@ -82,7 +79,6 @@ Report the cycle result: cycle number, target criterion, the 3 hypotheses (mark 
 ### Early stop
 
 Stop the loop if EITHER condition is met:
-
 - **3 consecutive failed cycles** (no valid candidate found in 3 back-to-back cycles). The search space near the current prompt is likely exhausted.
 - **Score plateau**: the best score across the last 2 cycles (including all candidates evaluated) equals the current baseline. No signal of possible improvement remains.
 

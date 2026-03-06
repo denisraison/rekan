@@ -34,8 +34,6 @@ test-judges:
 
 lint:
 	cd api && golangci-lint run ./...
-	cd web && pnpm lint
-	cd web && pnpm fmt:check
 
 seed:
 	set -a && . ./.env && set +a && bash scripts/seed.sh

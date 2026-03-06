@@ -29,11 +29,11 @@ The examples were written in pt-BR: corporate press release for naturalidade, na
 
 Three models from three families, all via OpenRouter:
 
-| Client name           | Family    | OpenRouter ID                   | Input $/M | Output $/M |
-| --------------------- | --------- | ------------------------------- | --------- | ---------- |
-| `JudgeClient`         | Google    | `google/gemini-3-flash-preview` | $0.50     | $3.00      |
-| `JudgeClientClaude`   | Anthropic | `anthropic/claude-haiku-4.5`    | $1.00     | $5.00      |
-| `JudgeClientDeepSeek` | DeepSeek  | `deepseek/deepseek-v3.2`        | $0.24     | $0.38      |
+| Client name | Family | OpenRouter ID | Input $/M | Output $/M |
+|---|---|---|---|---|
+| `JudgeClient` | Google | `google/gemini-3-flash-preview` | $0.50 | $3.00 |
+| `JudgeClientClaude` | Anthropic | `anthropic/claude-haiku-4.5` | $1.00 | $5.00 |
+| `JudgeClientDeepSeek` | DeepSeek | `deepseek/deepseek-v3.2` | $0.24 | $0.38 |
 
 ### Decisions made
 
@@ -83,14 +83,14 @@ Also rewrote `eval/judge_test.go` `knownGoodContent` fixture. The old fixture wa
 
 Re-judged the same content from Wave 2 (using `--from-run`):
 
-| Judge          | Before (Wave 1+2) | After (Wave 3) |
-| -------------- | ----------------- | -------------- |
-| Naturalidade   | 12/12             | 0/12           |
-| Especificidade | 12/12             | 10/12          |
-| Acionavel      | 12/12             | 12/12          |
-| Variedade      | 12/12             | 4/12           |
-| Engajamento    | 12/12             | 3/12           |
-| **Total**      | **60/60**         | **29/60**      |
+| Judge | Before (Wave 1+2) | After (Wave 3) |
+|---|---|---|
+| Naturalidade | 12/12 | 0/12 |
+| Especificidade | 12/12 | 10/12 |
+| Acionavel | 12/12 | 12/12 |
+| Variedade | 12/12 | 4/12 |
+| Engajamento | 12/12 | 3/12 |
+| **Total** | **60/60** | **29/60** |
 
 - `make test-judges`: PASS (known-good 5/5, known-bad 0/5)
 - Runtime: 28.7s

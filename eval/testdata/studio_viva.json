@@ -4,15 +4,11 @@
   "city": "São Paulo",
   "neighbourhood": "Pinheiros",
   "services": [
-    { "name": "Aula individual", "priceBRL": 120 },
-    { "name": "Aula em dupla", "priceBRL": 80 },
-    { "name": "Pacote 10 aulas", "priceBRL": 950 }
+    {"name": "Aula individual", "priceBRL": 120},
+    {"name": "Aula em dupla", "priceBRL": 80},
+    {"name": "Pacote 10 aulas", "priceBRL": 950}
   ],
   "targetAudience": "mulheres 30-55, profissionais com dor lombar crônica, gestantes",
   "brandVibe": "acolhedor e prático",
-  "quirks": [
-    "turmas pequenas, máximo 3 alunos por horário",
-    "instrutora formada pela PUC com foco em reabilitação",
-    "aula experimental grátis na primeira semana de cada mês"
-  ]
+  "quirks": ["turmas pequenas, máximo 3 alunos por horário", "instrutora formada pela PUC com foco em reabilitação", "aula experimental grátis na primeira semana de cada mês"]
 }

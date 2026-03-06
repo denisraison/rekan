@@ -4,9 +4,9 @@
   "city": "Curitiba",
   "neighbourhood": "Santa Felicidade",
   "services": [
-    { "name": "Almoço executivo", "priceBRL": 45 },
-    { "name": "Rodízio de massas", "priceBRL": 79 },
-    { "name": "Jantar à la carte", "priceBRL": 0 }
+    {"name": "Almoço executivo", "priceBRL": 45},
+    {"name": "Rodízio de massas", "priceBRL": 79},
+    {"name": "Jantar à la carte", "priceBRL": 0}
   ],
   "targetAudience": "famílias e casais",
   "brandVibe": "family",

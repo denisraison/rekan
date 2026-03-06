@@ -6,7 +6,6 @@
 ## Context
 
 When Elenice onboards a new client, she fills a form with 8+ fields:
-
 - business name, type, city, state, phone (objective, fast)
 - services list with prices (tedious to type)
 - target_audience, brand_vibe, quirks (conceptually hard — business owners don't think in these terms)
@@ -20,7 +19,6 @@ The key insight: **capture the conversation, not the form**. Elenice hits record
 This matters because first-batch post quality determines whether the client stays. Generic profiles (inferred from business type alone) produce generic posts. A client who sees "Bem-vindo ao seu salão de beleza!" churns before the profile ever improves.
 
 **What we're NOT building:**
-
 - Auto-inferred profile from business type only (too generic, high churn risk on first posts)
 - WhatsApp conversational intake for the client (uncanny/impersonal for 50+ demographic, high abandonment risk mid-flow)
 - Progressive enrichment without voice intake first (doesn't solve the cold-start problem)
@@ -40,7 +38,6 @@ function ExtractBusinessProfile(transcript: string, businessType: string) -> Par
 `PartialBusinessProfile` is a class with all fields optional: `services` (name + price), `targetAudience`, `brandVibe`, `quirks`. The function asks the LLM to extract only what is clearly mentioned, never invent. If a field isn't in the transcript, return null for it.
 
 The prompt should instruct the LLM to:
-
 - The input is casual, unstructured spoken Brazilian Portuguese — expect filler words, incomplete sentences, restarts. That is normal.
 - Extract services and prices literally from speech ("selagem por R$150" → service: "Selagem", price: 150)
 - Infer target_audience from context clues ("mulheres da região", "jovens que querem emagrecer")
@@ -59,7 +56,6 @@ Response: { services, target_audience, brand_vibe, quirks }
 ```
 
 Flow:
-
 1. Receive audio file from multipart body
 2. Call `transcribe.Transcribe(ctx, audioBytes, mimeType)` — this already exists in `api/internal/transcribe/gemini.go`
 3. Call the new BAML `ExtractBusinessProfile` with the transcript and business_type hint
@@ -68,12 +64,10 @@ Flow:
 No database writes. This is a pure computation endpoint. The operator reviews the result and saves via the normal business create/update flow.
 
 **Gate:** ✓
-
 - `go test ./api/...` passes
 - Unit test for the handler using a mock transcription response: given a transcript "Ela tem salão em Manaus, faz hidratação por R$80 e progressiva por R$200, público é mulher de 30 a 50 anos", the extractor returns services=[{name:"Hidratação",price:80},{name:"Progressiva",price:200}], targetAudience="mulheres de 30 a 50 anos"
 
 **Shipped:**
-
 - `eval/baml_src/profile.baml` — `PartialService`, `PartialBusinessProfile` types + `ExtractBusinessProfile` function (JudgeClient / Gemini Flash, temp 0.1)
 - `eval/profile.go` — Go wrapper: `ExtractFromAudioFunc` type, `ExtractBusinessProfile()`, `PartialBusinessProfile`, `PartialService`
 - `api/internal/transcribe/gemini.go` — `Transcribe()` now accepts `mimeType` parameter
@@ -111,21 +105,18 @@ This is simpler, less disorienting, and gives Elenice the option to correct a ba
 **Cancel vs submit separation:**
 
 Two distinct functions handle the two exit paths from recording:
-
-- `cancelRecording()`: sets `voiceMode = 'idle'` _before_ calling `recorder.stop()`, so the async `onstop` guard (`if voiceMode !== 'analyzing') return`) skips extraction entirely.
+- `cancelRecording()`: sets `voiceMode = 'idle'` *before* calling `recorder.stop()`, so the async `onstop` guard (`if voiceMode !== 'analyzing') return`) skips extraction entirely.
 - `submitRecording()`: sets `voiceMode = 'analyzing'` then stops, extraction proceeds.
 
 No explicit error state. On extraction failure, `voiceError` is shown and the form transitions to `manual` so Elenice can fill it herself.
 
 **Save button logic:**
-
 - `idle`: greyed out, disabled — Elenice must either record or switch to manual
 - `recording` / `analyzing`: buttons hidden entirely (× and ↑ are the only actions)
 - `done`: enabled "Salvar e continuar" + "Salvar e Enviar Convite"
 - `manual`: full save buttons always enabled
 
 **Pre-fill rules:**
-
 - Services: replace list entirely if empty, append if Elenice had entered some manually
 - `target_audience`, `brand_vibe`, `quirks`: only pre-fill if the field was empty
 - `quirks` from API is `string[]` — joined with `\n` into the single textarea
@@ -133,23 +124,21 @@ No explicit error state. On extraction failure, `voiceError` is shown and the fo
 
 **Field label translations:**
 
-| DB field          | Label in UI           |
-| ----------------- | --------------------- |
+| DB field | Label in UI |
+|---|---|
 | `target_audience` | Quem são os clientes? |
-| `brand_vibe`      | Como é o ambiente?    |
-| `quirks`          | O que faz diferente?  |
+| `brand_vibe` | Como é o ambiente? |
+| `quirks` | O que faz diferente? |
 
 Each label has a concrete hint example below it (14px, `--text-muted`).
 
 **Shipped:**
-
 - Voice state machine in `+page.svelte`: `voiceMode`, `aiFilledFields`, `recordingSeconds`, `mediaRecorderRef`
 - `startVoiceRecording()`, `cancelRecording()`, `submitRecording()`, `extractVoiceProfile()`, `resetVoice()`, `fmtTime()`
 - `POST /api/businesses/profile:extract` called via `fetch` with `Authorization` header (same pattern as WhatsApp stream)
 - CSS `@keyframes`: `pulse`, `ring`, `blink`, `spin` added in `<style>` block
 
 **Gate:** ✓
-
 - `pnpm check` passes (0 errors, 0 warnings)
 - Playwright screenshots confirm: idle card visible without scrolling on 390×844, manual mode shows "Gravar →" banner + all fields + active save buttons
 
@@ -165,20 +154,19 @@ Only run this for messages where `content` is non-empty (text messages and image
 
 **New `profile_suggestions` collection** (new migration):
 
-| Field      | Type                             |
-| ---------- | -------------------------------- |
-| business   | relation → businesses            |
-| field      | text (e.g. "services", "quirks") |
-| suggestion | text                             |
-| created    | auto                             |
-| dismissed  | bool, default false              |
+| Field | Type |
+|-------|------|
+| business | relation → businesses |
+| field | text (e.g. "services", "quirks") |
+| suggestion | text |
+| created | auto |
+| dismissed | bool, default false |
 
 When extraction finds something useful, insert a row. Do not update the business profile directly — always go through Elenice.
 
 **Operator UI: "Sugestões de Perfil" section** in the business detail view:
 
 Show a collapsible card listing pending suggestions. Each suggestion shows:
-
 - What field it relates to ("Serviço detectado", "Diferencial detectado")
 - The extracted text
 - Two buttons: "Adicionar" (writes the value into the business profile) and "Ignorar" (sets dismissed=true)
@@ -186,14 +174,12 @@ Show a collapsible card listing pending suggestions. Each suggestion shows:
 Keep it subtle — a dot badge on the client list item when there are pending suggestions. This is a tool for Elenice to improve profiles over time, not an alert.
 
 **Gate:** ✓
-
 - Migration applies cleanly
 - On receiving a WhatsApp message containing "agora faço selagem também, R$150", a `profile_suggestions` row is created for that business
 - The "Sugestões de Perfil" card appears in the operator UI with the detected service
 - Accepting the suggestion adds it to `formServices` and saves
 
 **Shipped:**
-
 - `eval/baml_src/profile.baml` — `ProfileSignal` class + `ExtractProfileSignal` function (JudgeClient / Gemini Flash, temp 0.1)
 - `eval/profile.go` — `ProfileSignal`, `ExtractSignalFunc`, `ExtractProfileSignal()`
 - `api/internal/domain/domain.go` — `CollProfileSuggestions` constant

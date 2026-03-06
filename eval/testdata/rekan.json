@@ -4,9 +4,9 @@
   "city": "São Paulo",
   "neighbourhood": "",
   "services": [
-    { "name": "Geração de legendas com IA", "priceBRL": 0 },
-    { "name": "Sugestão de hashtags por nicho", "priceBRL": 0 },
-    { "name": "Direção de foto e vídeo", "priceBRL": 0 }
+    {"name": "Geração de legendas com IA", "priceBRL": 0},
+    {"name": "Sugestão de hashtags por nicho", "priceBRL": 0},
+    {"name": "Direção de foto e vídeo", "priceBRL": 0}
   ],
   "targetAudience": "microempreendedores brasileiros (MEI) que não conseguem manter constância no Instagram",
   "brandVibe": "founder-voice, direto, empático",

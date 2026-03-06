@@ -28,7 +28,6 @@ Rekan is a **partner**, not a tool, not an app, not a platform. Everything we sa
 ## Visual Identity
 
 ### Brand elements
-
 - **Logo:** `web/static/brand/logo-mark.svg` (coral + sage green leaf/flame intertwined)
 - **Font:** Urbanist, weight 300, letter-spacing 0.05em, text-transform: lowercase
 - **Colors:**
@@ -38,7 +37,6 @@ Rekan is a **partner**, not a tool, not an app, not a platform. Everything we sa
   - Off-white: #F5F2ED
 
 ### Grid pattern: hybrid checkerboard
-
 Alternating branded graphics and raw photos. When someone lands on the profile, they see both personality (raw) and credibility (branded).
 
 ```
@@ -48,7 +46,6 @@ GRAPHIC    RAW        GRAPHIC
 ```
 
 ### Raw photos (story/empathy posts)
-
 - Scenes from real MEI life: kitchens, workshops, desks, counters
 - No photorealistic people (AI faces look uncanny)
 - Imperfection is the goal: cracked screens, coffee rings, flour dust, tangled cables, scratched surfaces
@@ -56,7 +53,6 @@ GRAPHIC    RAW        GRAPHIC
 - These prove "I know your world"
 
 ### Branded graphics (value/info/CTA posts)
-
 - Off-white or sage green backgrounds with subtle texture
 - Logo mark small, centered at top
 - Typography: thin, wide-spaced, lowercase for brand name. Bold for key phrases.
@@ -65,7 +61,6 @@ GRAPHIC    RAW        GRAPHIC
 - These deliver value and direct action
 
 ### What to avoid
-
 - Stock photo vibes (perfect lighting, smiling people, clean desks)
 - Canva template energy (alternating color blocks with buzzwords)
 - English text anywhere
@@ -100,7 +95,6 @@ Three tiers: Basico (R$69,90), Parceiro (R$108,90, founder discount from R$149,9
 7. **CTA** (branded card): pricing, "chama no WhatsApp", low-pressure invitation
 
 ### Rules from the BAML prompt (GenerateRekanContent)
-
 - 2 of 3 posts must deliver standalone value WITHOUT mentioning the product
 - Each post mentions a specific named person with a non-digital detail ("A Dona Cida faz 200 coxinhas por dia e ainda cuida da neta")
 - Never end with generic engagement questions ("qual seu favorito?", "marca um amigo")
@@ -108,16 +102,13 @@ Three tiers: Basico (R$69,90), Parceiro (R$108,90, founder discount from R$149,9
 - Vary structure: one narrative, one direct, one list. Never the same skeleton.
 
 ### Numbers in content
-
 Numbers that work for MEIs (concrete, felt, need no dashboard):
-
 - Output: "2 posts por semana sem voce pensar em nada"
 - Time: "Em 2 minutos voce tem o post pronto"
 - Price: "R$108,90/mes", "menos de R$4 por dia", "menos que um almoco executivo por semana"
 - Anchor: "10x mais barato que um social media", "garantia de 30 dias"
 
 Numbers that do NOT work (require a baseline, feel like marketing jargon):
-
 - "Aumente seu engajamento em 40%"
 - "Nossos clientes ganharam X seguidores"
 - "ROI de Y%"
@@ -126,14 +117,12 @@ Numbers that do NOT work (require a baseline, feel like marketing jargon):
 ## Image Generation Lessons
 
 ### The anti-slop approach
-
 Generic prompts ("authentic feel", "natural lighting", "casual photo") produce polished AI images that look like stock photos. The fix: describe specific imperfections as primary subjects.
 
 **Bad:** "A workspace photo with natural lighting and authentic feel"
 **Good:** "A scratched silver MacBook with stickers on the lid, tangled charger cable, loose coins, crumpled napkin with coffee stain, dark kitchen cabinets in background, single bare-bulb desk lamp. Slight grain from low light phone camera."
 
 ### Generation workflow
-
 1. Generate 4 candidates with Gemini Flash (screening only, these will be too polished)
 2. Pick best 2 compositions
 3. Rewrite prompts with aggressive imperfection, generate with Gemini Pro at 2K
@@ -141,7 +130,6 @@ Generic prompts ("authentic feel", "natural lighting", "casual photo") produce p
 5. For branded graphics, pass logo as --input-image to maintain mark accuracy
 
 ### What works
-
 - Beat-up Android phones with cracked screen protectors
 - Formica tables, not wooden farmhouse tables
 - Fluorescent lighting, not warm ambient
@@ -151,7 +139,6 @@ Generic prompts ("authentic feel", "natural lighting", "casual photo") produce p
 - Half-eaten pao de queijo on a napkin
 
 ### What doesn't work
-
 - Handwritten text (AI generates plausible-looking but incorrect words)
 - People's faces (uncanny valley)
 - "Warm, cozy" scenes (too styled, too perfect)

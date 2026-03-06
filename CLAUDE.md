@@ -33,10 +33,10 @@ See `eval/CLAUDE.md`.
 
 `make seed` (via `scripts/seed.sh`) resets the DB and creates:
 
-| Role     | Email                | Password     |
-| -------- | -------------------- | ------------ |
-| Admin    | admin@rekan.local    | admin1234567 |
-| Operador | operador@rekan.local | senha1234567 |
+| Role     | Email                | Password       |
+|----------|----------------------|----------------|
+| Admin    | admin@rekan.local    | admin1234567   |
+| Operador | operador@rekan.local | senha1234567   |
 
 Overridable via `SEED_ADMIN_EMAIL`, `SEED_ADMIN_PASSWORD`, `SEED_USER_EMAIL`, `SEED_USER_PASSWORD` env vars.
 

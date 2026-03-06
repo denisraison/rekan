@@ -1,1 +1,1 @@
-export { default as SectionLabel } from "./SectionLabel.svelte"
+export { default as SectionLabel } from './SectionLabel.svelte';

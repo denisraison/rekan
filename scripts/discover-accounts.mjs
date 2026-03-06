@@ -12,142 +12,185 @@
  *   cd web && node ../scripts/discover-accounts.mjs --all
  */
 
-import { createRequire } from 'node:module';
-import { resolve, dirname } from 'node:path';
-import { fileURLToPath } from 'node:url';
+import { createRequire } from "node:module";
+import { resolve, dirname } from "node:path";
+import { fileURLToPath } from "node:url";
 
 // Playwright is installed in web/node_modules, resolve from there
 const __dirname = dirname(fileURLToPath(import.meta.url));
-const require = createRequire(resolve(__dirname, '../web/') + '/');
-const { chromium } = require('@playwright/test');
+const require = createRequire(resolve(__dirname, "../web/") + "/");
+const { chromium } = require("@playwright/test");
 
 // -- Niche seed data (from PEP-009) -----------------------------------------
 
 const NICHES = {
   confeitaria: {
     keywords: [
-      'confeitaria artesanal',
-      'confeiteira',
-      'bolo decorado',
-      'cake designer brasileira',
-      'doceria artesanal',
-      'bolos personalizados',
+      "confeitaria artesanal",
+      "confeiteira",
+      "bolo decorado",
+      "cake designer brasileira",
+      "doceria artesanal",
+      "bolos personalizados",
     ],
     hashtags: [
-      'confeitariaartesanal',
-      'confeiteira',
-      'bolosdecorados',
-      'cakedesign',
-      'doceriaartesanal',
-      'bolospersonalizados',
+      "confeitariaartesanal",
+      "confeiteira",
+      "bolosdecorados",
+      "cakedesign",
+      "doceriaartesanal",
+      "bolospersonalizados",
     ],
     seeds: [
-      'lojasantoantonio',
-      'magoindustria',
-      '_mavalerio',
-      'mixingredientes',
-      'confeitariabrasilcursosonline',
-      'confeitariaanacristina',
-      'brunarebelo',
+      "lojasantoantonio",
+      "magoindustria",
+      "_mavalerio",
+      "mixingredientes",
+      "confeitariabrasilcursosonline",
+      "confeitariaanacristina",
+      "brunarebelo",
     ],
   },
   nails: {
-    keywords: ['manicure profissional', 'nail designer', 'unhas decoradas', 'manicure e pedicure'],
-    hashtags: ['unhasdecoradas', 'naildesigner', 'manicureprofissional', 'unhasdegel'],
+    keywords: [
+      "manicure profissional",
+      "nail designer",
+      "unhas decoradas",
+      "manicure e pedicure",
+    ],
+    hashtags: [
+      "unhasdecoradas",
+      "naildesigner",
+      "manicureprofissional",
+      "unhasdegel",
+    ],
     seeds: [
-      'voliacosmeticos',
-      'institutonati',
-      'manicuresinceraoficial',
-      'manicur3profissional',
-      'natiakemioficial',
+      "voliacosmeticos",
+      "institutonati",
+      "manicuresinceraoficial",
+      "manicur3profissional",
+      "natiakemioficial",
     ],
   },
   hair: {
-    keywords: ['cabeleireira', 'salao de beleza', 'colorista capilar', 'hair stylist brasileira'],
-    hashtags: ['cabeleireira', 'hairstylistbrasil', 'salaodebeleza', 'coloristacapilar'],
-    seeds: ['wellaprobrasil', 'cadiveu', 'itallianhairtech', 'lowelloficial', 'institutoembelleze'],
+    keywords: [
+      "cabeleireira",
+      "salao de beleza",
+      "colorista capilar",
+      "hair stylist brasileira",
+    ],
+    hashtags: [
+      "cabeleireira",
+      "hairstylistbrasil",
+      "salaodebeleza",
+      "coloristacapilar",
+    ],
+    seeds: [
+      "wellaprobrasil",
+      "cadiveu",
+      "itallianhairtech",
+      "lowelloficial",
+      "institutoembelleze",
+    ],
   },
   marmiteira: {
     keywords: [
-      'marmitex delivery',
-      'marmita fitness',
-      'marmita caseira',
-      'quentinha delivery',
-      'comida caseira delivery',
-      'refeicao congelada caseira',
+      "marmitex delivery",
+      "marmita fitness",
+      "marmita caseira",
+      "quentinha delivery",
+      "comida caseira delivery",
+      "refeicao congelada caseira",
     ],
     hashtags: [
-      'marmitex',
-      'marmitafitness',
-      'marmitacaseira',
-      'comidacaseira',
-      'quentinha',
-      'marmitacongelada',
+      "marmitex",
+      "marmitafitness",
+      "marmitacaseira",
+      "comidacaseira",
+      "quentinha",
+      "marmitacongelada",
     ],
-    seeds: ['isaaborges.fit', 'maborges_fit', 'fitfoodcozinhasaudavel'],
+    seeds: [
+      "isaaborges.fit",
+      "maborges_fit",
+      "fitfoodcozinhasaudavel",
+    ],
   },
   costureira: {
     keywords: [
-      'costureira',
-      'atelie de costura',
-      'costura sob medida',
-      'conserto de roupas',
-      'ajuste de roupas',
-      'costureira profissional',
+      "costureira",
+      "atelie de costura",
+      "costura sob medida",
+      "conserto de roupas",
+      "ajuste de roupas",
+      "costureira profissional",
     ],
     hashtags: [
-      'costureira',
-      'ateliedecostura',
-      'costurasobmedida',
-      'costuracriativa',
-      'ajustederoupas',
-      'costureiraempreendedora',
+      "costureira",
+      "ateliedecostura",
+      "costurasobmedida",
+      "costuracriativa",
+      "ajustederoupas",
+      "costureiraempreendedora",
     ],
-    seeds: ['abordarcomsonia', 'atelie_crisaguiar', 'profissaocostureira'],
+    seeds: [
+      "abordarcomsonia",
+      "atelie_crisaguiar",
+      "profissaocostureira",
+    ],
   },
   diarista: {
     keywords: [
-      'diarista',
-      'faxineira profissional',
-      'limpeza residencial',
-      'diarista autonoma',
-      'servico de limpeza',
+      "diarista",
+      "faxineira profissional",
+      "limpeza residencial",
+      "diarista autonoma",
+      "servico de limpeza",
     ],
     hashtags: [
-      'diarista',
-      'faxineira',
-      'limpezaresidencial',
-      'diaristaautonoma',
-      'limpezaprofissional',
-      'organizacaodecasa',
+      "diarista",
+      "faxineira",
+      "limpezaresidencial",
+      "diaristaautonoma",
+      "limpezaprofissional",
+      "organizacaodecasa",
     ],
-    seeds: ['a_diarista_da_vez', 'faborges_organize', 'organizecomanozes'],
+    seeds: [
+      "a_diarista_da_vez",
+      "faborges_organize",
+      "organizecomanozes",
+    ],
   },
 };
 
-const MEI_ACCOUNTS = new Set(['sebrae', 'raphafalcaof', 'redemulherempreendedora', 'contabilizei']);
+const MEI_ACCOUNTS = new Set([
+  "sebrae",
+  "raphafalcaof",
+  "redemulherempreendedora",
+  "contabilizei",
+]);
 
 const IGNORE = new Set([
-  'p',
-  'reel',
-  'reels',
-  'explore',
-  'stories',
-  'accounts',
-  'directory',
-  'about',
-  'legal',
-  'developer',
-  'help',
-  'privacy',
-  'terms',
-  'tags',
-  'instagram',
-  'popular',
-  'search',
-  'tv',
-  'static',
-  'web',
+  "p",
+  "reel",
+  "reels",
+  "explore",
+  "stories",
+  "accounts",
+  "directory",
+  "about",
+  "legal",
+  "developer",
+  "help",
+  "privacy",
+  "terms",
+  "tags",
+  "instagram",
+  "popular",
+  "search",
+  "tv",
+  "static",
+  "web",
 ]);
 
 // -- Google search via Playwright -------------------------------------------
@@ -160,18 +203,11 @@ async function googleSearch(page, query) {
   const q = `site:instagram.com ${query}`;
   const url = `https://www.google.com/search?q=${encodeURIComponent(q)}&num=20&hl=pt-BR`;
 
-  await page.goto(url, { waitUntil: 'domcontentloaded', timeout: 15000 });
+  await page.goto(url, { waitUntil: "domcontentloaded", timeout: 15000 });
 
   // Accept cookies if prompted
-  const consentBtn = page.locator(
-    'button:has-text("Aceitar"), button:has-text("Accept all"), button:has-text("I agree")',
-  );
-  if (
-    await consentBtn
-      .first()
-      .isVisible({ timeout: 2000 })
-      .catch(() => false)
-  ) {
+  const consentBtn = page.locator('button:has-text("Aceitar"), button:has-text("Accept all"), button:has-text("I agree")');
+  if (await consentBtn.first().isVisible({ timeout: 2000 }).catch(() => false)) {
     await consentBtn.first().click();
     await page.waitForTimeout(1000);
   }
@@ -179,15 +215,15 @@ async function googleSearch(page, query) {
   // Extract all links and their text
   const results = await page.evaluate(() => {
     const items = [];
-    for (const a of document.querySelectorAll('a[href]')) {
-      const href = a.href || '';
+    for (const a of document.querySelectorAll("a[href]")) {
+      const href = a.href || "";
       const match = href.match(/instagram\.com\/([a-zA-Z0-9_.]+)/);
       if (!match) continue;
       const username = match[1].toLowerCase();
       // Get the closest parent that looks like a search result
-      const container = a.closest('[data-snhf]') || a.closest('.g') || a.parentElement;
-      const title = a.textContent?.trim() || '';
-      const snippet = container?.textContent?.trim().slice(0, 200) || '';
+      const container = a.closest("[data-snhf]") || a.closest(".g") || a.parentElement;
+      const title = a.textContent?.trim() || "";
+      const snippet = container?.textContent?.trim().slice(0, 200) || "";
       items.push({ username, title, snippet });
     }
     return items;
@@ -204,19 +240,19 @@ async function googleRelatedSearch(page, seedAccount, nicheKeyword) {
   const q = `related:instagram.com/${seedAccount} ${nicheKeyword}`;
   const url = `https://www.google.com/search?q=${encodeURIComponent(q)}&num=20&hl=pt-BR`;
 
-  await page.goto(url, { waitUntil: 'domcontentloaded', timeout: 15000 });
+  await page.goto(url, { waitUntil: "domcontentloaded", timeout: 15000 });
   await page.waitForTimeout(500);
 
   const results = await page.evaluate(() => {
     const items = [];
-    for (const a of document.querySelectorAll('a[href]')) {
-      const href = a.href || '';
+    for (const a of document.querySelectorAll("a[href]")) {
+      const href = a.href || "";
       const match = href.match(/instagram\.com\/([a-zA-Z0-9_.]+)/);
       if (!match) continue;
       items.push({
         username: match[1].toLowerCase(),
-        title: a.textContent?.trim() || '',
-        snippet: '',
+        title: a.textContent?.trim() || "",
+        snippet: "",
       });
     }
     return items;
@@ -249,18 +285,18 @@ function parseArgs() {
   const opts = { niches: [], location: null, headed: false };
 
   for (let i = 0; i < args.length; i++) {
-    if (args[i] === '--location' && args[i + 1]) {
+    if (args[i] === "--location" && args[i + 1]) {
       opts.location = args[++i];
-    } else if (args[i] === '--headed') {
+    } else if (args[i] === "--headed") {
       opts.headed = true;
-    } else if (args[i] === '--all') {
+    } else if (args[i] === "--all") {
       opts.niches = Object.keys(NICHES);
     } else if (NICHES[args[i]]) {
       opts.niches.push(args[i]);
     } else {
       console.error(`Unknown arg: ${args[i]}`);
       console.error(
-        `Usage: node discover-accounts.mjs <${Object.keys(NICHES).join('|')}|--all> [--location "city"] [--headed]`,
+        `Usage: node discover-accounts.mjs <${Object.keys(NICHES).join("|")}|--all> [--location "city"] [--headed]`
       );
       process.exit(1);
     }
@@ -268,7 +304,7 @@ function parseArgs() {
 
   if (opts.niches.length === 0) {
     console.error(
-      `Usage: node discover-accounts.mjs <${Object.keys(NICHES).join('|')}|--all> [--location "city"] [--headed]`,
+      `Usage: node discover-accounts.mjs <${Object.keys(NICHES).join("|")}|--all> [--location "city"] [--headed]`
     );
     process.exit(1);
   }
@@ -316,30 +352,30 @@ async function discoverNiche(page, nicheName, nicheData, location) {
 }
 
 function printResults(nicheName, accounts, nicheData) {
-  const sep = '='.repeat(60);
+  const sep = "=".repeat(60);
   console.log(`\n${sep}`);
   console.log(` ${nicheName.toUpperCase()} - discovered accounts`);
   console.log(sep);
 
   if (accounts.length === 0) {
-    console.log('\nNo new accounts found.');
+    console.log("\nNo new accounts found.");
   } else {
     console.log(`\nFound ${accounts.length} accounts (sorted by relevance):\n`);
     for (const a of accounts) {
-      const freq = a.count > 1 ? ` (appeared ${a.count}x)` : '';
+      const freq = a.count > 1 ? ` (appeared ${a.count}x)` : "";
       console.log(`  @${a.username}${freq}`);
       if (a.title) console.log(`    ${a.title.slice(0, 80)}`);
     }
   }
 
   console.log(`\n${sep}`);
-  console.log(' Already-known seed accounts:');
+  console.log(" Already-known seed accounts:");
   console.log(sep);
   for (const s of nicheData.seeds) console.log(`  @${s}`);
   for (const s of MEI_ACCOUNTS) console.log(`  @${s}  (cross-niche MEI)`);
 
   console.log(`\n${sep}`);
-  console.log(' Hashtags to explore:');
+  console.log(" Hashtags to explore:");
   console.log(sep);
   for (const h of nicheData.hashtags) {
     console.log(`  #${h}  ->  https://www.instagram.com/explore/tags/${h}/`);
@@ -353,13 +389,13 @@ const opts = parseArgs();
 
 const browser = await chromium.launch({
   headless: !opts.headed,
-  args: ['--disable-blink-features=AutomationControlled'],
+  args: ["--disable-blink-features=AutomationControlled"],
 });
 
 const context = await browser.newContext({
-  locale: 'pt-BR',
+  locale: "pt-BR",
   userAgent:
-    'Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/131.0.0.0 Safari/537.36',
+    "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/131.0.0.0 Safari/537.36",
 });
 
 const page = await context.newPage();

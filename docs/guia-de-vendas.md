@@ -47,11 +47,11 @@ O Rekan resolve o problema de consistência, não o problema de criação. Qualq
 
 ### Planos
 
-| Plano        | Mensal                                          | Trimestral                 | O que inclui                                                                                                  |
-| ------------ | ----------------------------------------------- | -------------------------- | ------------------------------------------------------------------------------------------------------------- |
-| Basico       | R$69,90                                         | R$179,70 (R$59,90/mês)     | 8 posts/mês, legendas + hashtags                                                                              |
+| Plano | Mensal | Trimestral | O que inclui |
+|---|---|---|---|
+| Basico | R$69,90 | R$179,70 (R$59,90/mês) | 8 posts/mês, legendas + hashtags |
 | **Parceiro** | **~~R$149,90~~ R$108,90** (preço de lançamento) | **R$299,70 (R$99,90/mês)** | **12 posts/mês, legendas + hashtags + direção de foto/vídeo + roteiros de reels + melhor horário pra postar** |
-| Profissional | R$249,90                                        | R$599,70 (R$199,90/mês)    | 16 posts/mês, tudo do Parceiro + alinhamento mensal do perfil + calendário de stories + resposta prioritária  |
+| Profissional | R$249,90 | R$599,70 (R$199,90/mês) | 16 posts/mês, tudo do Parceiro + alinhamento mensal do perfil + calendário de stories + resposta prioritária |
 
 Todos os planos têm **garantia de 30 dias**: se não gostar, devolve tudo pelo Pix. Sem contrato, cancela quando quiser.
 
@@ -61,12 +61,12 @@ O plano Parceiro é o que a maioria dos/das clientes escolhe. O preço de R$108,
 
 ### Comparação com o mercado
 
-| Opção                            | Preço                  | O que o/a MEI faz                                 |
-| -------------------------------- | ---------------------- | ------------------------------------------------- |
-| Fazer sozinho/a (ChatGPT, Canva) | R$0 a R$99/mês         | Tudo. Abre, escreve, edita, posta.                |
-| **Rekan Parceiro**               | **R$108,90/mês**       | **Manda foto, recebe post pronto, copia e cola.** |
-| Social media manager junior      | R$590 a R$1.500/mês    | Nada. Mas custa 5x a 14x mais.                    |
-| Agência                          | R$2.000 a R$5.000+/mês | Nada. Mas é pra empresa grande.                   |
+| Opção | Preço | O que o/a MEI faz |
+|---|---|---|
+| Fazer sozinho/a (ChatGPT, Canva) | R$0 a R$99/mês | Tudo. Abre, escreve, edita, posta. |
+| **Rekan Parceiro** | **R$108,90/mês** | **Manda foto, recebe post pronto, copia e cola.** |
+| Social media manager junior | R$590 a R$1.500/mês | Nada. Mas custa 5x a 14x mais. |
+| Agência | R$2.000 a R$5.000+/mês | Nada. Mas é pra empresa grande. |
 
 ### Comparações úteis pra conversa
 
@@ -197,22 +197,22 @@ Mensagem pronta pra encaminhar pra quem pergunta "quanto custa?" ou pra mandar d
 
 **Mensagem 2 (planos):**
 
-> _Planos Rekan_
+> *Planos Rekan*
 >
-> _Básico_ — R$69,90/mês
+> *Básico* — R$69,90/mês
 > 8 posts/mês · legendas + hashtags
 >
-> _Parceiro_ — ~R$149,90~ _R$108,90/mês_ (preço de lançamento)
+> *Parceiro* — ~R$149,90~ *R$108,90/mês* (preço de lançamento)
 > 12 posts/mês · legendas + hashtags + direção de foto/vídeo + roteiros de reels + melhor horário pra postar
 >
-> _Profissional_ — R$249,90/mês
+> *Profissional* — R$249,90/mês
 > 16 posts/mês · tudo do Parceiro + alinhamento mensal do perfil + calendário de stories + resposta prioritária
 >
 > Menos de R$4 por dia no Parceiro. Sem contrato, cancela quando quiser.
 
 **Mensagem 3 (garantia + trimestral + CTA):**
 
-> Todos os planos têm _garantia de 30 dias_: se você não sentir a diferença no seu Instagram, devolvo tudo pelo Pix. Sem perguntas.
+> Todos os planos têm *garantia de 30 dias*: se você não sentir a diferença no seu Instagram, devolvo tudo pelo Pix. Sem perguntas.
 >
 > Se quiser garantir um preço ainda melhor, tem o plano trimestral: o Parceiro sai por R$99,90/mês (R$299,70 por 3 meses). Débito automático, sem se preocupar com pagamento.
 >

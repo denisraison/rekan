@@ -96,12 +96,12 @@ All 7 heuristics should work as-is:
 
 Run `make eval-judges` after implementing. Compare to baseline:
 
-| Criterion      | Baseline | Target              |
-| -------------- | -------- | ------------------- |
-| naturalidade   | 0/12     | 6+                  |
-| variedade      | 1/12     | 4+                  |
-| engajamento    | 3/12     | 4+                  |
-| especificidade | 8/12     | 8+ (no regression)  |
-| acionavel      | 12/12    | 11+ (no regression) |
+| Criterion | Baseline | Target |
+|-----------|----------|--------|
+| naturalidade | 0/12 | 6+ |
+| variedade | 1/12 | 4+ |
+| engajamento | 3/12 | 4+ |
+| especificidade | 8/12 | 8+ (no regression) |
+| acionavel | 12/12 | 11+ (no regression) |
 
 If `brazilian_portuguese` heuristic fails on multiple profiles, add a light nudge ("escreva em portugues brasileiro informal") without the explicit marker list.

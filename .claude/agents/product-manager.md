@@ -1,6 +1,6 @@
 ---
 name: product-manager
-description: 'Use this agent when brainstorming features, prioritizing the backlog, questioning assumptions, finding user pain points, or thinking about what to build next. Specializes in Brazilian micro-entrepreneur problems and creative product thinking.'
+description: "Use this agent when brainstorming features, prioritizing the backlog, questioning assumptions, finding user pain points, or thinking about what to build next. Specializes in Brazilian micro-entrepreneur problems and creative product thinking."
 model: opus
 ---
 

@@ -18,7 +18,6 @@ WhatsApp solves this with one input bar that does one thing at a time. We adopt 
 **Files:** `web/src/routes/(app)/operador/+page.svelte`
 
 **State changes:**
-
 - Remove `quickReply`, `sendingQuick`, `quickReplyError` (lines 196-198)
 - Add `inputMode: 'chat' | 'generate'` state (default `'chat'`)
 - Reuse existing `message` state for both modes
@@ -26,21 +25,18 @@ WhatsApp solves this with one input bar that does one thing at a time. We adopt 
 **Input bar (replaces lines ~2164-2296):**
 
 One bar at the bottom of the chat area, always visible when `!blockReason`:
-
 - **Chat mode (default):** placeholder "Mensagem...", green send button, Enter submits. Calls the existing `sendQuickReply` logic (rewritten to use `message` instead of `quickReply`).
 - **Generate mode:** placeholder "Descreva o post...", coral "Gerar" button, existing "Usar conversa" and "3 ideias" buttons appear as compact chips above the input. The input bar gets a colored top border (coral) so the mode change is visually obvious.
 
 **Mode toggle (action chips bar, right-aligned):**
 
 A pill button on the right side of the action chips bar above the input. Uses icon + short label:
-
 - In chat mode: sparkle icon + "Post" (coral) to switch to generate mode
 - In generate mode: chat bubble icon + "Chat" (green) to switch back
 
 When toggling modes, clear `message` text and `selectedMessages` to avoid cross-mode confusion.
 
 **Remove:**
-
 - The "Quick reply row" section (lines ~2164-2196)
 - The entire "Generate panel" section (lines ~2198-2296), including the `<textarea>` for generation input and the "Usar conversa" / "3 ideias" / "Gerar" buttons. These move into the unified bar.
 - The "Gerar post" label that existed in the old panel
@@ -50,7 +46,6 @@ When toggling modes, clear `message` text and `selectedMessages` to avoid cross-
 **Gate:** `cd web && pnpm check`. In browser: verify single input bar appears at the bottom. Verify tapping "Gerar Post" chip changes the input placeholder, button color, and shows the generate-mode chips. Verify sending a quick reply works in chat mode. Verify generating a post works in generate mode. Verify switching modes clears the input text.
 
 **Implementation notes:**
-
 - `quickReply` state removed entirely; `message` state reused for both modes
 - `quickReplyError` and `sendingQuick` kept since they serve the unified bar's chat mode
 - `selectClient` resets `inputMode` to `'chat'` and clears `message` when switching clients
@@ -65,11 +60,9 @@ When toggling modes, clear `message` text and `selectedMessages` to avoid cross-
 **Files:** `web/src/routes/(app)/operador/+page.svelte`
 
 **State changes:**
-
 - Add `selectedMessages: Set<string>` (message IDs)
 
 **Behavior:**
-
 - When `inputMode === 'generate'`, tapping a message bubble toggles its ID in `selectedMessages`
 - Selected messages get a visual indicator: a colored left border or a checkbox overlay
 - A small badge near the input shows the count of selected messages (e.g., "3 mensagens selecionadas")
@@ -84,7 +77,6 @@ When toggling modes, clear `message` text and `selectedMessages` to avoid cross-
 **Gate:** `cd web && pnpm check`. In browser: switch to generate mode, tap 2-3 messages, verify they get highlighted and the count badge updates. Verify generating with selected messages sends their concatenated content. Verify "Selecionar recentes" selects the right messages. Verify switching to chat mode clears selections.
 
 **Implementation notes:**
-
 - `recentContext` (string concatenation) removed; replaced by `recentContextIds` (Set of message IDs) for the "Selecionar recentes" button
 - `latestIncoming` derived removed; `message_id` optimization now uses `selectedMessages` directly (if exactly one selected and no typed text)
 - `buildSelectedContent()` concatenates selected messages sorted by thread order, with `[Imagem]`/`[Video]` markers for media without text content
@@ -98,11 +90,9 @@ When toggling modes, clear `message` text and `selectedMessages` to avoid cross-
 **Files:** `web/src/routes/(app)/operador/+page.svelte`
 
 **State changes:**
-
 - Add `editingCaption: string` (initialized from `result.caption` when overlay opens)
 
 **Overlay layout** (follows the existing mobile ideas picker pattern at lines ~2059-2097):
-
 - Full-screen overlay (`absolute inset-0 z-10` on the detail view container)
 - Header: "Voltar" button (closes overlay, keeps result) + "Post gerado" title
 - Body (scrollable):
@@ -118,7 +108,6 @@ When toggling modes, clear `message` text and `selectedMessages` to avoid cross-
 **Gate:** `cd web && pnpm check` test in in browser with a new e2e test generate a post, verify the full-screen overlay appears. Verify the caption is editable. Verify editing the caption and sending uses the edited version. Verify "Voltar" closes overlay but preserves the result. Verify "Descartar" clears everything.
 
 **Implementation notes:**
-
 - Added `showReviewOverlay` boolean state to decouple overlay visibility from `result` presence, allowing "Voltar" to close the overlay while preserving the result
 - A `$effect` on `result` sets `editingCaption` and opens the overlay when result becomes non-null, closes it when null
 - "Ver post gerado" chip appears in the action chips bar when result exists but overlay is closed, letting the operator re-open it
@@ -132,12 +121,10 @@ When toggling modes, clear `message` text and `selectedMessages` to avoid cross-
 **Files:** `web/src/routes/(app)/operador/+page.svelte`
 
 **State changes:**
-
 - [x] Add `selectedIdeas: Set<number>` (indices into `ideaDrafts` array)
 - [x] Add `sendingIdeas: boolean`
 
 **UI changes to the ideas picker** (both mobile overlay and desktop panel):
-
 - [x] Each idea card gets a selectable checkbox/indicator (tapping the card toggles selection)
 - [x] Tapping still allows reading the full caption
 - [x] Bottom action bar: "Enviar X selecionadas" button (green, shows count)
@@ -149,7 +136,6 @@ When toggling modes, clear `message` text and `selectedMessages` to avoid cross-
 **Gate:** `cd web && pnpm check` test in in browser with a new e2e test generate 3 ideas, select 2, verify "Enviar 2 selecionadas" sends both as separate messages. Verify selecting just 1 and tapping it opens the review overlay. Verify all sent ideas appear in the message thread via realtime.
 
 **Implementation notes:**
-
 - Idea cards changed from `<div>` with nested button to clickable `<button>` elements with a circular checkbox indicator
 - Selected cards get a coral border (2px) for clear visual feedback
 - Single selection opens the review overlay (Wave 3) via "Revisar e enviar" button, multi-selection shows "Enviar N selecionadas" green button
@@ -162,7 +148,6 @@ When toggling modes, clear `message` text and `selectedMessages` to avoid cross-
 **Goal:** Let the operator send photos and files from the chat window, like WhatsApp's attach button and camera icons
 
 **Files:**
-
 - `web/src/routes/(app)/operador/+page.svelte` (frontend)
 - `api/internal/http/handlers/send_media.go` (new: send media via WhatsApp)
 - `api/internal/http/handlers/describe_media.go` (new: Gemini image description)
@@ -172,7 +157,6 @@ When toggling modes, clear `message` text and `selectedMessages` to avoid cross-
 - `api/main.go` (wire transcribe client into Deps)
 
 **Frontend:**
-
 - [x] A paperclip icon button to the left of the text input (both modes)
 - [x] Tapping opens a popup menu with Galeria, Camera, and Video options
 - [x] Selecting a file shows a thumbnail preview above the input (not sent immediately)
@@ -185,7 +169,6 @@ When toggling modes, clear `message` text and `selectedMessages` to avoid cross-
 - [x] Backdrop closes menu when tapping outside
 
 **Backend:**
-
 - [x] New `SendMedia` handler accepts `multipart/form-data` with `business_id`, `caption`, and `file` fields
 - [x] New `DescribeMedia` handler accepts `multipart/form-data` with `file`, returns `{ description }` via Gemini
 - [x] Added `Upload` method to whatsapp Client wrapper (wraps `whatsmeow.Upload`)
@@ -197,7 +180,6 @@ When toggling modes, clear `message` text and `selectedMessages` to avoid cross-
 **Gate:** `cd web && pnpm check` test in in browser with a new e2e test verify the buttons appears next to the input. Verify tapping it shows Camera/Gallery options. Verify selecting a photo sends it as a WhatsApp media message (if backend is ready) or shows a "em breve" toast (if stubbed). Backend: `cd api && go test ./...` passes.
 
 **Implementation notes:**
-
 - Attach does NOT send immediately. It shows a preview, letting the operator use the photo as context for post generation (the main use case: visit customer, take photo, generate post from it)
 - In generate mode, `generate()` calls `/api/media:describe` first to get a Gemini description, then prepends `[Foto do operador] <description>` to the message payload sent to `posts:generateFromMessage`
 - In chat mode, `sendQuickReply()` delegates to `sendMedia()` when an attachment is present, sending directly via WhatsApp
@@ -212,7 +194,6 @@ When toggling modes, clear `message` text and `selectedMessages` to avoid cross-
 The operator page requires authentication and a running backend. Playwright tests live in `web/tests/`.
 
 **Setup:**
-
 - Config: `web/playwright.config.ts` (baseURL `http://localhost:5173`, `reuseExistingServer: true`)
 - Dev server uses HTTPS with a self-signed cert, so tests that hit the running server need `ignoreHTTPSErrors`:
 
@@ -236,7 +217,6 @@ async function loginAsOperador(page: any) {
 ```
 
 **Gotchas:**
-
 - Do NOT use `waitForLoadState('networkidle')` on the operator page. The WhatsApp SSE stream keeps the connection open indefinitely. Use `waitForTimeout` instead.
 - "Post" as button text matches many elements ("sem postar", "Post criado" etc). Use `getByRole('button', { name: 'Post', exact: true })` or a more specific locator.
 - Both backend (`make dev-api`) and frontend (`make dev-web`) must be running. Use `make dev` to start both.
@@ -261,7 +241,6 @@ Then read the screenshot with the `Read` tool to verify visual output.
 **Problem:** Attaching an image and clicking "Gerar Post" took over 10 seconds just for the image description step, with a 30s timeout risk on larger photos.
 
 **Changes:**
-
 - **Switched Gemini model** for image/video description from `gemini-2.5-flash` to `gemini-3.1-flash-lite-preview` (`api/internal/transcribe/gemini.go`)
 - **Added image downscaling** before sending to Gemini: images larger than 1024px in either dimension are resized proportionally and re-encoded as JPEG 80% quality. Uses `golang.org/x/image/draw` (promoted from indirect to direct dependency in `go.mod`). Reduces a typical 2MB phone photo to ~100-200KB. Result: description time dropped from ~10s to ~3s.
 - **Removed video attach button** from the operator generate UI. Video descriptions can't be optimized the same way without ffmpeg, and operators rarely attach video for post generation. Video handling remains in the WhatsApp message ingestion pipeline.
@@ -272,7 +251,6 @@ Then read the screenshot with the `Read` tool to verify visual output.
 **Problem:** When the operator locks/unlocks their phone or switches tabs, the browser suspends the page. The SSE streams (WhatsApp status, message updates) die silently and never reconnect, leaving the UI stale until a manual refresh.
 
 **Changes:**
-
 - **Operator page** (`+page.svelte`): added a `visibilitychange` listener that aborts the current SSE connection and reconnects when the page becomes visible again. Also refreshes messages, posts, scheduled messages, and suggestion counts to catch anything missed while suspended.
 - **WhatsApp status page** (`whatsapp/+page.svelte`): same `visibilitychange` reconnection for the QR/status SSE stream.
 - Both listeners are cleaned up in `onDestroy`.
