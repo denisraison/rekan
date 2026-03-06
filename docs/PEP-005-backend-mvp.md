@@ -86,20 +86,20 @@ api/
 
 ### What goes where
 
-| Configuration | Mechanism | Why not admin UI |
-|---------------|-----------|------------------|
-| Collections + fields | Go migration (`core.NewBaseCollection`, `Fields.Add`) | Version-controlled, reviewable, reproducible |
-| API rules (list/view/create/update/delete) | Go migration (`collection.ListRule = &rule`) | Security rules must be code-reviewed, not clicked |
-| Field-level protections (`:isset`) | Part of API rule strings in migration | Same as above |
-| Unique indexes | Go migration (`collection.AddIndex`) | Schema integrity |
-| Google OAuth provider | Go migration (`collection.OAuth2.Providers`, `collection.OAuth2.Enabled`) | Credentials from env vars, not pasted into UI |
-| OAuth credentials | Environment variables (`GOOGLE_CLIENT_ID`, `GOOGLE_CLIENT_SECRET`) | Secrets never in code or UI |
-| Rate limits | Go migration (`app.Settings().RateLimits`) | Consistent across deployments |
-| Trusted proxy headers | Go migration (`app.Settings().TrustedProxy`) | Rate limiting needs correct client IP |
-| App settings (name, URL) | Go migration (`app.Settings().Meta`) | Reproducible |
-| Trial defaults on new user | Go hook (`OnRecordAuthWithOAuth2Request`) | Logic, not manual setup |
-| Custom endpoints | `RegisterRoutes` in `OnServe` hook | Application code |
-| Dev mode overrides | `main.go` (`disableRateLimits`, email logging) | Environment-aware |
+| Configuration                              | Mechanism                                                                 | Why not admin UI                                  |
+| ------------------------------------------ | ------------------------------------------------------------------------- | ------------------------------------------------- |
+| Collections + fields                       | Go migration (`core.NewBaseCollection`, `Fields.Add`)                     | Version-controlled, reviewable, reproducible      |
+| API rules (list/view/create/update/delete) | Go migration (`collection.ListRule = &rule`)                              | Security rules must be code-reviewed, not clicked |
+| Field-level protections (`:isset`)         | Part of API rule strings in migration                                     | Same as above                                     |
+| Unique indexes                             | Go migration (`collection.AddIndex`)                                      | Schema integrity                                  |
+| Google OAuth provider                      | Go migration (`collection.OAuth2.Providers`, `collection.OAuth2.Enabled`) | Credentials from env vars, not pasted into UI     |
+| OAuth credentials                          | Environment variables (`GOOGLE_CLIENT_ID`, `GOOGLE_CLIENT_SECRET`)        | Secrets never in code or UI                       |
+| Rate limits                                | Go migration (`app.Settings().RateLimits`)                                | Consistent across deployments                     |
+| Trusted proxy headers                      | Go migration (`app.Settings().TrustedProxy`)                              | Rate limiting needs correct client IP             |
+| App settings (name, URL)                   | Go migration (`app.Settings().Meta`)                                      | Reproducible                                      |
+| Trial defaults on new user                 | Go hook (`OnRecordAuthWithOAuth2Request`)                                 | Logic, not manual setup                           |
+| Custom endpoints                           | `RegisterRoutes` in `OnServe` hook                                        | Application code                                  |
+| Dev mode overrides                         | `main.go` (`disableRateLimits`, email logging)                            | Environment-aware                                 |
 
 ### Migration: users collection (OAuth + fields + rules)
 
@@ -287,14 +287,14 @@ func RegisterRoutes(rtr *router.Router[*core.RequestEvent], deps handlers.Deps) 
 
 ### Environment variables
 
-| Variable | Purpose | Required |
-|----------|---------|----------|
-| `DEV_MODE` | Disable rate limits, log emails | No |
-| `GOOGLE_CLIENT_ID` | Google OAuth2 client ID | Yes |
-| `GOOGLE_CLIENT_SECRET` | Google OAuth2 client secret | Yes |
-| `OPENROUTER_API_KEY` | LLM generation (via eval pipeline) | Yes |
-| `ASAAS_API_KEY` | Asaas billing API | Yes (prod) |
-| `ASAAS_WEBHOOK_TOKEN` | Validate Asaas webhook signatures | Yes (prod) |
+| Variable               | Purpose                            | Required   |
+| ---------------------- | ---------------------------------- | ---------- |
+| `DEV_MODE`             | Disable rate limits, log emails    | No         |
+| `GOOGLE_CLIENT_ID`     | Google OAuth2 client ID            | Yes        |
+| `GOOGLE_CLIENT_SECRET` | Google OAuth2 client secret        | Yes        |
+| `OPENROUTER_API_KEY`   | LLM generation (via eval pipeline) | Yes        |
+| `ASAAS_API_KEY`        | Asaas billing API                  | Yes (prod) |
+| `ASAAS_WEBHOOK_TOKEN`  | Validate Asaas webhook signatures  | Yes (prod) |
 
 Loaded via `.env` (gitignored) through direnv / flake.nix dev shell.
 
@@ -383,6 +383,7 @@ deleteRule: user = @request.auth.id
 ```
 
 **Why:**
+
 - **createRule** ensures the client can only create a business linked to their own user ID. Without `@request.body.user = @request.auth.id`, a user could create a business under someone else's ID.
 - **updateRule** with `@request.body.user:isset = false` prevents reassigning a business to a different user. Without this, a user could change the `user` field to hijack another account's business.
 - One business per user is enforced via a unique index on the `user` field.
@@ -402,23 +403,24 @@ deleteRule: business.user = @request.auth.id
 ```
 
 **Why:**
+
 - **createRule = null** is critical. Posts are only created by the generate endpoint, which sets `hook`, `batch_id`, and `role` correctly. If clients could create posts, they could inject fake hooks that pollute the rotation system, or create posts without going through the generation pipeline.
 - **updateRule** locks down server-managed fields. The client can edit `caption`, `hashtags`, `production_note`, and `edited` (the user-facing content). But `business`, `batch_id`, `role`, and `hook` are immutable from the client. Moving a post to a different business or tampering with rotation metadata would break data integrity.
 - **list/view rules** use `business.user` (relation traversal) to ensure users only see posts belonging to their own business.
 
 ### Threat model summary
 
-| Attack | Mitigation |
-|--------|------------|
-| User sets `subscription_status = "active"` | `:isset = false` on users updateRule |
-| User resets `generations_used = 0` | `:isset = false` on users updateRule |
-| User creates business under another user's ID | `@request.body.user = @request.auth.id` on createRule |
-| User reassigns business to another user | `@request.body.user:isset = false` on updateRule |
-| User creates posts directly (bypassing generation) | `createRule = null` on posts |
-| User moves post to another business | `@request.body.business:isset = false` on updateRule |
-| User tampers with hook/role/batch_id | `:isset = false` on those fields in updateRule |
-| User lists/views other users' posts | `business.user = @request.auth.id` on list/viewRule |
-| User deletes another user's data | Owner check on all deleteRules |
+| Attack                                             | Mitigation                                            |
+| -------------------------------------------------- | ----------------------------------------------------- |
+| User sets `subscription_status = "active"`         | `:isset = false` on users updateRule                  |
+| User resets `generations_used = 0`                 | `:isset = false` on users updateRule                  |
+| User creates business under another user's ID      | `@request.body.user = @request.auth.id` on createRule |
+| User reassigns business to another user            | `@request.body.user:isset = false` on updateRule      |
+| User creates posts directly (bypassing generation) | `createRule = null` on posts                          |
+| User moves post to another business                | `@request.body.business:isset = false` on updateRule  |
+| User tampers with hook/role/batch_id               | `:isset = false` on those fields in updateRule        |
+| User lists/views other users' posts                | `business.user = @request.auth.id` on list/viewRule   |
+| User deletes another user's data                   | Owner check on all deleteRules                        |
 
 ### Auth
 
@@ -528,17 +530,17 @@ No custom backend work. PocketBase SDK + SvelteKit UI.
 pb.collection('posts').getList(page, 12, {
   filter: `business = "${businessId}"`,
   sort: '-created',
-})
+});
 
 // Edit a post
 pb.collection('posts').update(postId, {
   caption: editedCaption,
   hashtags: editedHashtags,
   edited: true,
-})
+});
 
 // Delete a post
-pb.collection('posts').delete(postId)
+pb.collection('posts').delete(postId);
 ```
 
 ### Behavior
@@ -606,15 +608,15 @@ POST /api/webhooks/asaas
 
 ## Summary: Custom endpoints vs PocketBase SDK
 
-| Operation | Method | Approach |
-|-----------|--------|----------|
-| Auth (Google OAuth) | SDK | `pb.collection('users').authWithOAuth2(...)` |
-| Business CRUD | SDK | `pb.collection('businesses').create/update/delete(...)` |
-| Post read/update/delete | SDK | `pb.collection('posts').getList/update/delete(...)` |
-| Generate posts | `POST /api/businesses/{id}/posts:generate` | Custom (LLM calls) |
-| Create subscription | `POST /api/subscriptions` | Custom (Asaas API) |
-| Get subscription | `GET /api/subscriptions/current` | Custom (Asaas state) |
-| Payment webhook | `POST /api/webhooks/asaas` | Custom (server-to-server) |
+| Operation               | Method                                     | Approach                                                |
+| ----------------------- | ------------------------------------------ | ------------------------------------------------------- |
+| Auth (Google OAuth)     | SDK                                        | `pb.collection('users').authWithOAuth2(...)`            |
+| Business CRUD           | SDK                                        | `pb.collection('businesses').create/update/delete(...)` |
+| Post read/update/delete | SDK                                        | `pb.collection('posts').getList/update/delete(...)`     |
+| Generate posts          | `POST /api/businesses/{id}/posts:generate` | Custom (LLM calls)                                      |
+| Create subscription     | `POST /api/subscriptions`                  | Custom (Asaas API)                                      |
+| Get subscription        | `GET /api/subscriptions/current`           | Custom (Asaas state)                                    |
+| Payment webhook         | `POST /api/webhooks/asaas`                 | Custom (server-to-server)                               |
 
 **3 custom endpoints + 1 read endpoint. Everything else is PocketBase SDK.**
 

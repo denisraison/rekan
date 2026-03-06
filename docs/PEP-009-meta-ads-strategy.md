@@ -59,21 +59,27 @@ Once confeitaria is proven, document what worked and replicate.
 ## Creative Brief
 
 ### Format
+
 All creatives 9:16 vertical. Instagram Reels + Stories placement only (cheapest CPMs, where MEIs scroll).
 
 ### Creative 1: "O post que voce nao fez hoje"
+
 Static. Raw aesthetic: phone on messy counter, Instagram open with empty caption field, flour on screen, time showing late at night. Text overlay: "Voce trabalhou 12 horas. Agora tem que pensar em legenda." No logo, no price, no CTA in the image. The pain self-selects the audience. CTA in ad copy: "A Rekan cuida disso pra voce. Chama no WhatsApp."
 
 ### Creative 2: "2 minutos"
+
 Screen recording of a real WhatsApp exchange. MEI sends a quick text about a cake delivery. Timer shows 2 minutes. Complete content package comes back. No explanation, just the raw evidence it works. Premium services demonstrate, they don't explain.
 
 ### Creative 3: "Sua concorrente posta todo dia"
+
 Split screen. Left: a competitor's consistent Instagram grid. Right: the target's grid, last post 3 weeks ago. Text: "Ela nao e melhor que voce. Ela so tem alguem cuidando do conteudo." Hits competitive anxiety without being aggressive.
 
 ### Creative 4: "Cliente real" (once available)
+
 Elenice selfie video, 30 seconds, no script. Tells one real client story: "A [nome] me mandou a foto do bolo as 10h. As 10:02 ja tinha o post pronto. Postou na hora do almoco, recebeu 3 mensagens de cliente nova."
 
 ### Copy guidelines
+
 - Partner voice, not vendor voice. "Voce faz o que sabe fazer. O Instagram, deixa com a gente."
 - Lead with the problem or the result, never with features.
 - Price only in retargeting (they already know what Rekan is). In prospecting, the CTA is just "Chama no WhatsApp."
@@ -81,21 +87,28 @@ Elenice selfie video, 30 seconds, no script. Tells one real client story: "A [no
 ## Targeting Reference
 
 ### Confeitaria (Wave 2)
+
 Tier 1 signals (followers are working confeiteiras):
-- Suppliers: @lojasantoantonio (1M), @magoindustria (504K), @_mavalerio (315K), @mixingredientes (288K)
+
+- Suppliers: @lojasantoantonio (1M), @magoindustria (504K), @\_mavalerio (315K), @mixingredientes (288K)
 - Educators: @confeitariabrasilcursosonline (341K), @confeitariaanacristina (352K), @brunarebelo (736K)
 
 ### Nails (Wave 3 candidate)
+
 Tier 1 signals:
+
 - Suppliers: @voliacosmeticos (1M), @institutonati (126K)
 - Educators: @manicuresinceraoficial (635K), @manicur3profissional (340K), @natiakemioficial (607K)
 
 ### Hair (Wave 3 candidate)
+
 Tier 1 signals:
+
 - Suppliers: @wellaprobrasil (1M), @cadiveu (564K), @itallianhairtech (254K), @lowelloficial (487K)
 - Educators: @institutoembelleze (200K)
 
 ### Cross-niche MEI signals (layer with niche interests)
+
 - @sebrae (2M) + regional accounts
 - @raphafalcaof (949K)
 - @redemulherempreendedora (205K)
@@ -103,12 +116,12 @@ Tier 1 signals:
 
 ## Metrics
 
-| Metric | Target | Kill threshold |
-|---|---|---|
-| Cost per WhatsApp conversation | < R$5 (good), < R$8 (acceptable) | > R$10 after R$50 spent |
-| Conversation to trial rate | > 15% | < 5% (fix the WhatsApp script) |
-| Trial to paying rate | > 40% | < 20% (fix the onboarding) |
-| Monthly creative refresh | 2-3 new creatives | Stale = rising CPAs |
+| Metric                         | Target                           | Kill threshold                 |
+| ------------------------------ | -------------------------------- | ------------------------------ |
+| Cost per WhatsApp conversation | < R$5 (good), < R$8 (acceptable) | > R$10 after R$50 spent        |
+| Conversation to trial rate     | > 15%                            | < 5% (fix the WhatsApp script) |
+| Trial to paying rate           | > 40%                            | < 20% (fix the onboarding)     |
+| Monthly creative refresh       | 2-3 new creatives                | Stale = rising CPAs            |
 
 ## Value Proof Strategy
 

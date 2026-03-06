@@ -51,16 +51,16 @@ All 9 sub-items implemented in a single pass. Key files: `api/internal/whatsapp/
 
 New `messages` collection schema:
 
-| Field | Type | Description |
-|-------|------|-------------|
-| `business` | relation | Link to businesses collection (nullable if unknown sender) |
-| `phone` | text | Sender phone in E.164 format (e.g. "5511999998888") |
-| `type` | select | `text`, `audio`, `image` |
-| `content` | text | Message text, or transcript for audio |
-| `media` | file | PocketBase file attachment for images (FileField, 10MB max) |
-| `direction` | select | `incoming`, `outgoing` |
-| `wa_timestamp` | date | WhatsApp message timestamp |
-| `wa_message_id` | text | WhatsApp message ID (for deduplication) |
+| Field           | Type     | Description                                                 |
+| --------------- | -------- | ----------------------------------------------------------- |
+| `business`      | relation | Link to businesses collection (nullable if unknown sender)  |
+| `phone`         | text     | Sender phone in E.164 format (e.g. "5511999998888")         |
+| `type`          | select   | `text`, `audio`, `image`                                    |
+| `content`       | text     | Message text, or transcript for audio                       |
+| `media`         | file     | PocketBase file attachment for images (FileField, 10MB max) |
+| `direction`     | select   | `incoming`, `outgoing`                                      |
+| `wa_timestamp`  | date     | WhatsApp message timestamp                                  |
+| `wa_message_id` | text     | WhatsApp message ID (for deduplication)                     |
 
 **Files:** new migration for `messages` collection, migration to add `phone` field to `businesses`, `api/internal/whatsapp/handler.go`
 
@@ -123,7 +123,7 @@ Production note handling: the production note is shown in the operator page but 
 **Files:** new endpoint `POST /api/messages:send`, `api/internal/whatsapp/send.go`, `web/src/routes/(app)/operador/+page.svelte`
 
 - [x] "Enviar pelo WhatsApp" button sends formatted caption + hashtags to client via WhatsApp
-- [x] Production note sent as a separate message ("*Dica de foto:* ...")
+- [x] Production note sent as a separate message ("_Dica de foto:_ ...")
 - [x] Outgoing messages stored in `messages` collection
 - [x] Typing indicator sent before message (`SendChatPresence`)
 - [x] Small random delay (1-3s) before sending to simulate human behavior (ban mitigation)
@@ -192,6 +192,7 @@ All 3 sub-items implemented in the operator page. Key additions: "Todos"/"Inativ
 **Current state:** No templates for handling quiet clients.
 
 **Change:** Tiered re-engagement templates that Elenice can send with one click:
+
 - 5-7 days: casual check-in ("Oi Maria, como foi a semana? Tem algo legal pra gente postar?")
 - 8-14 days: seasonal/topical prompt ("Mes que vem e Dia das Maes, vamos preparar posts especiais?")
 - 15+ days: value reminder ("Maria, vi que faz um tempo. Quer retomar? Posso te mandar ideias de conteudo pra essa semana!")
@@ -212,6 +213,7 @@ The right template is auto-selected based on inactivity duration. Elenice can ed
 **Change:** A simple niche-specific calendar of key dates. The operator page shows upcoming dates (next 30 days) and suggests Elenice reach out to relevant clients with seasonal content ideas. Hardcoded data, not a database.
 
 Key dates by niche:
+
 - **Confeiteiras:** Pascoa, Dia das Maes, Dia dos Namorados, Festas Juninas, Dia das Criancas, Natal
 - **Cabeleireiras:** Carnaval, Dia da Mulher, Dia das Maes, Dia do Cabeleireiro (dez), Natal/Reveillon
 - **Personal trainers:** Verao (starts Oct), Carnaval (body prep), Dia do Educador Fisico (set)
@@ -237,7 +239,7 @@ All 3 sub-items implemented. Key changes: consistent R$69.90/month pricing acros
 
 **Change:** Generate a monthly WhatsApp-ready summary per client. Based on data from the `posts` collection: posts delivered this month vs last month. Elenice sends it directly through WhatsApp from the operator page.
 
-Example: "*Maria, resumo de fevereiro:* a gente criou *11 posts* pro seu Instagram (contra 3 em janeiro). Mes que vem vamos manter esse ritmo!"
+Example: "_Maria, resumo de fevereiro:_ a gente criou _11 posts_ pro seu Instagram (contra 3 em janeiro). Mes que vem vamos manter esse ritmo!"
 
 The summary uses WhatsApp bold formatting and is designed to be screenshot-worthy (clients share it in professional groups, driving organic referrals).
 
@@ -246,7 +248,7 @@ The summary uses WhatsApp bold formatting and is designed to be screenshot-worth
 - [x] Per-client monthly summary view on operator page
 - [x] Shows: posts this month, posts last month, delta
 - [x] "Enviar resumo" button sends formatted summary through WhatsApp
-- [x] Summary uses WhatsApp formatting (*bold*, _italic_) for visual impact
+- [x] Summary uses WhatsApp formatting (_bold_, _italic_) for visual impact
 
 ### 3.2 Trial restructuring
 
@@ -325,12 +327,12 @@ Extracted repeated patterns from the marketing page (955 lines) into reusable Sv
 
 ## Implementation Order
 
-| Wave | Focus | Status | Impact |
-|------|-------|--------|--------|
-| **Wave 1** | WhatsApp integration + operator overhaul | **Done** (9/9 items) | Eliminates all manual copy-paste, enables voice/image, makes the product real |
-| **Wave 2** | Proactive engagement | **Done** (3/3 items) | Solves consistency (the actual problem), reduces churn |
-| **Wave 3** | Client value proof | **Done** (3/3 items) | Makes value visible, reduces churn, drives referrals |
-| **Wave 4** | Technical gaps | **Done** (4.1, 4.2, 4.3, 4.5 done; 4.4 manual items remain) | 17 handler tests, 8 Playwright smoke tests, 3 marketing components |
+| Wave       | Focus                                    | Status                                                      | Impact                                                                        |
+| ---------- | ---------------------------------------- | ----------------------------------------------------------- | ----------------------------------------------------------------------------- |
+| **Wave 1** | WhatsApp integration + operator overhaul | **Done** (9/9 items)                                        | Eliminates all manual copy-paste, enables voice/image, makes the product real |
+| **Wave 2** | Proactive engagement                     | **Done** (3/3 items)                                        | Solves consistency (the actual problem), reduces churn                        |
+| **Wave 3** | Client value proof                       | **Done** (3/3 items)                                        | Makes value visible, reduces churn, drives referrals                          |
+| **Wave 4** | Technical gaps                           | **Done** (4.1, 4.2, 4.3, 4.5 done; 4.4 manual items remain) | 17 handler tests, 8 Playwright smoke tests, 3 marketing components            |
 
 All four waves are done. WhatsApp messages flow into the operator page, replies go back through WhatsApp, Elenice has nudge templates + seasonal calendar + monthly summaries to keep clients engaged proactively, pricing is consistent at R$69.90/month with R$19 first month, and the codebase has 24 handler tests + 8 Playwright smoke tests. Only manual verification items (4.4) and the optional Tailwind migration (4.5) remain.
 

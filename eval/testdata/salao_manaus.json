@@ -4,9 +4,9 @@
   "city": "Manaus",
   "neighbourhood": "Adrianópolis",
   "services": [
-    {"name": "Corte feminino", "priceBRL": 80},
-    {"name": "Escova progressiva", "priceBRL": 200},
-    {"name": "Coloração", "priceBRL": 150}
+    { "name": "Corte feminino", "priceBRL": 80 },
+    { "name": "Escova progressiva", "priceBRL": 200 },
+    { "name": "Coloração", "priceBRL": 150 }
   ],
   "targetAudience": "mulheres 25-50",
   "brandVibe": "acolhedor",

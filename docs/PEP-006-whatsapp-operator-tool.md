@@ -35,6 +35,7 @@ The AI pipeline already exists (PEP-001). We need a new input layer: message-bas
 ### Eval
 
 6. **`--message` flag** (`eval/cmd/eval/main.go`) — Generates a single post from a WhatsApp message against a test profile. Automatically excludes `variedade` judge. Example:
+
    ```bash
    cd eval && go run ./cmd/eval --judges --verbose \
      --message "Quero um post divulgando meu kit festa de 50 doces por R\$250" \

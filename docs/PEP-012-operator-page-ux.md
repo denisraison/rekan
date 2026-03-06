@@ -48,6 +48,7 @@ File: same
 Four send buttons (nudge, summary, generated post, and the WhatsApp send for nudge/summary) go silent when `!waConnected || !selected?.phone`. The "Enviar pelo WhatsApp" after generation is inside `{#if waConnected && selected?.phone}` — it simply doesn't render, leaving the operator with a generated result and no send action, no explanation.
 
 Fix:
+
 - Derive a `blockReason` string for each send context: `"WhatsApp desconectado"` takes priority over `"Cliente sem telefone cadastrado"`.
 - Show the reason as a `<span>` next to the button when it is the active blocker (not when the button is merely empty/sending).
 - Add `title={blockReason}` for hover tooltip.
@@ -174,6 +175,7 @@ File: same
 Opening the page with 20+ clients means scanning the list to find where to focus. The data to answer "what do I do right now?" is already in memory.
 
 Fix: A compact summary bar at the top of the left panel, between the filter tabs and the client list. Up to four lines, each clickable:
+
 - "3 clientes com mensagens novas" → scrolls those clients to the top
 - "2 clientes ficando inativos" → sets filter to "inativos"
 - "Dia das Mães em 8 dias — 5 clientes elegíveis" → nearest upcoming seasonal date with eligible count
@@ -226,6 +228,7 @@ Verdict: not worth doing before validating the re-engagement workflow.
 The pre-caching cron job generates 3 ideas per inactive business daily and stores them in `idea_drafts`. The problem: it pays for speculative generation for every inactive client, most of whom an operator may never open. The daily cost scales with the number of inactive businesses regardless of whether any ideas are ever consumed. The on-demand "Gerar 3 ideias" button (Feature 7) already covers the use case with a short wait, and the inactivity list actions (Feature 8) reduce the friction of getting there.
 
 Code to delete:
+
 - `api/internal/operator/precache.go`
 - `api/migrations/1740000018_idea_drafts_collection.go`
 - `api/internal/http/handlers/idea_drafts.go`

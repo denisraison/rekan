@@ -10,6 +10,7 @@ The content generation prompt now scores well on single-batch quality (naturalid
 For a product where micro-entrepreneurs generate content weekly, this means followers notice repetition after 2-3 weeks. The prompt is currently stateless: it has no awareness of what was already posted.
 
 We need two mechanisms working together:
+
 - **Exclusion context**: pass previously used hooks/angles so the model avoids repeating them
 - **Rotating role pool**: expand from 3 fixed post types (bastidor/útil/pessoal) to ~12, picking 3 per batch so the structural framing itself varies week to week
 
@@ -18,24 +19,25 @@ The generation currently lives only in the eval pipeline (`eval/baml_src/content
 ## Role Pool
 
 Current roles (3, hardcoded in prompt):
+
 - Bastidor, Útil, Pessoal
 
 Proposed pool (~12, each with a provocative description that forces non-generic content):
 
-| Role | Description (pt-BR, goes in prompt) |
-|------|-------------------------------------|
-| Bastidor | Algo do seu trabalho que o cliente nunca vê e ficaria surpreso de saber. |
-| Útil | Um erro que todo mundo comete ou uma verdade incômoda sobre o seu nicho. |
-| Pessoal | Um momento real que mudou algo no jeito que você trabalha. |
-| Cliente | Uma história real de um cliente que te marcou, sem inventar final feliz. |
-| Opinião | Algo que você pensa diferente da maioria no seu ramo. Pode ser polêmico. |
-| Dia a dia | Um momento comum do seu dia que parece banal mas mostra como o negócio funciona. |
-| Antes/depois | Uma transformação que você fez, mostrando o processo e não só o resultado. |
-| Tendência | Algo que mudou no seu mercado e como isso afeta quem te contrata. |
-| Pergunta | Uma dúvida real que você tem ou que seus clientes sempre trazem, aberta pra debate. |
-| Marco | Algo que você conquistou no negócio e o que aprendeu no caminho. |
-| Temporada | Algo que muda no seu negócio nessa época do ano. |
-| Desafio | Um problema real que você enfrenta no negócio e como lida com ele. |
+| Role         | Description (pt-BR, goes in prompt)                                                 |
+| ------------ | ----------------------------------------------------------------------------------- |
+| Bastidor     | Algo do seu trabalho que o cliente nunca vê e ficaria surpreso de saber.            |
+| Útil         | Um erro que todo mundo comete ou uma verdade incômoda sobre o seu nicho.            |
+| Pessoal      | Um momento real que mudou algo no jeito que você trabalha.                          |
+| Cliente      | Uma história real de um cliente que te marcou, sem inventar final feliz.            |
+| Opinião      | Algo que você pensa diferente da maioria no seu ramo. Pode ser polêmico.            |
+| Dia a dia    | Um momento comum do seu dia que parece banal mas mostra como o negócio funciona.    |
+| Antes/depois | Uma transformação que você fez, mostrando o processo e não só o resultado.          |
+| Tendência    | Algo que mudou no seu mercado e como isso afeta quem te contrata.                   |
+| Pergunta     | Uma dúvida real que você tem ou que seus clientes sempre trazem, aberta pra debate. |
+| Marco        | Algo que você conquistou no negócio e o que aprendeu no caminho.                    |
+| Temporada    | Algo que muda no seu negócio nessa época do ano.                                    |
+| Desafio      | Um problema real que você enfrenta no negócio e como lida com ele.                  |
 
 The pool is not exhaustive. New roles can be added over time. Not all roles make sense for all business types (antes/depois is natural for salões and tattoo studios, less so for restaurants). Role filtering by business type is a future optimization, not part of this PEP.
 

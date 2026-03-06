@@ -1,9 +1,9 @@
 # PEP 011: NixOS Native Packaging
 
-| Field       | Value            |
-| ----------- | ---------------- |
-| **Status**  | Done             |
-| **Created** | 2026-02-26       |
+| Field       | Value      |
+| ----------- | ---------- |
+| **Status**  | Done       |
+| **Created** | 2026-02-26 |
 
 ## Context
 

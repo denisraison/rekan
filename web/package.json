@@ -1,7 +1,7 @@
 {
   "name": "web",
-  "private": true,
   "version": "0.0.1",
+  "private": true,
   "type": "module",
   "scripts": {
     "dev": "vite dev",
@@ -12,11 +12,18 @@
     "check": "svelte-kit sync && svelte-check --tsconfig ./tsconfig.json",
     "check:watch": "svelte-kit sync && svelte-check --tsconfig ./tsconfig.json --watch",
     "test": "playwright test",
-    "lint": "biome check ./src",
-    "lint:fix": "biome check --write ./src"
+    "lint": "oxlint ./src",
+    "lint:fix": "oxlint --fix ./src",
+    "fmt": "oxfmt -w ./src && prettier --write 'src/**/*.svelte'",
+    "fmt:check": "oxfmt --check ./src && prettier --check 'src/**/*.svelte'"
+  },
+  "dependencies": {
+    "clsx": "^2.1.1",
+    "pocketbase": "^0.26.8",
+    "qrcode": "^1.5.4",
+    "tailwind-merge": "^3.5.0"
   },
   "devDependencies": {
-    "@biomejs/biome": "^2.4.4",
     "@internationalized/date": "^3.11.0",
     "@playwright/test": "1.57.0",
     "@sveltejs/adapter-static": "^3.0.10",
@@ -26,6 +33,10 @@
     "@types/qrcode": "^1.5.6",
     "@vitejs/plugin-basic-ssl": "^2.1.4",
     "bits-ui": "^2.16.1",
+    "oxfmt": "^0.1.0",
+    "oxlint": "^1.51.0",
+    "prettier": "^3.8.1",
+    "prettier-plugin-svelte": "^3.5.1",
     "svelte": "^5.49.2",
     "svelte-check": "^4.3.6",
     "tailwind-variants": "^3.2.2",
@@ -33,11 +44,5 @@
     "typescript": "^5.9.3",
     "vite": "^7.3.1",
     "vite-plugin-pwa": "^1.2.0"
-  },
-  "dependencies": {
-    "clsx": "^2.1.1",
-    "pocketbase": "^0.26.8",
-    "qrcode": "^1.5.4",
-    "tailwind-merge": "^3.5.0"
   }
 }

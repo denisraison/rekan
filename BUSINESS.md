@@ -2,7 +2,7 @@
 
 **WhatsApp Content Partner for Brazilian Micro Entrepreneurs**
 
-*February 2026*
+_February 2026_
 
 ---
 
@@ -36,12 +36,12 @@ The opportunity is enormous: millions of people who need Instagram content but c
 
 There's a massive gap in the Brazilian market that nobody is serving well:
 
-| Tier | Price Range | What You Get |
-|---|---|---|
-| DIY AI tools (GalilAI, Canva, ChatGPT) | R$0 to R$99/month | Self serve. You still do the work. |
-| **Rekan sits here** | **R$69.90 to R$249.90/month** | **Done for you via WhatsApp. Zero friction. 30-day guarantee.** |
-| Junior social media manager | R$590 to R$1,500/month | Human creates and posts content for you. |
-| Agency | R$2,000 to R$5,000+/month | Full service marketing. |
+| Tier                                   | Price Range                   | What You Get                                                    |
+| -------------------------------------- | ----------------------------- | --------------------------------------------------------------- |
+| DIY AI tools (GalilAI, Canva, ChatGPT) | R$0 to R$99/month             | Self serve. You still do the work.                              |
+| **Rekan sits here**                    | **R$69.90 to R$249.90/month** | **Done for you via WhatsApp. Zero friction. 30-day guarantee.** |
+| Junior social media manager            | R$590 to R$1,500/month        | Human creates and posts content for you.                        |
+| Agency                                 | R$2,000 to R$5,000+/month     | Full service marketing.                                         |
 
 A MEI making R$6,750/month (the average) can't justify R$590 for a social media manager. But they also don't have the time or patience to open GalilAI, navigate the interface, generate content, edit it, and schedule it. That's still too much friction for someone cutting hair or baking cakes 10 hours a day.
 
@@ -74,12 +74,14 @@ This model (Option 1) remains the fallback if the WhatsApp approach doesn't work
 The chosen model combines the best of both: the scalability of a product with the human touch of a service.
 
 **Why WhatsApp:**
+
 - Every MEI in Brazil is on WhatsApp all day. Zero adoption friction.
 - No app to download, no login, no interface to learn.
 - The interaction is natural: "tell me what you did today" → get back content.
 - As automation increases, adding client number 50 doesn't require proportionally more of Elenice's time.
 
 **Why this is different from everything else:**
+
 - GalilAI requires 5 to 10 minutes of friction per session (open app, navigate, generate, edit, schedule).
 - Rekan requires 30 seconds (send a WhatsApp message, get content back, copy paste and post).
 - Nobody else is doing Instagram content delivery through WhatsApp with a human relationship layer.
@@ -114,11 +116,11 @@ Phase 2 (later): The whatsmeow bot automates the intake and response. Elenice on
 
 Three tiers with a 30-day money-back guarantee. Full pricing strategy in `docs/PEP-010-pricing-strategy.md`.
 
-| Plano | Preço/mês | O que inclui |
-|---|---|---|
-| Basico | R$69,90 | 8 posts/mês, legendas + hashtags |
-| **Parceiro** | **~~R$149,90~~ R$108,90** (preço de lançamento) | 12 posts/mês, legendas + hashtags + direção de foto/vídeo + roteiros de reels + melhor horário |
-| Profissional | R$249,90 | 16 posts/mês, tudo do Parceiro + alinhamento mensal do perfil + calendário de stories + resposta prioritária |
+| Plano        | Preço/mês                                       | O que inclui                                                                                                 |
+| ------------ | ----------------------------------------------- | ------------------------------------------------------------------------------------------------------------ |
+| Basico       | R$69,90                                         | 8 posts/mês, legendas + hashtags                                                                             |
+| **Parceiro** | **~~R$149,90~~ R$108,90** (preço de lançamento) | 12 posts/mês, legendas + hashtags + direção de foto/vídeo + roteiros de reels + melhor horário               |
+| Profissional | R$249,90                                        | 16 posts/mês, tudo do Parceiro + alinhamento mensal do perfil + calendário de stories + resposta prioritária |
 
 This positions Rekan:
 
@@ -148,6 +150,7 @@ Commitment plans (mensal/trimestral) are part of the launch. See PEP-010 Wave 1.
 Don't try to serve "all MEIs" at launch. Pick one vertical Elenice knows best: confeiteiras, cabeleireiras, or personal trainers. Build the AI prompts and templates specifically for that niche. Become known as "the Instagram partner for confeiteiras." Then expand.
 
 Starting niche helps because:
+
 - Content templates are reusable across similar businesses
 - Word of mouth spreads fast within professional communities
 - Elenice becomes genuinely expert in what works for that niche
@@ -241,6 +244,7 @@ This is the step by step plan for getting started. No automation needed. Elenice
 **Goal: Get 5 businesses to sign up with the 30-day money-back guarantee.**
 
 How to find them:
+
 - Businesses Elenice already knows personally
 - Local businesses in her neighbourhood she visits as a customer
 - WhatsApp groups for empreendedores in her city
@@ -254,6 +258,7 @@ See `docs/guia-de-vendas.md` for the full conversation script in pt-BR. The shor
 > "Oi [nome], tudo bem? Eu vi seu trabalho no Instagram e achei lindo. Você consegue postar com a frequência que gostaria, ou é daquelas coisas que sempre fica pra depois? [...] O Parceiro custa R$108,90 por mês, menos de R$4 por dia. E se em 30 dias você não sentir a diferença, devolvo tudo pelo Pix. Quer experimentar?"
 
 **During the trial:**
+
 1. Client sends a message about their work (photo, voice note, or text)
 2. Elenice runs it through the AI pipeline
 3. Elenice reviews the output, adjusts if needed
@@ -273,6 +278,7 @@ See `docs/guia-de-vendas.md` for the full script including objection handling, c
 All clients are paying full price from day 1 (with 30-day money-back guarantee). Focus on retaining month-1 clients and adding new ones.
 
 **Establish a weekly rhythm:**
+
 - Monday: Receive messages from clients about their week ahead / recent work
 - Tuesday/Wednesday: Process through pipeline, review, send back content
 - Thursday/Friday: Follow up with clients who haven't sent anything ("Oi [nome], como foi a semana? Tem algo legal pra gente postar?")
@@ -280,6 +286,7 @@ All clients are paying full price from day 1 (with 30-day money-back guarantee).
 **Collect testimonials.** After 2 to 4 weeks, ask happy clients: "Posso usar seu depoimento no meu Instagram?" Screenshot their positive WhatsApp messages (with permission).
 
 **Track simple metrics per client:**
+
 - Posts delivered per week
 - Client responsiveness (are they sending content regularly?)
 - Any feedback on what works/doesn't
@@ -301,13 +308,13 @@ All clients are paying full price from day 1 (with 30-day money-back guarantee).
 
 ## Success Criteria
 
-| Milestone | Timeline | Target |
-|---|---|---|
-| WhatsApp Business set up, samples ready | Week 2 | Done |
-| First 5 free trials running | Week 4 | 5 businesses trying the service |
-| First paying clients | Month 2 | 3 to 5 paying R$108.90/month |
-| Sustainable income | Month 4 to 6 | 15 to 20 clients, R$1,500+/month |
-| Target income reached | Month 6 to 9 | 20 to 25 clients, R$2,000+/month net |
+| Milestone                               | Timeline     | Target                               |
+| --------------------------------------- | ------------ | ------------------------------------ |
+| WhatsApp Business set up, samples ready | Week 2       | Done                                 |
+| First 5 free trials running             | Week 4       | 5 businesses trying the service      |
+| First paying clients                    | Month 2      | 3 to 5 paying R$108.90/month         |
+| Sustainable income                      | Month 4 to 6 | 15 to 20 clients, R$1,500+/month     |
+| Target income reached                   | Month 6 to 9 | 20 to 25 clients, R$2,000+/month net |
 
 ---
 
@@ -322,4 +329,4 @@ All clients are paying full price from day 1 (with 30-day money-back guarantee).
 
 ---
 
-*Rekan: seu parceiro de conteúdo.*
+_Rekan: seu parceiro de conteúdo._

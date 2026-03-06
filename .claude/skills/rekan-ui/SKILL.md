@@ -10,6 +10,7 @@ Design mobile-first screens for Rekan's target user: Brazilian micro-entrepreneu
 ## Who You're Designing For
 
 The user is a Brazilian micro-entrepreneur, likely 40–65, running a small business (bakery, salon, barbershop, restaurant). They:
+
 - Use WhatsApp daily but may struggle with apps
 - Read slowly — long labels lose them
 - Have large fingers and may miss small touch targets
@@ -24,33 +25,46 @@ Inline these as CSS variables in every prototype:
 
 ```css
 :root {
-  --coral: #F97368;
-  --coral-light: #FDDCDA;
-  --coral-pale: #FFF3F2;
-  --sage: #87AA8C;
-  --sage-light: #C8DEC9;
-  --sage-pale: #F0F6F0;
+  --coral: #f97368;
+  --coral-light: #fddcda;
+  --coral-pale: #fff3f2;
+  --sage: #87aa8c;
+  --sage-light: #c8dec9;
+  --sage-pale: #f0f6f0;
   --charcoal: #111116;
   --text: #111116;
   --text-secondary: #555566;
-  --text-muted: #999AAA;
-  --bg: #FAFAF7;
-  --surface: #FFFFFF;
-  --border: rgba(17,17,22,0.07);
-  --border-strong: rgba(17,17,22,0.14);
+  --text-muted: #999aaa;
+  --bg: #fafaf7;
+  --surface: #ffffff;
+  --border: rgba(17, 17, 22, 0.07);
+  --border-strong: rgba(17, 17, 22, 0.14);
   --radius-sm: 6px;
   --radius-md: 12px;
   --radius-lg: 20px;
   --radius-full: 9999px;
 }
-* { font-family: 'Urbanist', system-ui, sans-serif; }
-body { background: var(--bg); color: var(--text); margin: 0; width: 390px; min-height: 844px; overflow-x: hidden; }
+* {
+  font-family: 'Urbanist', system-ui, sans-serif;
+}
+body {
+  background: var(--bg);
+  color: var(--text);
+  margin: 0;
+  width: 390px;
+  min-height: 844px;
+  overflow-x: hidden;
+}
 ```
 
 Fonts (load in `<head>`):
+
 ```html
-<link rel="preconnect" href="https://fonts.googleapis.com">
-<link href="https://fonts.googleapis.com/css2?family=Urbanist:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link
+  href="https://fonts.googleapis.com/css2?family=Urbanist:wght@300;400;500;600;700&display=swap"
+  rel="stylesheet"
+/>
 <script src="https://cdn.tailwindcss.com"></script>
 ```
 
@@ -88,29 +102,54 @@ Start from this base for every new screen:
 ```html
 <!DOCTYPE html>
 <html lang="pt-BR">
-<head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=390, initial-scale=1">
-  <title>{Screen Name}</title>
-  <link rel="preconnect" href="https://fonts.googleapis.com">
-  <link href="https://fonts.googleapis.com/css2?family=Urbanist:wght@300;400;500;600;700&display=swap" rel="stylesheet">
-  <script src="https://cdn.tailwindcss.com"></script>
-  <style>
-    :root {
-      --coral: #F97368; --coral-light: #FDDCDA; --coral-pale: #FFF3F2;
-      --sage: #87AA8C; --sage-light: #C8DEC9; --sage-pale: #F0F6F0;
-      --charcoal: #111116; --text: #111116; --text-secondary: #555566;
-      --text-muted: #999AAA; --bg: #FAFAF7; --surface: #FFFFFF;
-      --border: rgba(17,17,22,0.07); --border-strong: rgba(17,17,22,0.14);
-      --radius-sm: 6px; --radius-md: 12px; --radius-lg: 20px; --radius-full: 9999px;
-    }
-    * { font-family: 'Urbanist', system-ui, sans-serif; box-sizing: border-box; }
-    body { background: var(--bg); color: var(--text); margin: 0; width: 390px; min-height: 844px; overflow-x: hidden; }
-  </style>
-</head>
-<body>
-  <!-- content here -->
-</body>
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=390, initial-scale=1" />
+    <title>{Screen Name}</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Urbanist:wght@300;400;500;600;700&display=swap"
+      rel="stylesheet"
+    />
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+      :root {
+        --coral: #f97368;
+        --coral-light: #fddcda;
+        --coral-pale: #fff3f2;
+        --sage: #87aa8c;
+        --sage-light: #c8dec9;
+        --sage-pale: #f0f6f0;
+        --charcoal: #111116;
+        --text: #111116;
+        --text-secondary: #555566;
+        --text-muted: #999aaa;
+        --bg: #fafaf7;
+        --surface: #ffffff;
+        --border: rgba(17, 17, 22, 0.07);
+        --border-strong: rgba(17, 17, 22, 0.14);
+        --radius-sm: 6px;
+        --radius-md: 12px;
+        --radius-lg: 20px;
+        --radius-full: 9999px;
+      }
+      * {
+        font-family: 'Urbanist', system-ui, sans-serif;
+        box-sizing: border-box;
+      }
+      body {
+        background: var(--bg);
+        color: var(--text);
+        margin: 0;
+        width: 390px;
+        min-height: 844px;
+        overflow-x: hidden;
+      }
+    </style>
+  </head>
+  <body>
+    <!-- content here -->
+  </body>
 </html>
 ```
 
@@ -137,6 +176,7 @@ Start from this base for every new screen:
 ## Svelte Porting Notes (after passing rubric)
 
 After the prototype passes, give brief porting notes:
+
 - Which existing Svelte components or patterns map to each section (check `web/src/routes/` and `web/src/lib/`)
 - Any new components that would need to be created
 - CSS variable names to use (they match the app's `app.css` system)
@@ -146,6 +186,7 @@ After the prototype passes, give brief porting notes:
 ## Output
 
 When the prototype passes the rubric:
+
 1. State which iteration it passed on
 2. Show the final screenshot path: `/tmp/rekan-ui/{slug}.png`
 3. List any significant design decisions and why

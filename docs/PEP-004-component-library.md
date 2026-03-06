@@ -15,35 +15,35 @@ The approach: adopt **shadcn-svelte** (headless primitives from bits-ui, styled 
 
 The existing CSS variables map to shadcn-svelte's semantic token system and Tailwind's `@theme` (v4) as follows:
 
-| Rekan token | Value | shadcn-svelte semantic | Tailwind name |
-|---|---|---|---|
-| --bg | #FAFAF7 | background | `bg-background` |
-| --text | #111116 | foreground | `text-foreground` |
-| --surface | #FFFFFF | card | `bg-card` |
-| --text | #111116 | card-foreground | `text-card-foreground` |
-| --coral | #F97368 | primary | `bg-primary` |
-| white | #FFFFFF | primary-foreground | `text-primary-foreground` |
-| --sage-pale | #F0F6F0 | secondary | `bg-secondary` |
-| --text | #111116 | secondary-foreground | `text-secondary-foreground` |
-| --coral-pale | #FFF3F2 | accent | `bg-accent` |
-| --text | #111116 | accent-foreground | `text-accent-foreground` |
-| --bg | #FAFAF7 | muted | `bg-muted` |
-| --text-muted | #999AAA | muted-foreground | `text-muted-foreground` |
-| --border | rgba(17,17,22,0.07) | border | `border-border` |
-| --border-strong | rgba(17,17,22,0.14) | input | `border-input` |
-| --coral | #F97368 | ring | `ring-ring` |
+| Rekan token     | Value               | shadcn-svelte semantic | Tailwind name               |
+| --------------- | ------------------- | ---------------------- | --------------------------- |
+| --bg            | #FAFAF7             | background             | `bg-background`             |
+| --text          | #111116             | foreground             | `text-foreground`           |
+| --surface       | #FFFFFF             | card                   | `bg-card`                   |
+| --text          | #111116             | card-foreground        | `text-card-foreground`      |
+| --coral         | #F97368             | primary                | `bg-primary`                |
+| white           | #FFFFFF             | primary-foreground     | `text-primary-foreground`   |
+| --sage-pale     | #F0F6F0             | secondary              | `bg-secondary`              |
+| --text          | #111116             | secondary-foreground   | `text-secondary-foreground` |
+| --coral-pale    | #FFF3F2             | accent                 | `bg-accent`                 |
+| --text          | #111116             | accent-foreground      | `text-accent-foreground`    |
+| --bg            | #FAFAF7             | muted                  | `bg-muted`                  |
+| --text-muted    | #999AAA             | muted-foreground       | `text-muted-foreground`     |
+| --border        | rgba(17,17,22,0.07) | border                 | `border-border`             |
+| --border-strong | rgba(17,17,22,0.14) | input                  | `border-input`              |
+| --coral         | #F97368             | ring                   | `ring-ring`                 |
 
 Additional brand tokens exposed as custom Tailwind colors (not part of shadcn semantics, used directly in marketing and brand-specific components):
 
-| Token | Value | Tailwind usage |
-|---|---|---|
-| --coral-light | #FDDCDA | `bg-coral-light` |
-| --coral-dark | #D4524A | `bg-coral-dark` |
-| --sage | #87AA8C | `bg-sage` |
-| --sage-light | #C8DEC9 | `bg-sage-light` |
-| --sage-dark | #6B8A61 | `bg-sage-dark` |
-| --dark | #111116 | `bg-dark` |
-| --dark-muted | #1C1C24 | `bg-dark-muted` |
+| Token            | Value   | Tailwind usage                                       |
+| ---------------- | ------- | ---------------------------------------------------- |
+| --coral-light    | #FDDCDA | `bg-coral-light`                                     |
+| --coral-dark     | #D4524A | `bg-coral-dark`                                      |
+| --sage           | #87AA8C | `bg-sage`                                            |
+| --sage-light     | #C8DEC9 | `bg-sage-light`                                      |
+| --sage-dark      | #6B8A61 | `bg-sage-dark`                                       |
+| --dark           | #111116 | `bg-dark`                                            |
+| --dark-muted     | #1C1C24 | `bg-dark-muted`                                      |
 | --text-secondary | #555566 | `text-secondary-foreground` or `text-text-secondary` |
 
 Typography stays on Google Fonts (Urbanist, Cormorant Garamond), configured in Tailwind as `font-primary` and `font-accent`.
@@ -116,16 +116,16 @@ Responsive breakpoints use Tailwind's `md:` prefix instead of the `@media (max-w
 
 ## New Dependencies
 
-| Package | Purpose | Size impact |
-|---|---|---|
-| tailwindcss | Utility CSS framework | Dev dep, CSS output only |
-| @tailwindcss/vite | Vite integration for Tailwind v4 | Dev dep |
-| bits-ui | Headless accessible Svelte primitives | Runtime, tree-shakes |
-| clsx | Conditional class strings | ~300B |
-| tailwind-merge | Merge conflicting Tailwind classes | ~5KB |
-| tailwind-variants | Component variant API | ~3KB |
-| histoire | Component development environment | Dev dep |
-| @histoire/plugin-svelte | Svelte integration for Histoire | Dev dep |
+| Package                 | Purpose                               | Size impact              |
+| ----------------------- | ------------------------------------- | ------------------------ |
+| tailwindcss             | Utility CSS framework                 | Dev dep, CSS output only |
+| @tailwindcss/vite       | Vite integration for Tailwind v4      | Dev dep                  |
+| bits-ui                 | Headless accessible Svelte primitives | Runtime, tree-shakes     |
+| clsx                    | Conditional class strings             | ~300B                    |
+| tailwind-merge          | Merge conflicting Tailwind classes    | ~5KB                     |
+| tailwind-variants       | Component variant API                 | ~3KB                     |
+| histoire                | Component development environment     | Dev dep                  |
+| @histoire/plugin-svelte | Svelte integration for Histoire       | Dev dep                  |
 
 shadcn-svelte components are copied into the project (not a dependency). The CLI is used once to scaffold them.
 

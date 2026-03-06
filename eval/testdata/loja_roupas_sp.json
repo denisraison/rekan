@@ -4,9 +4,9 @@
   "city": "São Paulo",
   "neighbourhood": "Vila Madalena",
   "services": [
-    {"name": "Consultoria de estilo", "priceBRL": 0},
-    {"name": "Looks montados", "priceBRL": 0},
-    {"name": "Entrega em SP capital", "priceBRL": 15}
+    { "name": "Consultoria de estilo", "priceBRL": 0 },
+    { "name": "Looks montados", "priceBRL": 0 },
+    { "name": "Entrega em SP capital", "priceBRL": 15 }
   ],
   "targetAudience": "mulheres 20-35 que acompanham tendências",
   "brandVibe": "trendy",

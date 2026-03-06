@@ -1,4 +1,4 @@
-version: "2"
+version: '2'
 
 run:
   timeout: 3m
@@ -26,4 +26,3 @@ linters:
         - name: superfluous-else
         - name: unreachable-code
         - name: unused-parameter
-

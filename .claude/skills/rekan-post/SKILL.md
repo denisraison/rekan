@@ -25,6 +25,7 @@ Generate Instagram posts for Rekan (@chamaorekan): content from the BAML pipelin
 ```
 
 Both required. Export from `.env`:
+
 ```bash
 export $(grep -v '^#' /home/denis/workspace/rekan/.env | xargs)
 ```
@@ -38,6 +39,7 @@ cd /home/denis/workspace/rekan/eval && go run ./cmd/eval --rekan --verbose 2>&1
 ```
 
 Find the latest run JSON:
+
 ```bash
 ls -t /home/denis/workspace/rekan/eval/runs/*.json | head -1
 ```
@@ -52,14 +54,15 @@ Translate productionNote into image prompts. Two types of images:
 
 The key lesson: describe specific imperfections as PRIMARY SUBJECTS, not as modifiers. "A phone with a cracked screen protector on a greasy counter" works. "An authentic-feeling phone photo" does not.
 
-| Note type | Prompt approach |
-|---|---|
-| "screenshot", "tela", "print" | Phone lying on a surface showing the screen. Describe the surface (greasy counter, flour-dusted table). Add context objects (wrench, coffee, napkin). |
-| "selfie", "pessoa" | DO NOT generate people. Use overhead workspace shot, flat lay, or graphic card instead. |
-| "flat lay", "de cima" | Overhead scene with specific imperfections: chipped plates, crossed-out handwriting, bitten food, coffee rings, scattered crumbs. |
-| "notebook", "trabalhando" | Real desk chaos: stickered laptop, tangled cables, sticky notes, loose coins, half-eaten snack. Specify the light source (desk lamp, laptop glow, window blinds). |
+| Note type                     | Prompt approach                                                                                                                                                   |
+| ----------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| "screenshot", "tela", "print" | Phone lying on a surface showing the screen. Describe the surface (greasy counter, flour-dusted table). Add context objects (wrench, coffee, napkin).             |
+| "selfie", "pessoa"            | DO NOT generate people. Use overhead workspace shot, flat lay, or graphic card instead.                                                                           |
+| "flat lay", "de cima"         | Overhead scene with specific imperfections: chipped plates, crossed-out handwriting, bitten food, coffee rings, scattered crumbs.                                 |
+| "notebook", "trabalhando"     | Real desk chaos: stickered laptop, tangled cables, sticky notes, loose coins, half-eaten snack. Specify the light source (desk lamp, laptop glow, window blinds). |
 
 For raw photos, every prompt must include 3+ specific imperfections. Examples:
+
 - Cracked screen protector, oil smudges, dirty rag
 - Coffee dregs in mug, crumpled napkin, loose coins, tangled charger
 - Flour scattered unevenly, chipped ceramic plate, bitten-open food
@@ -88,14 +91,15 @@ cd /home/denis/workspace/rekan/web && node ../scripts/create-post-image.mjs --co
 
 **Two template types:**
 
-| Template | Use for | Config |
-|----------|---------|--------|
+| Template  | Use for                                      | Config                                    |
+| --------- | -------------------------------------------- | ----------------------------------------- |
 | `overlay` | Quick drafts, iterating on photo + hook text | JSON with hook, emphasis, backgroundImage |
-| `custom` | Final posts, any post needing unique design | Standalone HTML file |
+| `custom`  | Final posts, any post needing unique design  | Standalone HTML file                      |
 
 Use `overlay` to quickly test hook text on a photo. Use `custom` for everything final. Every final grid post should go through `/frontend-design` for unique visual treatment.
 
 **Overlay config:**
+
 ```json
 {
   "type": "overlay",
@@ -109,6 +113,7 @@ Use `overlay` to quickly test hook text on a photo. Use `custom` for everything 
 ```
 
 **Custom config:**
+
 ```json
 {
   "type": "custom",
@@ -117,6 +122,7 @@ Use `overlay` to quickly test hook text on a photo. Use `custom` for everything 
   "output": "path/to/output.png"
 }
 ```
+
 Available placeholders in HTML: `{{logo}}` (SVG markup), `{{backgroundImage}}` (base64 data URI, requires `backgroundImage` in config). CSS variables: `--coral`, `--green`, `--charcoal`, `--off-white`. Font: Urbanist (300/400/600/700/800) auto-loaded.
 
 Store templates in `rekan-posts/{date}/templates/`. See `rekan-posts/2026-02-24/templates/` for examples.
@@ -169,6 +175,7 @@ Pick top 2 compositions for Pro refinement.
 ### Stage 6: Pro Refinement
 
 For raw photos, rewrite prompts from scratch with aggressive imperfection:
+
 - Replace "warm lighting" with specific light source ("single bare-bulb desk lamp", "harsh overhead fluorescent")
 - Replace "wooden table" with "scratched formica table with water rings"
 - Add random real-life objects ("bag of bread", "dish rack", "charging cable")
@@ -184,6 +191,7 @@ $SCRIPT --prompt "..." --model pro --output "${OUTDIR}/pro/post1-r1.png" --image
 ```
 
 For fixing specific issues (e.g. wrong text on an otherwise good image), use image-to-image:
+
 ```bash
 $SCRIPT --input-image "${OUTDIR}/pro/post1-r1.png" \
     --prompt "Fix ONLY the text on the notebook. Keep everything else identical. The text should read: [exact text]" \
@@ -195,6 +203,7 @@ $SCRIPT --input-image "${OUTDIR}/pro/post1-r1.png" \
 Show each final candidate. Ask user to pick or request changes. Iterate as needed.
 
 Copy winners to final:
+
 ```bash
 mkdir -p "${OUTDIR}/final"
 cp "${OUTDIR}/pro/post1-r1.png" "${OUTDIR}/final/post1.png"
@@ -217,11 +226,11 @@ rekan-posts/{date}/
 
 Default 4:5 (Instagram feed portrait). Ask user if not specified.
 
-| Format | Ratio |
-|---|---|
-| Feed portrait | 4:5 |
-| Feed square | 1:1 |
-| Story/Reel | 9:16 |
+| Format        | Ratio |
+| ------------- | ----- |
+| Feed portrait | 4:5   |
+| Feed square   | 1:1   |
+| Story/Reel    | 9:16  |
 
 ## Checklist Before Generating Branded Graphics
 

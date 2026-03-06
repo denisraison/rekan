@@ -13,6 +13,7 @@
 ### Task 1: Replace the content.baml prompt
 
 **Files:**
+
 - Modify: `eval/baml_src/content.baml`
 
 **Step 1: Replace the full prompt body**
@@ -84,13 +85,13 @@ Find the latest file in `eval/runs/` and read `summary.judgeTotals`.
 
 Baseline (from `eval/runs/2026-02-19T20-20-50Z.json`):
 
-| Criterion | Baseline |
-|-----------|----------|
-| naturalidade | 0 |
-| variedade | 1 |
-| engajamento | 3 |
-| especificidade | 8 |
-| acionavel | 12 |
+| Criterion      | Baseline |
+| -------------- | -------- |
+| naturalidade   | 0        |
+| variedade      | 1        |
+| engajamento    | 3        |
+| especificidade | 8        |
+| acionavel      | 12       |
 
 Targets: naturalidade 6+, variedade 4+, engajamento 4+, especificidade 8+, acionavel 11+.
 
@@ -109,6 +110,7 @@ Search the run JSON for `"brazilian_portuguese"` entries with `"pass": false`. I
 Only run this task if Task 2 Step 5 shows 3+ `brazilian_portuguese` failures.
 
 **Files:**
+
 - Modify: `eval/baml_src/content.baml`
 
 **Step 1: Add a minimal pt-BR instruction**
