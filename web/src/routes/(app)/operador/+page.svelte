@@ -2412,7 +2412,9 @@
                     <div
                       class="rounded-2xl px-4 py-3 text-base"
                       style="max-width: 280px; background: {selectedMessages.has(msg.id) ? 'var(--coral-pale)' : msg.direction === 'outgoing' ? 'var(--coral-pale)' : 'var(--surface)'}; border: 1px solid {msg.direction === 'outgoing' ? 'var(--coral-light)' : 'var(--border)'}; color: var(--text); line-height: 1.5; {inputMode === 'generate' ? 'cursor: pointer;' : ''} {selectedMessages.has(msg.id) ? 'border-left: 3px solid var(--coral);' : ''}"
+                      role={inputMode === 'generate' ? 'button' : undefined}
                       onclick={() => { if (inputMode === 'generate') toggleMessageSelection(msg.id); }}
+                      onkeydown={(e) => { if (inputMode === 'generate' && (e.key === 'Enter' || e.key === ' ')) { e.preventDefault(); toggleMessageSelection(msg.id); } }}
                     >
                       {#if msg.type === "audio"}
                         <span class="text-sm font-medium block mb-1" style="color: var(--text-muted)">Áudio transcrito</span>
