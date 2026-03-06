@@ -482,6 +482,7 @@
   function onBeforeInstallPrompt(e: Event) {
     e.preventDefault();
     if (localStorage.getItem("rekan_install_dismissed")) return;
+    if (!/Android|iPhone|iPad/.test(navigator.userAgent)) return;
     installPromptEvent = e;
     showInstallBanner = true;
   }
