@@ -1,5 +1,8 @@
 import { expect, test } from '@playwright/test';
 
+// Marketing pages are public, test without auth
+test.use({ storageState: { cookies: [], origins: [] } });
+
 test('page loads with title', async ({ page }) => {
 	await page.goto('/');
 	await expect(page).toHaveTitle(/Rekan/);

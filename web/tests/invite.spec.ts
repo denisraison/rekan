@@ -1,5 +1,8 @@
 import { expect, type Page, test } from '@playwright/test';
 
+// Invite pages are public, test without auth
+test.use({ storageState: { cookies: [], origins: [] } });
+
 const TOKEN = 'test-token-abc123';
 const ACCEPT_URL = `**/api/invites/${TOKEN}/accept`;
 

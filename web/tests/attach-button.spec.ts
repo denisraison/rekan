@@ -1,33 +1,13 @@
 import { expect, test } from '@playwright/test';
-import path from 'path';
 import fs from 'fs';
+import { loginAsOperador, selectFirstClient, switchToGenerateMode } from './helpers';
 
-test.use({ ignoreHTTPSErrors: true, baseURL: 'https://localhost:5173' });
-
-// Create a tiny valid PNG for testing (1x1 red pixel)
 const TEST_IMAGE_PATH = '/tmp/test-attach.png';
-const PNG_1x1 = Buffer.from(
+fs.writeFileSync(TEST_IMAGE_PATH, Buffer.from(
 	'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8/5+hHgAHggJ/PchI7wAAAABJRU5ErkJggg==',
 	'base64',
-);
-fs.writeFileSync(TEST_IMAGE_PATH, PNG_1x1);
+));
 
-async function loginAsOperador(page: any) {
-	await page.goto('/entrar');
-	await page.getByLabel('Email').fill('operador@rekan.local');
-	await page.getByLabel('Senha').fill('senha1234567');
-	await page.getByRole('button', { name: 'Entrar' }).click();
-	await page.waitForURL('**/operador**');
-	await page.waitForTimeout(2000);
-}
-
-async function selectFirstClient(page: any) {
-	const clientButton = page.locator('button.text-left.border-b').first();
-	await clientButton.click();
-	await page.waitForTimeout(1000);
-}
-
-/** Attaches a test image via the Galeria option, intercepting the file chooser. */
 async function attachImage(page: any) {
 	await page.getByRole('button', { name: 'Anexar arquivo' }).click();
 	const [fileChooser] = await Promise.all([
@@ -35,7 +15,7 @@ async function attachImage(page: any) {
 		page.getByRole('button', { name: 'Galeria' }).click(),
 	]);
 	await fileChooser.setFiles(TEST_IMAGE_PATH);
-	await page.waitForTimeout(300);
+	await page.getByAltText('Anexo').waitFor();
 }
 
 test.describe('Attach button (Wave 5)', () => {
@@ -44,80 +24,50 @@ test.describe('Attach button (Wave 5)', () => {
 		await selectFirstClient(page);
 	});
 
-	test('attach button appears next to input in chat mode', async ({ page }) => {
-		const attachBtn = page.getByRole('button', { name: 'Anexar arquivo' });
-		await expect(attachBtn).toBeVisible();
+	test('attach button appears in both modes', async ({ page }) => {
+		await expect(page.getByRole('button', { name: 'Anexar arquivo' })).toBeVisible();
+		await switchToGenerateMode(page);
+		await expect(page.getByRole('button', { name: 'Anexar arquivo' })).toBeVisible();
 	});
 
-	test('attach button appears in generate mode too', async ({ page }) => {
-		await page.getByRole('button', { name: 'Post', exact: true }).click();
-		await page.waitForTimeout(300);
-		const attachBtn = page.getByRole('button', { name: 'Anexar arquivo' });
-		await expect(attachBtn).toBeVisible();
-	});
-
-	test('tapping attach button shows menu with Galeria, Camera, Video options', async ({ page }) => {
+	test('menu shows Galeria and Camera, closes on backdrop', async ({ page }) => {
 		await page.getByRole('button', { name: 'Anexar arquivo' }).click();
 		await expect(page.getByRole('button', { name: 'Galeria' })).toBeVisible();
 		await expect(page.getByRole('button', { name: 'Camera' })).toBeVisible();
-		await expect(page.getByRole('button', { name: 'Video' })).toBeVisible();
-	});
-
-	test('tapping outside closes the attach menu', async ({ page }) => {
-		await page.getByRole('button', { name: 'Anexar arquivo' }).click();
-		await expect(page.getByRole('button', { name: 'Galeria' })).toBeVisible();
 		await page.getByRole('button', { name: 'Fechar menu' }).click();
 		await expect(page.getByRole('button', { name: 'Galeria' })).not.toBeVisible();
 	});
 
-	test('selecting a photo shows preview with remove button', async ({ page }) => {
+	test('selecting a photo shows preview, remove clears it', async ({ page }) => {
 		await attachImage(page);
-		// Preview image and remove button should be visible
-		await expect(page.getByAltText('Anexo')).toBeVisible();
 		await expect(page.getByRole('button', { name: 'Remover anexo' })).toBeVisible();
-	});
-
-	test('remove button clears the attachment preview', async ({ page }) => {
-		await attachImage(page);
-		await expect(page.getByAltText('Anexo')).toBeVisible();
 		await page.getByRole('button', { name: 'Remover anexo' }).click();
 		await expect(page.getByAltText('Anexo')).not.toBeVisible();
 	});
 
-	test('attachment preview persists when typing in the input', async ({ page }) => {
+	test('preview persists when typing', async ({ page }) => {
 		await attachImage(page);
-		await expect(page.getByAltText('Anexo')).toBeVisible();
-		const input = page.locator('input[placeholder="Mensagem..."]');
-		await input.fill('some text');
+		await page.locator('input[placeholder="Mensagem..."]').fill('some text');
 		await expect(page.getByAltText('Anexo')).toBeVisible();
 	});
 
-	test('switching modes clears the attachment', async ({ page }) => {
+	test('switching modes clears attachment', async ({ page }) => {
 		await attachImage(page);
-		await expect(page.getByAltText('Anexo')).toBeVisible();
-		// Switch to generate mode
-		await page.getByRole('button', { name: 'Post', exact: true }).click();
-		await page.waitForTimeout(300);
+		await switchToGenerateMode(page);
 		await expect(page.getByAltText('Anexo')).not.toBeVisible();
 	});
 
-	test('generate mode: attach enables the Gerar button', async ({ page }) => {
-		await page.getByRole('button', { name: 'Post', exact: true }).click();
-		await page.waitForTimeout(300);
-		// Gerar should be disabled with no input/selection/attachment
+	test('attach enables Gerar in generate mode', async ({ page }) => {
+		await switchToGenerateMode(page);
 		const gerarBtn = page.getByRole('button', { name: 'Gerar' });
 		await expect(gerarBtn).toBeDisabled();
-		// Attach an image
 		await attachImage(page);
 		await expect(gerarBtn).toBeEnabled();
 	});
 
-	test('chat mode: attach enables the Enviar button', async ({ page }) => {
-		// Enviar should be disabled with no text and no attachment
-		const enviarBtn = page.getByRole('button', { name: 'Enviar' });
-		await expect(enviarBtn).toBeDisabled();
-		// Attach an image
+	test('attach enables Enviar in chat mode', async ({ page }) => {
+		await expect(page.getByRole('button', { name: 'Enviar' })).toBeDisabled();
 		await attachImage(page);
-		await expect(enviarBtn).toBeEnabled();
+		await expect(page.getByRole('button', { name: 'Enviar' })).toBeEnabled();
 	});
 });

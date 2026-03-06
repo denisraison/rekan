@@ -1,15 +1,5 @@
 # Eval Pipeline
 
-Development tool for measuring Instagram content quality. Not part of the product.
-
-## Quick start
-
-```bash
-make eval                # heuristics only (~5s)
-make eval-judges         # heuristics + LLM judges (~25s)
-make test-judges         # integration tests for judge verdicts (needs CLAUDE_API_KEY + GEMINI_API_KEY)
-```
-
 Requires `CLAUDE_API_KEY` and `GEMINI_API_KEY` in `.env` at the project root.
 
 ## CLI flags
@@ -25,21 +15,7 @@ go run ./cmd/eval --diff runs/BEFORE.json runs/AFTER.json  # compare two runs
 go run ./cmd/eval --rekan --judges --verbose               # Rekan-specific prompt (founder-voice)
 ```
 
-## How it works
-
-1. Loads 12 business profiles from `testdata/*.json`
-2. Generates Instagram content for each profile via `baml_src/content.baml`
-3. Runs 4 heuristic checks (hashtags, pt-BR markers, caption length, production note)
-4. Optionally runs 5 LLM judges (naturalidade, especificidade, acionavel, variedade, engajamento) on a 2-model panel (Gemini 3 Flash + Claude Haiku 4.5); verdict requires unanimity
-5. Prints summary table, saves full results to `runs/`
-
-Generation and judging run in parallel across all profiles.
-
-## Runs
-
-Every eval saves a timestamped JSON file to `runs/` containing: generated content, check results, judge verdicts with reasoning, and summary totals. The `runs/` directory is gitignored.
-
-Use `--diff` to compare two runs side by side. `+!` means improved, `-!` means regressed.
+Every eval saves a timestamped JSON to `runs/` (gitignored). Use `--diff` to compare two runs (`+!` improved, `-!` regressed).
 
 ## Prompt optimization loop
 
@@ -51,21 +27,3 @@ Use `--diff` to compare two runs side by side. `+!` means improved, `-!` means r
 6. Keep or revert. Max 5 cycles per session.
 
 For judge prompt changes, use `--from-run` to re-judge existing content without regenerating.
-
-## Structure
-
-```
-cmd/eval/main.go     CLI entrypoint
-heuristic.go         4 deterministic checks
-judge.go             5 LLM judge runner (parallel)
-generate.go          Content generation wrapper
-baml_src/
-  clients.baml       JudgeClient (temp 0.1) + GeneratorClient (temp 0.7)
-  judges.baml        5 judge prompt definitions
-  content.baml       Generation prompt for MEI businesses (the file you optimize)
-  rekan.baml         Generation prompt for Rekan itself (founder-voice)
-  generators.baml    BAML codegen config
-baml_client/         Auto-generated Go client (do not edit)
-testdata/            12 business profile fixtures
-runs/                Saved eval results (gitignored)
-```

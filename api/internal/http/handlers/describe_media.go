@@ -1,7 +1,6 @@
 package handlers
 
 import (
-	"io"
 	"net/http"
 	"strings"
 
@@ -17,20 +16,9 @@ func DescribeMedia(deps Deps) func(*core.RequestEvent) error {
 			})
 		}
 
-		file, header, err := e.Request.FormFile("file")
+		data, contentType, _, err := formFileData(e.Request, "file")
 		if err != nil {
 			return e.JSON(http.StatusBadRequest, map[string]string{"message": "Arquivo é obrigatório"})
-		}
-		defer file.Close()
-
-		data, err := io.ReadAll(file)
-		if err != nil {
-			return e.JSON(http.StatusBadRequest, map[string]string{"message": "Erro ao ler arquivo"})
-		}
-
-		contentType := header.Header.Get("Content-Type")
-		if contentType == "" {
-			contentType = http.DetectContentType(data)
 		}
 
 		var description string

@@ -65,15 +65,19 @@ func downscaleImage(data []byte, mimeType string) ([]byte, string) {
 	if !strings.HasPrefix(mimeType, "image/") {
 		return data, mimeType
 	}
+	cfg, _, err := image.DecodeConfig(bytes.NewReader(data))
+	if err != nil {
+		return data, mimeType
+	}
+	if cfg.Width <= maxImageDim && cfg.Height <= maxImageDim {
+		return data, mimeType
+	}
 	src, _, err := image.Decode(bytes.NewReader(data))
 	if err != nil {
 		return data, mimeType
 	}
 	b := src.Bounds()
 	w, h := b.Dx(), b.Dy()
-	if w <= maxImageDim && h <= maxImageDim {
-		return data, mimeType
-	}
 	scale := float64(maxImageDim) / float64(max(w, h))
 	nw, nh := int(float64(w)*scale), int(float64(h)*scale)
 	dst := image.NewRGBA(image.Rect(0, 0, nw, nh))

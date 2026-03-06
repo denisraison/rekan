@@ -2,7 +2,7 @@
 	import QRCode from 'qrcode';
 	import { onDestroy, onMount } from 'svelte';
 	import { pb } from '$lib/pb';
-	import { readSSE } from '$lib/sse';
+	import { onResume, readSSE } from '$lib/sse';
 	import type { WAStatus } from '$lib/types';
 
 	type Status = 'loading' | 'not_configured' | 'disconnected' | 'waiting_qr' | 'connected';
@@ -46,14 +46,11 @@
 
 	onMount(() => {
 		connect();
-		function onVisibilityChange() {
-			if (document.visibilityState !== "visible") return;
+		cleanupVisibility = onResume(() => {
 			abortController?.abort();
 			status = 'loading';
 			connect();
-		}
-		document.addEventListener("visibilitychange", onVisibilityChange);
-		cleanupVisibility = () => document.removeEventListener("visibilitychange", onVisibilityChange);
+		});
 	});
 
 	onDestroy(() => {

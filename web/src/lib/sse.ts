@@ -1,3 +1,14 @@
+// onResume registers a visibilitychange listener that fires the callback when
+// the page becomes visible again (e.g. after lock screen or tab switch).
+// Returns a cleanup function to remove the listener.
+export function onResume(callback: () => void): () => void {
+	function handler() {
+		if (document.visibilityState === "visible") callback();
+	}
+	document.addEventListener("visibilitychange", handler);
+	return () => document.removeEventListener("visibilitychange", handler);
+}
+
 // readSSE reads a Server-Sent Events stream and calls onData for each parsed
 // JSON payload. Returns when the stream ends or an error occurs. AbortError is
 // swallowed so callers can abort without special-casing.

@@ -1,5 +1,8 @@
 import { expect, test } from '@playwright/test';
 
+// These tests check unauthenticated behavior, so clear any stored auth
+test.use({ storageState: { cookies: [], origins: [] } });
+
 test('login page loads with email and password fields', async ({ page }) => {
 	await page.goto('/entrar');
 	await expect(page.getByLabel('Email')).toBeVisible();

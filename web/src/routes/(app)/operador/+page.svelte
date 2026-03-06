@@ -2,7 +2,7 @@
   import QRCode from "qrcode";
   import { onDestroy, onMount } from "svelte";
   import { pb } from "$lib/pb";
-  import { readSSE } from "$lib/sse";
+  import { onResume, readSSE } from "$lib/sse";
   import type {
     Business,
     GeneratedPost,
@@ -183,12 +183,7 @@
   let generating = $state(false);
   let generateError = $state("");
   let result = $state<GeneratedPost | null>(null);
-  let captionCopied = $state(false);
-  let hashtagsCopied = $state(false);
-  let noteCopied = $state(false);
-  let captionCopyTimer: ReturnType<typeof setTimeout> | null = null;
-  let hashtagsCopyTimer: ReturnType<typeof setTimeout> | null = null;
-  let noteCopyTimer: ReturnType<typeof setTimeout> | null = null;
+  let copied = $state<Record<string, boolean>>({});
   let sending = $state(false);
   let sendError = $state("");
 
@@ -561,21 +556,16 @@
 
     connectWhatsAppStream();
 
-    // Reconnect streams and refresh data when returning from lock screen / tab switch
-    function onVisibilityChange() {
-      if (document.visibilityState !== "visible") return;
-      // SSE stream dies when the browser suspends the page; restart it
+    // SSE stream dies when the browser suspends the page; restart on resume
+    cleanupVisibility = onResume(() => {
       waAbortController?.abort();
       waChecking = true;
       connectWhatsAppStream();
-      // Refresh data that may have arrived while suspended
       loadMessages();
       loadPosts();
       loadScheduledMessages();
       loadAllSuggestionCounts();
-    }
-    document.addEventListener("visibilitychange", onVisibilityChange);
-    cleanupVisibility = () => document.removeEventListener("visibilitychange", onVisibilityChange);
+    });
   });
 
   let cleanupVisibility: (() => void) | null = null;
@@ -623,6 +613,7 @@
     unsubscribeScheduledMessages?.();
     unsubscribeSuggestions?.();
     waAbortController?.abort();
+    removeAttachment();
   });
 
   async function connectWhatsAppStream() {
@@ -1398,25 +1389,12 @@
     nudgeText = template.replace("{name}", selected.client_name ? selected.client_name.split(" ")[0] : selected.name);
   }
 
-  async function copyCaption(text: string) {
+  const copyTimers: Record<string, ReturnType<typeof setTimeout>> = {};
+  async function copyWithFeedback(key: string, text: string) {
     await copyText(text);
-    if (captionCopyTimer) clearTimeout(captionCopyTimer);
-    captionCopied = true;
-    captionCopyTimer = setTimeout(() => { captionCopied = false; }, 2000);
-  }
-
-  async function copyHashtags(text: string) {
-    await copyText(text);
-    if (hashtagsCopyTimer) clearTimeout(hashtagsCopyTimer);
-    hashtagsCopied = true;
-    hashtagsCopyTimer = setTimeout(() => { hashtagsCopied = false; }, 2000);
-  }
-
-  async function copyNote(text: string) {
-    await copyText(text);
-    if (noteCopyTimer) clearTimeout(noteCopyTimer);
-    noteCopied = true;
-    noteCopyTimer = setTimeout(() => { noteCopied = false; }, 2000);
+    clearTimeout(copyTimers[key]);
+    copied = { ...copied, [key]: true };
+    copyTimers[key] = setTimeout(() => { copied = { ...copied, [key]: false }; }, 2000);
   }
 
   // Feature 8 — approval panel actions
@@ -2347,8 +2325,8 @@
                 <div>
                   <div class="flex items-center justify-between mb-1">
                     <span class="text-sm font-medium" style="color: var(--text-muted)">Legenda</span>
-                    <button onclick={() => copyCaption(editingCaption)} class="text-sm py-1" style="color: var(--coral)">
-                      {captionCopied ? "Copiado!" : "Copiar"}
+                    <button onclick={() => copyWithFeedback("caption", editingCaption)} class="text-sm py-1" style="color: var(--coral)">
+                      {copied.caption ? "Copiado!" : "Copiar"}
                     </button>
                   </div>
                   <textarea
@@ -2361,8 +2339,8 @@
                 <div>
                   <div class="flex items-center justify-between mb-1">
                     <span class="text-sm font-medium" style="color: var(--text-muted)">Hashtags</span>
-                    <button onclick={() => copyHashtags(result!.hashtags.join(" "))} class="text-sm py-1" style="color: var(--coral)">
-                      {hashtagsCopied ? "Copiado!" : "Copiar"}
+                    <button onclick={() => copyWithFeedback("hashtags", result!.hashtags.join(" "))} class="text-sm py-1" style="color: var(--coral)">
+                      {copied.hashtags ? "Copiado!" : "Copiar"}
                     </button>
                   </div>
                   <p class="text-sm" style="color: var(--text-secondary)">
@@ -2374,8 +2352,8 @@
                   <div>
                     <div class="flex items-center justify-between mb-1">
                       <span class="text-sm font-medium" style="color: var(--text-muted)">Nota de produção</span>
-                      <button onclick={() => copyNote(result!.production_note!)} class="text-sm py-1" style="color: var(--coral)">
-                        {noteCopied ? "Copiado!" : "Copiar"}
+                      <button onclick={() => copyWithFeedback("note", result!.production_note!)} class="text-sm py-1" style="color: var(--coral)">
+                        {copied.note ? "Copiado!" : "Copiar"}
                       </button>
                     </div>
                     <p

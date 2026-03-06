@@ -1,6 +1,6 @@
 # Rekan
 
-AI-powered Instagram content generator for Brazilian micro-entrepreneurs. Everything user-facing is in pt-BR. No other locales.
+Everything user-facing is in pt-BR. No other locales.
 
 ## Commands
 
@@ -17,15 +17,17 @@ make test-judges               # integration tests for judge verdicts
 
 Playwright browsers come from Nix, not npm. If updating `@playwright/test`, its version must match the Playwright version pinned in `flake.lock`.
 
-## Prompt optimization loop
+## E2E tests (Playwright)
 
-See `eval/CLAUDE.md` for full eval pipeline docs. The short version:
+- Auth is handled by `tests/auth.setup.ts` via `storageState`. Tests never log in themselves.
+- Use helpers from `tests/helpers.ts` (`loginAsOperador`, `selectFirstClient`, `switchToGenerateMode`).
+- Never use `waitForTimeout`. Wait for a visible element instead (`locator.waitFor()`, `expect().toBeVisible()`).
+- Never use `waitForLoadState('networkidle')` on the operator page. SSE streams keep connections open.
+- Config sets `ignoreHTTPSErrors` and `baseURL` globally. Tests should not override these.
 
-1. `make eval-judges`, identify the weakest criterion
-2. Pick a failing business, run verbose to read judge reasoning
-3. Edit `eval/baml_src/content.baml`
-4. `make eval-judges`, diff the two runs
-5. Keep or revert. Max 5 cycles per session.
+## Prompt optimization
+
+See `eval/CLAUDE.md`.
 
 ## Test credentials
 

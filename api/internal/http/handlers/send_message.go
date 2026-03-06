@@ -44,7 +44,6 @@ func SendMessage(deps Deps) func(*core.RequestEvent) error {
 			return e.JSON(http.StatusNotFound, map[string]string{"message": "Negócio não encontrado"})
 		}
 
-
 		phone := business.GetString("phone")
 		if phone == "" {
 			return e.JSON(http.StatusBadRequest, map[string]string{"message": "Cliente sem telefone cadastrado"})
@@ -53,41 +52,24 @@ func SendMessage(deps Deps) func(*core.RequestEvent) error {
 		jid := types.NewJID(phone, types.DefaultUserServer)
 		ctx := e.Request.Context()
 
-		// Typing indicator (ban mitigation)
-		deps.WhatsApp.SendChatPresence(ctx, jid, types.ChatPresenceComposing, "")
-
-		// Random delay 1-3s to simulate human behavior
-		delay := time.Duration(1000+rand.IntN(2000)) * time.Millisecond
-		time.Sleep(delay)
-
 		// Build message: caption + hashtags
 		text := body.Caption
 		if strings.TrimSpace(body.Hashtags) != "" {
 			text += "\n\n" + body.Hashtags
 		}
 
-		// Send main message
-		_, err = deps.WhatsApp.SendMessage(ctx, jid, &waE2E.Message{
-			Conversation: &text,
+		// Send with typing indicator
+		err = simulateTyping(ctx, deps.WhatsApp, jid, func() error {
+			_, err := deps.WhatsApp.SendMessage(ctx, jid, &waE2E.Message{
+				Conversation: &text,
+			})
+			return err
 		})
 		if err != nil {
 			return e.JSON(http.StatusBadGateway, map[string]string{"message": "Erro ao enviar mensagem. Tente novamente."})
 		}
 
-		// Store outgoing message
-		collection, _ := e.App.FindCollectionByNameOrId(domain.CollMessages)
-		if collection != nil {
-			record := core.NewRecord(collection)
-			record.Set("business", body.BusinessID)
-			record.Set("phone", phone)
-			record.Set("type", domain.MsgTypeText)
-			record.Set("content", text)
-			record.Set("direction", domain.DirectionOutgoing)
-			record.Set("wa_timestamp", time.Now().UTC().Format(time.RFC3339))
-			if err := e.App.Save(record); err != nil {
-				e.App.Logger().Error("send_message: failed to save outgoing message", "error", err)
-			}
-		}
+		storeOutgoingMessage(e.App, body.BusinessID, phone, domain.MsgTypeText, text, nil)
 
 		// Send production note as separate message if present
 		if strings.TrimSpace(body.ProductionNote) != "" {
@@ -97,20 +79,7 @@ func SendMessage(deps Deps) func(*core.RequestEvent) error {
 			deps.WhatsApp.SendMessage(ctx, jid, &waE2E.Message{
 				Conversation: &noteText,
 			})
-
-			// Store production note as outgoing message
-			if collection != nil {
-				noteRecord := core.NewRecord(collection)
-				noteRecord.Set("business", body.BusinessID)
-				noteRecord.Set("phone", phone)
-				noteRecord.Set("type", domain.MsgTypeText)
-				noteRecord.Set("content", noteText)
-				noteRecord.Set("direction", domain.DirectionOutgoing)
-				noteRecord.Set("wa_timestamp", time.Now().UTC().Format(time.RFC3339))
-				if err := e.App.Save(noteRecord); err != nil {
-					e.App.Logger().Error("send_message: failed to save production note message", "error", err)
-				}
-			}
+			storeOutgoingMessage(e.App, body.BusinessID, phone, domain.MsgTypeText, noteText, nil)
 		}
 
 		// Send posting time tip only when delivering a generated post (has production note)
@@ -120,22 +89,8 @@ func SendMessage(deps Deps) func(*core.RequestEvent) error {
 			deps.WhatsApp.SendMessage(ctx, jid, &waE2E.Message{
 				Conversation: &tipText,
 			})
-			if collection != nil {
-				tipRecord := core.NewRecord(collection)
-				tipRecord.Set("business", body.BusinessID)
-				tipRecord.Set("phone", phone)
-				tipRecord.Set("type", domain.MsgTypeText)
-				tipRecord.Set("content", tipText)
-				tipRecord.Set("direction", domain.DirectionOutgoing)
-				tipRecord.Set("wa_timestamp", time.Now().UTC().Format(time.RFC3339))
-				if err := e.App.Save(tipRecord); err != nil {
-					e.App.Logger().Error("send_message: failed to save tip message", "error", err)
-				}
-			}
+			storeOutgoingMessage(e.App, body.BusinessID, phone, domain.MsgTypeText, tipText, nil)
 		}
-
-		// Clear typing indicator
-		deps.WhatsApp.SendChatPresence(ctx, jid, types.ChatPresencePaused, "")
 
 		return e.JSON(http.StatusOK, map[string]string{"status": "sent"})
 	}
