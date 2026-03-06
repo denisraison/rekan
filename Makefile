@@ -40,7 +40,7 @@ seed:
 
 INFRA_DIR    := ../infra
 SERVER       := root@46.225.161.186
-INFRA_FLAKE  := github:denisraison/infra#prod
+INFRA_FLAKE  := github:denisraison/infra\#prod
 
 deploy: ## Tag HEAD, update infra lock, push, and deploy (usage: make deploy TAG=v0.4.3)
 	git tag $(TAG) && git push origin $(TAG)
