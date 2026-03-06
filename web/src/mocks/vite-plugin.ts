@@ -1,5 +1,5 @@
-import type { Plugin } from 'vite';
 import type { IncomingMessage, ServerResponse } from 'node:http';
+import type { Plugin } from 'vite';
 
 interface MockRoute {
 	method: string;
@@ -26,15 +26,12 @@ const MOCK_IDEAS = [
 		production_note: 'Foto de produtos capilares organizados na bancada.',
 	},
 	{
-		caption:
-			'Transformacao do dia: de cabelo sem vida pra um look poderoso. Agenda aberta!',
+		caption: 'Transformacao do dia: de cabelo sem vida pra um look poderoso. Agenda aberta!',
 		hashtags: ['#antesedepois', '#transformacao', '#salao'],
-		production_note:
-			'Colagem antes/depois da cliente, fundo neutro do salao.',
+		production_note: 'Colagem antes/depois da cliente, fundo neutro do salao.',
 	},
 	{
-		caption:
-			'Sexta-feira merece um cabelo a altura! Ultimos horarios disponiveis.',
+		caption: 'Sexta-feira merece um cabelo a altura! Ultimos horarios disponiveis.',
 		hashtags: ['#sextou', '#salao', '#cabelo'],
 		production_note: 'Selfie da equipe sorrindo no salao no fim do dia.',
 	},
@@ -81,21 +78,19 @@ export function mockApi(): Plugin {
 		name: 'mock-api',
 		configureServer(server) {
 			// Runs before Vite's internal middleware (including the proxy)
-			server.middlewares.use(
-				(req: IncomingMessage, res: ServerResponse, next: () => void) => {
-					const url = req.url ?? '';
-					const method = req.method ?? 'GET';
+			server.middlewares.use((req: IncomingMessage, res: ServerResponse, next: () => void) => {
+				const url = req.url ?? '';
+				const method = req.method ?? 'GET';
 
-					for (const route of routes) {
-						if (method === route.method && route.pattern.test(url)) {
-							console.log(`[mock-api] ${method} ${url} -> ${route.delay}ms`);
-							setTimeout(() => sendJson(res, route.response), route.delay);
-							return;
-						}
+				for (const route of routes) {
+					if (method === route.method && route.pattern.test(url)) {
+						console.log(`[mock-api] ${method} ${url} -> ${route.delay}ms`);
+						setTimeout(() => sendJson(res, route.response), route.delay);
+						return;
 					}
-					next();
-				},
-			);
+				}
+				next();
+			});
 		},
 	};
 }

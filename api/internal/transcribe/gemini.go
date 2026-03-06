@@ -8,7 +8,7 @@ import (
 	"fmt"
 	"image"
 	"image/jpeg"
-	_ "image/png"
+	_ "image/png" // register PNG decoder for image.Decode
 	"io"
 	"net/http"
 	"strings"
