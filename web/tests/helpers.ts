@@ -1,6 +1,15 @@
 import type { Page } from '@playwright/test';
 
 export async function loginAsOperador(page: Page) {
+	// Mock WhatsApp stream to avoid QR code overlay blocking UI
+	await page.route('**/api/whatsapp/stream', (route) => {
+		route.fulfill({
+			status: 200,
+			contentType: 'text/event-stream',
+			headers: { 'Cache-Control': 'no-cache', 'Connection': 'keep-alive' },
+			body: 'data: {"connected":true,"qr":""}\n\n',
+		});
+	});
 	// Auth is pre-loaded via storageState from auth.setup.ts
 	await page.goto('/operador');
 	// Wait for client list to render (proves page + data are ready)

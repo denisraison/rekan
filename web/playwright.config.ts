@@ -5,7 +5,7 @@ export default defineConfig({
 	testDir: 'tests',
 	fullyParallel: true,
 	webServer: {
-		command: 'pnpm dev',
+		command: 'pnpm dev:mock',
 		port: 5173,
 		reuseExistingServer: true,
 	},

@@ -36,6 +36,56 @@ test.describe('Multi-select ideas (Wave 4)', () => {
 		await expect(reviewBtn).toBeVisible();
 		await reviewBtn.click();
 		await expect(page.getByText('Post gerado')).toBeVisible();
+
+		// Voltar returns to idea list (scope to the review overlay which has "Post gerado")
+		const reviewOverlay = page.locator(overlay, { hasText: 'Post gerado' });
+		await reviewOverlay.locator('button', { hasText: 'Voltar' }).click();
+		await expect(page.locator(overlay).getByText('Selecione ideias')).toBeVisible();
+		const cards = page.locator(`${overlay} button.rounded-2xl`);
+		expect(await cards.count()).toBeGreaterThanOrEqual(3);
+	});
+
+	test('Voltar from review returns to idea list', async ({ page }) => {
+		await generateIdeas(page);
+		const cards = page.locator(`${overlay} button.rounded-2xl`);
+		await expect(cards.first()).toBeVisible();
+		const count = await cards.count();
+
+		await cards.first().click();
+		await page.getByRole('button', { name: 'Revisar e enviar' }).click();
+		await expect(page.getByText('Post gerado')).toBeVisible();
+
+		const reviewOverlay = page.locator(overlay, { hasText: 'Post gerado' });
+		await reviewOverlay.locator('button', { hasText: 'Voltar' }).click();
+		await expect(page.locator(overlay).getByText('Selecione ideias')).toBeVisible();
+		const cardsAfter = page.locator(`${overlay} button.rounded-2xl`);
+		expect(await cardsAfter.count()).toBe(count);
+	});
+
+	test('review different idea after Voltar', async ({ page }) => {
+		await generateIdeas(page);
+		const cards = page.locator(`${overlay} button.rounded-2xl`);
+		await expect(cards.first()).toBeVisible();
+
+		// Select and review first idea
+		await cards.nth(0).click();
+		await page.getByRole('button', { name: 'Revisar e enviar' }).click();
+		await expect(page.getByText('Post gerado')).toBeVisible();
+		const firstCaption = await page.locator('textarea').inputValue();
+
+		// Go back (scope to review overlay)
+		const reviewOverlay = page.locator(overlay, { hasText: 'Post gerado' });
+		await reviewOverlay.locator('button', { hasText: 'Voltar' }).click();
+		await expect(page.locator(overlay).getByText('Selecione ideias')).toBeVisible();
+
+		// Deselect first, select second
+		await cards.nth(0).click();
+		await cards.nth(1).click();
+		await page.getByRole('button', { name: 'Revisar e enviar' }).click();
+		await expect(page.getByText('Post gerado')).toBeVisible();
+		const secondCaption = await page.locator('textarea').inputValue();
+
+		expect(secondCaption.length).toBeGreaterThan(0);
 	});
 
 	test('deselecting an idea updates the count', async ({ page }) => {

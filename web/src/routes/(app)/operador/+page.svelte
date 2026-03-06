@@ -1319,6 +1319,8 @@
       result = null;
       message = "";
       isProactive = false;
+      ideaDrafts = null;
+      selectedIdeas = new Set();
     } catch {
       sendError = "Erro ao enviar. Tente novamente.";
     } finally {
@@ -2282,8 +2284,6 @@
                           const idx = [...selectedIdeas][0];
                           result = ideaDrafts![idx];
                           isProactive = true;
-                          ideaDrafts = null;
-                          selectedIdeas = new Set();
                         }}
                         class="flex-1 rounded-full text-base font-semibold"
                         style="min-height: 52px; background: var(--coral); color: #fff;"
@@ -2312,7 +2312,7 @@
             <div class="absolute inset-0 flex flex-col z-10" style="background: var(--bg)">
               <div class="flex items-center gap-3 px-4 shrink-0" style="min-height: 60px; background: var(--surface); border-bottom: 1px solid var(--border);">
                 <button
-                  onclick={() => { showReviewOverlay = false; }}
+                  onclick={() => { if (ideaDrafts) { result = null; } else { showReviewOverlay = false; } }}
                   style="display: flex; align-items: center; gap: 4px; min-height: 60px; padding: 0 12px 0 0; font-size: 14px; font-weight: 500; color: var(--coral); flex-shrink: 0;"
                 >
                   <svg viewBox="0 0 20 20" fill="currentColor" width="20" height="20"><path fill-rule="evenodd" d="M12.707 5.293a1 1 0 010 1.414L9.414 10l3.293 3.293a1 1 0 01-1.414 1.414l-4-4a1 1 0 010-1.414l4-4a1 1 0 011.414 0z" clip-rule="evenodd"/></svg>
@@ -2383,7 +2383,7 @@
                   {/if}
                 {/if}
                 <button
-                  onclick={() => { result = null; message = ""; isProactive = false; }}
+                  onclick={() => { result = null; message = ""; isProactive = false; ideaDrafts = null; selectedIdeas = new Set(); }}
                   class="w-full py-2 text-sm font-medium"
                   style="color: var(--destructive)"
                 >
@@ -2516,8 +2516,6 @@
                           const idx = [...selectedIdeas][0];
                           result = ideaDrafts![idx];
                           isProactive = true;
-                          ideaDrafts = null;
-                          selectedIdeas = new Set();
                         }}
                         class="px-5 py-2.5 rounded-full text-sm font-medium"
                         style="background: var(--coral); color: #fff"

@@ -53,4 +53,27 @@ test.describe('Post review overlay (Wave 3)', () => {
 		await page.getByRole('button', { name: 'Ver post gerado' }).click();
 		await expect(textarea).toHaveValue('Legenda editada');
 	});
+
+	test('Descartar from 3-ideas flow clears ideaDrafts', async ({ page }) => {
+		// Use mobile viewport so the ideas overlay shows
+		await page.setViewportSize({ width: 390, height: 844 });
+		// Generate 3 ideas
+		await page.getByRole('button', { name: '3 ideias' }).click();
+		const ideasOverlay = page.locator(overlay).getByText('Selecione ideias');
+		await ideasOverlay.waitFor({ timeout: 30000 });
+
+		// Select one idea and review it
+		const cards = page.locator(`${overlay} button.rounded-2xl`);
+		await cards.first().click();
+		await page.getByRole('button', { name: 'Revisar e enviar' }).click();
+		await expect(page.getByText('Post gerado')).toBeVisible();
+
+		// Discard
+		await page.getByRole('button', { name: 'Descartar' }).click();
+
+		// Idea list overlay should be gone
+		await expect(ideasOverlay).not.toBeVisible();
+		// Generate mode input should be back
+		await expect(page.locator('input[placeholder="Descreva o post..."]')).toBeVisible();
+	});
 });
