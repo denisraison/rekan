@@ -1479,7 +1479,7 @@
       style="padding: 6px 16px; border-radius: 9999px; font-size: 14px; font-weight: 600; background: var(--coral); color: #fff; margin-left: auto;"
     >+ Novo</button>
   </header>
-  {#if !waConnected}
+  {#if !waConnected && !waChecking}
     <a
       href="/operador/whatsapp"
       class="shrink-0 flex items-center justify-center gap-2 px-4 py-3 text-sm font-medium"
