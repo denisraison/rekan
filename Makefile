@@ -1,4 +1,4 @@
-.PHONY: dev dev-mock dev-api dev-web eval eval-judges eval-fast test-judges lint seed
+.PHONY: dev dev-mock dev-api dev-web eval eval-judges eval-fast test-judges lint seed deploy
 
 dev:
 	$(MAKE) dev-api &
@@ -37,3 +37,13 @@ lint:
 
 seed:
 	set -a && . ./.env && set +a && bash scripts/seed.sh
+
+INFRA_DIR    := ../infra
+SERVER       := root@46.225.161.186
+INFRA_FLAKE  := github:denisraison/infra#prod
+
+deploy: ## Tag HEAD, update infra lock, push, and deploy (usage: make deploy TAG=v0.4.3)
+	git tag $(TAG) && git push origin $(TAG)
+	cd $(INFRA_DIR) && nix flake lock --override-input rekan github:denisraison/rekan/$(TAG)
+	cd $(INFRA_DIR) && git add flake.lock && git commit -m "Update rekan to $(TAG)" && git push
+	ssh $(SERVER) "nixos-rebuild switch --flake $(INFRA_FLAKE) --refresh"
