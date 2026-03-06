@@ -570,6 +570,7 @@
 
   let cleanupVisibility: (() => void) | null = null;
   let waAbortController: AbortController | null = null;
+  let waDisconnectTimer: ReturnType<typeof setTimeout> | null = null;
   let qrDataUrl = $state("");
 
   $effect(() => {
@@ -613,6 +614,7 @@
     unsubscribeScheduledMessages?.();
     unsubscribeSuggestions?.();
     waAbortController?.abort();
+    if (waDisconnectTimer) { clearTimeout(waDisconnectTimer); waDisconnectTimer = null; }
     removeAttachment();
   });
 
@@ -626,13 +628,19 @@
       if (!res.body) return;
       await readSSE(res.body, (data) => {
         const s = data as WAStatus;
+        if (waDisconnectTimer) { clearTimeout(waDisconnectTimer); waDisconnectTimer = null; }
         waConnected = s.connected;
         waQR = s.qr ?? "";
         waChecking = false;
       });
     } catch (err) {
       if (err instanceof Error && err.name === "AbortError") return;
-      waConnected = false;
+      // Grace period: wait 5s before showing disconnected banner
+      if (waDisconnectTimer) clearTimeout(waDisconnectTimer);
+      waDisconnectTimer = setTimeout(() => {
+        waConnected = false;
+        waDisconnectTimer = null;
+      }, 5000);
       waQR = "";
       waChecking = false;
     }
@@ -2607,7 +2615,6 @@
                       aria-label="Remover anexo"
                     >&times;</button>
                   </div>
-                  <span class="text-xs truncate max-w-[200px]" style="color: var(--text-muted)">{attachedFile?.name}</span>
                 </div>
               {/if}
               <!-- Input row -->

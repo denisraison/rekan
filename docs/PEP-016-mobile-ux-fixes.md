@@ -46,18 +46,21 @@ Several UX issues degrade the mobile experience for our target audience (50+, lo
 
 **2a: WhatsApp status grace period**
 
-When the SSE connection drops (user switches to camera), the catch block immediately sets `waConnected = false` and the red banner appears. Add a 5-second grace period: start a timer on disconnect, only show the banner if the SSE does not reconnect within that window. Cancel the timer on reconnect.
+- [x] When the SSE connection drops (user switches to camera), the catch block immediately sets `waConnected = false` and the red banner appears. Add a 5-second grace period: start a timer on disconnect, only show the banner if the SSE does not reconnect within that window. Cancel the timer on reconnect.
 
 **2b: Remove filename from attachment preview**
 
-The attachment preview card shows `{attachedFile?.name}` (line ~2612). The thumbnail alone is sufficient. Remove the filename `<span>`.
+- [x] The attachment preview card shows `{attachedFile?.name}` (line ~2612). The thumbnail alone is sufficient. Remove the filename `<span>`.
+
+**Notes:**
+- Added `waDisconnectTimer` variable. On SSE error, starts a 5s timeout before setting `waConnected = false`. On reconnect (SSE callback), the timer is cancelled. Timer is also cleaned up in `onDestroy`.
 
 **Gate:**
 
-1. `cd web && pnpm check`
-2. Update `tests/attach-button.spec.ts`:
-   - **New test:** "attachment preview shows no filename" — attach a photo, verify `getByAltText('Anexo')` is visible, verify no text content matching the filename pattern (e.g., `test-attach.png`) appears in the preview container.
-3. `cd web && npx playwright test attach-button` — all pass
+1. [x] `cd web && pnpm check`
+2. [x] Update `tests/attach-button.spec.ts`:
+   - [x] **New test:** "attachment preview shows no filename"
+3. [x] `cd web && npx playwright test attach-button` — 9 passed
 4. Manual verification for 2a (cannot automate visibility change + SSE drop): open app, switch to camera, return, no red banner flashes. Stop the backend, wait 5+ seconds, verify the banner appears.
 
 ### Wave 3 — PWA Install Prompt

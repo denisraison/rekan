@@ -70,4 +70,12 @@ test.describe('Attach button (Wave 5)', () => {
 		await attachImage(page);
 		await expect(page.getByRole('button', { name: 'Enviar' })).toBeEnabled();
 	});
+
+	test('attachment preview shows no filename', async ({ page }) => {
+		await attachImage(page);
+		await expect(page.getByAltText('Anexo')).toBeVisible();
+		// The preview container should not display the raw filename
+		const previewContainer = page.getByAltText('Anexo').locator('..');
+		await expect(previewContainer).not.toContainText('test-attach.png');
+	});
 });
