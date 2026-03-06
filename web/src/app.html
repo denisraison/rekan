@@ -13,10 +13,23 @@
 		<div style="display: contents">%sveltekit.body%</div>
 		<script>
 			if ('serviceWorker' in navigator) {
-				window.addEventListener('load', () => {
-					navigator.serviceWorker.register('/sw.js', { scope: '/' })
-						.catch(() => navigator.serviceWorker.register('/dev-sw.js?dev-sw', { scope: '/', type: 'module' }));
+				window.addEventListener('load', async () => {
+					try {
+						const reg = await navigator.serviceWorker.register('/sw.js', { scope: '/' });
+						reg.addEventListener('updatefound', () => {
+							const sw = reg.installing;
+							if (!sw) return;
+							sw.addEventListener('statechange', () => {
+								if (sw.state === 'installed' && navigator.serviceWorker.controller) {
+									sw.postMessage({ type: 'SKIP_WAITING' });
+								}
+							});
+						});
+					} catch {
+						navigator.serviceWorker.register('/dev-sw.js?dev-sw', { scope: '/', type: 'module' });
+					}
 				});
+				navigator.serviceWorker.addEventListener('controllerchange', () => location.reload());
 			}
 		</script>
 	</body>
