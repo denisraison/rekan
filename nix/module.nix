@@ -89,8 +89,15 @@ in
             reverse_proxy localhost:${toString icfg.port}
           }
 
+          handle /_app/immutable/* {
+            root * ${icfg.webRoot}
+            header Cache-Control "public, max-age=31536000, immutable"
+            file_server
+          }
+
           handle {
             root * ${icfg.webRoot}
+            header Cache-Control "no-cache"
             try_files {path} /index.html
             file_server
           }
