@@ -93,3 +93,61 @@ Several UX issues degrade the mobile experience for our target audience (50+, lo
    - Open in Chrome on Android. Verify the custom install banner appears.
    - Tap "Instalar", verify the native install flow triggers.
    - Dismiss the banner, reload, verify it does not reappear (localStorage persists dismissal).
+
+### Wave 4 — Small Screen / Zoomed-in Accessibility
+
+**Goal:** Make the profile recording card, recording bar, and message input bar usable on narrow viewports (320px) and when the user has OS-level zoom or large text enabled.
+
+**Files:** `web/src/routes/(app)/operador/+page.svelte`
+
+**4a: Profile record card (idle mic button)**
+
+**Problem:** The card uses `gap-4 p-5` with a fixed 72px circular button. On a 320px screen (or zoomed), the button + text overflow or feel cramped. The text gets very little horizontal space.
+
+**Fix:**
+- [x] Reduce the mic button to 56px on small screens (keep 72px on md+). Use a CSS class with a media query instead of inline `width`/`height`.
+- [x] Reduce card padding from `p-5` to `p-3` on small screens (`p-3 md:p-5`).
+- [x] Reduce gap from `gap-4` to `gap-3` on small screens (`gap-3 md:gap-4`).
+- [x] Ensure the text block has `min-w-0` so it can shrink and wrap properly.
+
+**4b: Recording bar**
+
+**Problem:** The recording bar has fixed `height: 72px` and 72px-wide side buttons. On narrow screens, the center timer/label section gets squeezed, and the overall bar is taller than necessary.
+
+**Fix:**
+- [x] Reduce bar height to 56px and side buttons to 56px on small screens (keep 72px on md+). Use a CSS class or `@media` in the `<style>` block.
+- [x] Reduce timer font-size from 26px to 20px on small screens.
+- [x] Hide the "Gravando" label on very narrow screens (below 360px) since the blinking red dot already indicates recording.
+
+**4c: Message input bar**
+
+**Problem:** The send buttons ("Gerar", "Enviar") use `px-5 py-3` which takes too much horizontal space. Combined with the attach button and input padding, the text input gets very narrow on 320px screens.
+
+**Fix:**
+- [x] Reduce send button horizontal padding from `px-5` to `px-3` on small screens (`px-3 md:px-5`).
+- [x] Reduce input horizontal padding from `px-4` to `px-3` on small screens (`px-3 md:px-4`).
+- [x] Reduce the container horizontal padding from `px-4` to `px-3` on small screens (`px-3 md:px-4`).
+
+**4d: Analyzing bar**
+
+**Problem:** The analyzing bar also uses fixed `height: 72px`, inconsistent with the recording bar fix.
+
+**Fix:**
+- [x] Match the recording bar: 56px on small screens, 72px on md+.
+
+**Gate:**
+
+1. [x] `cd web && pnpm check`
+2. [x] `cd web && npx playwright test` — full suite passes (44 passed, no regressions)
+3. [x] New e2e test `tests/small-screen.spec.ts`:
+   - Viewport set to 320x568 (iPhone SE)
+   - Profile record card: mic button and text are both visible, nothing overflows
+   - Message input bar: input field has at least 120px width, send button is visible
+   - Recording bar: timer and buttons are visible and tappable (min 44x44 touch target)
+4. Manual verification: open on a real device or Chrome DevTools at 320px width. Verify all interactive elements are reachable and text is readable. Test with OS text size set to "Largest".
+
+**Notes:**
+- Used CSS classes (`mic-btn`, `rec-bar`, `rec-side-btn`, `rec-timer`, `rec-label`) with `@media (min-width: 768px)` to scale from 56px (mobile) to 72px (desktop). Avoids inline style overrides.
+- Added `@media (max-width: 359px)` to hide the "Gravando" label on very narrow screens.
+- The recording bar test verifies the mic button touch target (56x56 >= 44x44 WCAG minimum) since starting an actual recording requires microphone permissions.
+- The scrollWidth check (instead of bounding box position) correctly detects horizontal overflow regardless of CSS `overflow: hidden` clipping.

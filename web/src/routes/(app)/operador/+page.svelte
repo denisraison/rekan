@@ -1856,11 +1856,11 @@
 
                   {#if voiceMode === 'idle'}
                     <!-- Idle: mic card -->
-                    <div class="flex items-center gap-4 p-5 rounded-2xl" style="background: var(--coral-pale); border: 1.5px solid var(--coral-light)">
-                      <button onclick={startVoiceRecording} aria-label="Gravar descrição" style="width: 72px; height: 72px; border-radius: 50%; background: var(--coral); border: none; display: flex; align-items: center; justify-content: center; cursor: pointer; flex-shrink: 0; box-shadow: 0 4px 16px rgba(249,115,104,0.35);">
+                    <div class="flex items-center gap-3 md:gap-4 p-3 md:p-5 rounded-2xl" style="background: var(--coral-pale); border: 1.5px solid var(--coral-light)">
+                      <button onclick={startVoiceRecording} aria-label="Gravar descrição" class="mic-btn" style="border-radius: 50%; background: var(--coral); border: none; display: flex; align-items: center; justify-content: center; cursor: pointer; flex-shrink: 0; box-shadow: 0 4px 16px rgba(249,115,104,0.35);">
                         <svg width="30" height="30" viewBox="0 0 24 24" fill="white"><path d="M12 2a3 3 0 0 1 3 3v6a3 3 0 0 1-6 0V5a3 3 0 0 1 3-3z"/><path d="M19 10v1a7 7 0 0 1-14 0v-1M12 18v4M8 22h8" stroke="white" stroke-width="1.5" fill="none" stroke-linecap="round"/></svg>
                       </button>
-                      <div>
+                      <div class="min-w-0">
                         <p class="text-base font-bold" style="margin: 0 0 4px; color: var(--text)">Gravar descrição</p>
                         <p class="text-sm" style="margin: 0; color: var(--text-secondary); line-height: 1.4;">Toca no microfone e fala sobre a cliente</p>
                       </div>
@@ -1872,16 +1872,16 @@
                   {:else if voiceMode === 'recording'}
                     <!-- Recording bar: [X] [●timer] [↑] -->
                     <div class="rounded-2xl overflow-hidden" style="border: 1.5px solid var(--border-strong);">
-                      <div class="flex items-center" style="height: 72px;">
-                        <button onclick={cancelRecording} aria-label="Cancelar gravação" style="width: 72px; height: 100%; background: #FEF2F2; border: none; border-right: 1px solid var(--border-strong); display: flex; align-items: center; justify-content: center; cursor: pointer; flex-shrink: 0;">
+                      <div class="flex items-center rec-bar">
+                        <button onclick={cancelRecording} aria-label="Cancelar gravação" class="rec-side-btn" style="background: #FEF2F2; border: none; border-right: 1px solid var(--border-strong); display: flex; align-items: center; justify-content: center; cursor: pointer; flex-shrink: 0;">
                           <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#EF4444" stroke-width="2.5" stroke-linecap="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
                         </button>
                         <div class="flex-1 flex items-center justify-center gap-3">
                           <div style="width: 10px; height: 10px; border-radius: 50%; background: #EF4444; flex-shrink: 0; animation: blink 1s ease-in-out infinite;"></div>
-                          <span style="font-size: 26px; font-weight: 700; letter-spacing: 0.04em; color: var(--text); font-variant-numeric: tabular-nums;">{fmtTime(recordingSeconds)}</span>
-                          <span class="text-sm" style="color: var(--text-muted)">Gravando</span>
+                          <span class="rec-timer" style="font-weight: 700; letter-spacing: 0.04em; color: var(--text); font-variant-numeric: tabular-nums;">{fmtTime(recordingSeconds)}</span>
+                          <span class="text-sm rec-label" style="color: var(--text-muted)">Gravando</span>
                         </div>
-                        <button onclick={submitRecording} aria-label="Enviar gravação" style="width: 72px; height: 100%; background: var(--coral); border: none; border-left: 1px solid var(--coral-light); display: flex; align-items: center; justify-content: center; cursor: pointer; flex-shrink: 0;">
+                        <button onclick={submitRecording} aria-label="Enviar gravação" class="rec-side-btn" style="background: var(--coral); border: none; border-left: 1px solid var(--coral-light); display: flex; align-items: center; justify-content: center; cursor: pointer; flex-shrink: 0;">
                           <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="19" x2="12" y2="5"/><polyline points="5 12 12 5 19 12"/></svg>
                         </button>
                       </div>
@@ -1889,7 +1889,7 @@
 
                   {:else if voiceMode === 'analyzing'}
                     <!-- Analyzing bar -->
-                    <div class="rounded-2xl flex items-center justify-center gap-3" style="height: 72px; border: 1.5px solid var(--border-strong);">
+                    <div class="rounded-2xl flex items-center justify-center gap-3 rec-bar" style="border: 1.5px solid var(--border-strong);">
                       <div style="width: 22px; height: 22px; border-radius: 50%; border: 2.5px solid var(--coral); border-top-color: transparent; animation: spin 0.8s linear infinite; flex-shrink: 0;"></div>
                       <span class="text-base font-medium" style="color: var(--text-secondary)">Analisando...</span>
                     </div>
@@ -2502,7 +2502,7 @@
 
           <!-- Unified input bar -->
           <div
-            class="shrink-0 border-t px-4 py-3 flex flex-col gap-2"
+            class="shrink-0 border-t px-3 md:px-4 py-3 flex flex-col gap-2"
             style="border-color: {inputMode === 'generate' ? 'var(--coral)' : 'var(--border)'}; background: var(--surface); {inputMode === 'generate' ? 'border-top-width: 2px;' : ''}"
           >
             <!-- Idea drafts (desktop only) -->
@@ -2690,7 +2690,7 @@
                 <input
                   bind:value={message}
                   placeholder={inputMode === 'generate' ? 'Descreva o post...' : 'Mensagem...'}
-                  class="flex-1 px-4 py-3 rounded-xl text-base outline-none border"
+                  class="flex-1 px-3 md:px-4 py-3 rounded-xl text-base outline-none border"
                   style="border-color: var(--border-strong); background: var(--bg); color: var(--text); min-height: 48px;"
                   onkeydown={(e) => {
                     if (e.key === 'Enter' && !e.shiftKey) {
@@ -2704,7 +2704,7 @@
                   <button
                     onclick={generate}
                     disabled={generating || generatingIdeas || (!message.trim() && selectedMessages.size === 0 && !attachedFile)}
-                    class="shrink-0 px-5 py-3 rounded-full text-sm font-medium transition-opacity flex items-center gap-2"
+                    class="shrink-0 px-3 md:px-5 py-3 rounded-full text-sm font-medium transition-opacity flex items-center gap-2"
                     style="background: var(--coral); color: #fff; opacity: {generating || (!message.trim() && selectedMessages.size === 0 && !attachedFile) ? '0.6' : '1'}; cursor: {generating || (!message.trim() && selectedMessages.size === 0 && !attachedFile) ? 'not-allowed' : 'pointer'}"
                   >
                     {#if generating}
@@ -2718,7 +2718,7 @@
                   <button
                     onclick={sendQuickReply}
                     disabled={sendingQuick || sendingMedia || (!message.trim() && !attachedFile)}
-                    class="shrink-0 px-5 py-3 rounded-full text-sm font-medium transition-opacity"
+                    class="shrink-0 px-3 md:px-5 py-3 rounded-full text-sm font-medium transition-opacity"
                     style="background: #25D366; color: #fff; opacity: {sendingQuick || sendingMedia || (!message.trim() && !attachedFile) ? '0.6' : '1'}"
                   >
                     {sendingQuick ? "..." : "Enviar"}
@@ -2835,6 +2835,40 @@
   }
   @keyframes spin {
     to { transform: rotate(360deg); }
+  }
+  .mic-btn {
+    width: 56px;
+    height: 56px;
+  }
+  .rec-bar {
+    height: 56px;
+  }
+  .rec-side-btn {
+    width: 56px;
+    height: 100%;
+  }
+  .rec-timer {
+    font-size: 20px;
+  }
+  @media (max-width: 359px) {
+    .rec-label {
+      display: none;
+    }
+  }
+  @media (min-width: 768px) {
+    .mic-btn {
+      width: 72px;
+      height: 72px;
+    }
+    .rec-bar {
+      height: 72px;
+    }
+    .rec-side-btn {
+      width: 72px;
+    }
+    .rec-timer {
+      font-size: 26px;
+    }
   }
 </style>
 
