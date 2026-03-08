@@ -503,8 +503,19 @@
     localStorage.setItem("rekan_install_dismissed", "1");
   }
 
+  function handlePopState(event: PopStateEvent) {
+    const view = event.state?.mobileView;
+    if (view === 'detail' || view === 'info') {
+      mobileView = view;
+    } else {
+      mobileView = 'list';
+      selectedId = null;
+    }
+  }
+
   onMount(async () => {
     window.addEventListener("beforeinstallprompt", onBeforeInstallPrompt);
+    window.addEventListener("popstate", handlePopState);
 
     lastSeen = JSON.parse(
       localStorage.getItem("rekan_operator_last_seen") ?? "{}",
@@ -638,6 +649,7 @@
 
   onDestroy(() => {
     window.removeEventListener("beforeinstallprompt", onBeforeInstallPrompt);
+    window.removeEventListener("popstate", handlePopState);
     cleanupVisibility?.();
     unsubscribeMessages?.();
     unsubscribeBusinesses?.();
@@ -787,6 +799,7 @@
   function selectClient(id: string) {
     selectedId = id;
     mobileView = 'detail';
+    history.pushState({ mobileView: 'detail' }, '');
     result = null;
     generateError = "";
     sendNudgeError = "";
@@ -982,6 +995,7 @@
     resetForm();
     voiceMode = 'idle';
     showForm = true;
+    if (mobileView === 'list') history.pushState({ mobileView: 'detail' }, '');
     mobileView = 'detail';
   }
 
@@ -1007,13 +1021,14 @@
     voiceError = '';
     aiFilledFields = new Set();
     showForm = true;
+    if (mobileView === 'list') history.pushState({ mobileView: 'detail' }, '');
     mobileView = 'detail';
   }
 
   function closeForm() {
     showForm = false;
     resetForm();
-    if (!selectedId) mobileView = 'list';
+    if (!selectedId) history.back();
   }
 
   function addService() {
@@ -1966,7 +1981,7 @@
               <!-- Header: Voltar | Name/Type | Editar -->
               <div style="background: var(--surface); border-bottom: 1px solid var(--border); display: flex; align-items: center; min-height: 60px; padding: 0 16px; gap: 4px; flex-shrink: 0;">
                 <button
-                  onclick={() => { mobileView = 'detail'; }}
+                  onclick={() => { history.back(); }}
                   style="display: flex; align-items: center; gap: 4px; min-height: 60px; padding: 0 12px 0 0; font-size: 14px; font-weight: 500; color: var(--coral); flex-shrink: 0;"
                 >
                   <svg viewBox="0 0 20 20" fill="currentColor" width="20" height="20"><path fill-rule="evenodd" d="M12.707 5.293a1 1 0 010 1.414L9.414 10l3.293 3.293a1 1 0 01-1.414 1.414l-4-4a1 1 0 010-1.414l4-4a1 1 0 011.414 0z" clip-rule="evenodd" /></svg>
@@ -2228,7 +2243,7 @@
           >
             <div class="flex items-center gap-2">
               <button
-                onclick={() => { mobileView = 'list'; selectedId = null; }}
+                onclick={() => { history.back(); }}
                 class="md:hidden flex items-center gap-1 py-2 pr-2 -ml-1 rounded-lg shrink-0 text-sm font-medium"
                 style="color: var(--coral)"
               >
@@ -2237,7 +2252,7 @@
               </button>
               <!-- Tappable name opens info screen -->
               <button
-                onclick={() => { mobileView = 'info'; }}
+                onclick={() => { mobileView = 'info'; history.pushState({ mobileView: 'info' }, ''); }}
                 class="min-w-0 flex-1 flex items-center gap-3 text-left"
               >
                 <!-- Avatar -->

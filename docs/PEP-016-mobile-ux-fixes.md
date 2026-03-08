@@ -151,3 +151,42 @@ Several UX issues degrade the mobile experience for our target audience (50+, lo
 - Added `@media (max-width: 359px)` to hide the "Gravando" label on very narrow screens.
 - The recording bar test verifies the mic button touch target (56x56 >= 44x44 WCAG minimum) since starting an actual recording requires microphone permissions.
 - The scrollWidth check (instead of bounding box position) correctly detects horizontal overflow regardless of CSS `overflow: hidden` clipping.
+
+### Wave 5 — Browser Back Button + Auth Redirects
+
+**Goal:** Make the browser back button work naturally within the operator page's mobile views, and redirect authenticated users away from `/entrar`.
+
+**Files:** `web/src/routes/(app)/operador/+page.svelte`, `web/src/routes/entrar/+page.svelte`
+
+**5a: Browser history for mobileView transitions**
+
+**Problem:** The `mobileView` state (`list` → `detail` → `info`) changes without pushing to the browser history. When a user presses the browser/OS back button, they leave the app entirely instead of going back (e.g., from detail to list).
+
+**Fix:**
+- [x] Push a history entry with `history.pushState({ mobileView }, '')` whenever `mobileView` changes to `detail` or `info`.
+- [x] Listen for the `popstate` event. When the user presses back, read `event.state.mobileView` and restore the view. If state is null or `list`, set `mobileView = 'list'` and clear `selectedId`.
+- [x] In functions that set `mobileView` back (the "Voltar" buttons), use `history.back()` instead of directly setting `mobileView`, so the history stack stays consistent.
+- [x] Clean up the `popstate` listener in `onDestroy`.
+
+**5b: Redirect authenticated users from /entrar**
+
+**Problem:** If a logged-in user navigates to `/entrar`, they see the login form. They should be redirected to `/operador`.
+
+**Fix:**
+- [x] Add `onMount` check in `/entrar/+page.svelte`: if `pb.authStore.isValid`, call `goto('/operador', { replaceState: true })`.
+
+**Notes:**
+- 5a: Added `handlePopState` function that reads `event.state.mobileView` and restores the view. Listener added in `onMount`, removed in `onDestroy`. History entries pushed in `selectClient()`, the info button click, and `openNewForm()`/`openEditForm()` (only when transitioning from list). Both Voltar buttons and `closeForm()` use `history.back()` instead of direct state assignment.
+- 5b: Used `onMount` check in `/entrar/+page.svelte` with `goto('/operador', { replaceState: true })`.
+
+**Gate:**
+
+1. [x] `cd web && pnpm check`
+2. [x] `cd web && npx playwright test` — full suite passes (48 passed, no regressions)
+3. [x] New e2e test `tests/navigation.spec.ts`:
+   - [x] Selecting a client pushes history (detail view). Browser back returns to list.
+   - [x] Opening info screen pushes history. Browser back returns to detail.
+   - [x] Back from detail clears selectedId.
+4. [x] New or updated test in `tests/login.spec.ts`:
+   - [x] Authenticated user visiting `/entrar` is redirected to `/operador`.
+5. Manual verification: on mobile, navigate list → client → info. Press OS back button at each step. Verify smooth transitions without leaving the app.

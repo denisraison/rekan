@@ -1,7 +1,14 @@
 <script lang="ts">
 	import { goto } from '$app/navigation';
+	import { onMount } from 'svelte';
 	import LogoCombo from '$lib/components/LogoCombo.svelte';
 	import { pb } from '$lib/pb';
+
+	onMount(() => {
+		if (pb.authStore.isValid) {
+			goto('/operador', { replaceState: true });
+		}
+	});
 
 	let email = $state('');
 	let password = $state('');
