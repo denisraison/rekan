@@ -1,15 +1,11 @@
-// No caching. This SW exists only for PWA installability.
-// On activate, delete all caches left by the old Workbox SW.
-
+// Self-destructing SW: replaces the old Workbox SW, clears all caches, then unregisters.
 self.addEventListener('install', () => self.skipWaiting());
 
 self.addEventListener('activate', (event) => {
 	event.waitUntil(
-		caches.keys().then((keys) => Promise.all(keys.map((k) => caches.delete(k))))
+		caches.keys()
+			.then((keys) => Promise.all(keys.map((k) => caches.delete(k))))
 			.then(() => self.clients.claim())
+			.then(() => self.registration.unregister())
 	);
-});
-
-self.addEventListener('message', (event) => {
-	if (event.data && event.data.type === 'SKIP_WAITING') self.skipWaiting();
 });

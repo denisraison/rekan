@@ -13,10 +13,13 @@
 		<div style="display: contents">%sveltekit.body%</div>
 		<script>
 			if ('serviceWorker' in navigator) {
-				navigator.serviceWorker.register('/sw.js', { scope: '/' }).then(function (reg) {
-					// Standalone PWAs don't trigger navigation, so the browser may never
-					// check for SW updates on its own. Poll every 60s to catch deploys.
-					setInterval(function () { reg.update(); }, 60000);
+				// Unregister any existing SW and clear all caches.
+				// The sw.js on the server is a self-destructing stub that replaces the old Workbox SW.
+				navigator.serviceWorker.getRegistrations().then(function (regs) {
+					regs.forEach(function (r) { r.update(); r.unregister(); });
+				});
+				caches.keys().then(function (keys) {
+					keys.forEach(function (k) { caches.delete(k); });
 				});
 				navigator.serviceWorker.addEventListener('controllerchange', function () { location.reload(); });
 			}
