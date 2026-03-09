@@ -2,7 +2,6 @@ import basicSsl from '@vitejs/plugin-basic-ssl';
 import { sveltekit } from '@sveltejs/kit/vite';
 import tailwindcss from '@tailwindcss/vite';
 import { defineConfig } from 'vite';
-import { VitePWA } from 'vite-plugin-pwa';
 import { mockApi } from './src/mocks/vite-plugin';
 
 const apiTarget = process.env.VITE_API_URL ?? 'http://127.0.0.1:8090';
@@ -15,38 +14,6 @@ export default defineConfig({
 		basicSsl(),
 		tailwindcss(),
 		sveltekit(),
-		VitePWA({
-			injectRegister: false,
-			registerType: 'autoUpdate',
-			devOptions: { enabled: true },
-			workbox: {
-				// No precaching: Caddy handles caching (immutable for hashed assets, no-cache for HTML/sw.js).
-				// Precaching caused phones to serve months-old stale assets from Cache Storage.
-				globPatterns: [],
-				navigateFallback: null
-			},
-			manifest: {
-				name: 'Rekan',
-				short_name: 'Rekan',
-				description: 'Seu parceiro de conteúdo pro Instagram, direto no WhatsApp.',
-				lang: 'pt-BR',
-				theme_color: '#f97368',
-				background_color: '#fafaf7',
-				display: 'standalone',
-				start_url: '/',
-				scope: '/',
-				icons: [
-					{ src: 'icons/icon-192.png', sizes: '192x192', type: 'image/png' },
-					{ src: 'icons/icon-512.png', sizes: '512x512', type: 'image/png' },
-					{
-						src: 'icons/icon-512.png',
-						sizes: '512x512',
-						type: 'image/png',
-						purpose: 'maskable'
-					}
-				]
-			}
-		})
 	],
 	server: {
 		proxy: {

@@ -1,0 +1,16 @@
+{
+	"name": "Rekan",
+	"short_name": "Rekan",
+	"description": "Seu parceiro de conteúdo pro Instagram, direto no WhatsApp.",
+	"lang": "pt-BR",
+	"theme_color": "#f97368",
+	"background_color": "#fafaf7",
+	"display": "standalone",
+	"start_url": "/",
+	"scope": "/",
+	"icons": [
+		{ "src": "icons/icon-192.png", "sizes": "192x192", "type": "image/png" },
+		{ "src": "icons/icon-512.png", "sizes": "512x512", "type": "image/png" },
+		{ "src": "icons/icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "maskable" }
+	]
+}
