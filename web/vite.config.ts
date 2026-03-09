@@ -20,9 +20,10 @@ export default defineConfig({
 			registerType: 'autoUpdate',
 			devOptions: { enabled: true },
 			workbox: {
-				navigateFallback: '/200.html',
-				globPatterns: ['**/*.{js,css,html,svg,png,woff2}'],
-				globIgnores: ['demo/**']
+				// No precaching: Caddy handles caching (immutable for hashed assets, no-cache for HTML/sw.js).
+				// Precaching caused phones to serve months-old stale assets from Cache Storage.
+				globPatterns: [],
+				navigateFallback: null
 			},
 			manifest: {
 				name: 'Rekan',
