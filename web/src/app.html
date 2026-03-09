@@ -13,8 +13,12 @@
 		<div style="display: contents">%sveltekit.body%</div>
 		<script>
 			if ('serviceWorker' in navigator) {
-				navigator.serviceWorker.register('/sw.js', { scope: '/' });
-				navigator.serviceWorker.addEventListener('controllerchange', () => location.reload());
+				navigator.serviceWorker.register('/sw.js', { scope: '/' }).then(function (reg) {
+					// Standalone PWAs don't trigger navigation, so the browser may never
+					// check for SW updates on its own. Poll every 60s to catch deploys.
+					setInterval(function () { reg.update(); }, 60000);
+				});
+				navigator.serviceWorker.addEventListener('controllerchange', function () { location.reload(); });
 			}
 		</script>
 	</body>
