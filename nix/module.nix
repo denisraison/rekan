@@ -82,13 +82,18 @@ in
       lib.nameValuePair icfg.domain {
         extraConfig = ''
           handle /api/* {
-            # Temporary: nuke old Workbox SW caches on any API call. Remove after 2026-04-01.
-            header Clear-Site-Data "\"cache\", \"storage\""
             reverse_proxy localhost:${toString icfg.port}
           }
 
           handle /_/* {
             reverse_proxy localhost:${toString icfg.port}
+          }
+
+          handle /sw.js {
+            root * ${icfg.webRoot}
+            header Cache-Control "no-cache"
+            header Clear-Site-Data "\"cache\", \"storage\""
+            file_server
           }
 
           handle /_app/immutable/* {
