@@ -81,6 +81,8 @@ in
     services.caddy.virtualHosts = lib.mapAttrs' (name: icfg:
       lib.nameValuePair icfg.domain {
         extraConfig = ''
+          encode gzip
+
           handle /api/* {
             reverse_proxy localhost:${toString icfg.port}
           }
