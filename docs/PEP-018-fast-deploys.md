@@ -2,7 +2,7 @@
 
 | Field       | Value            |
 | ----------- | ---------------- |
-| **Status**  | In Progress      |
+| **Status**  | Done             |
 | **Created** | 2026-03-10       |
 
 ## Context
@@ -74,7 +74,7 @@ Staging stays on native aarch64 packages (unchanged by deploy).
 - [x] Add `prod` and `prod-remote` NixOS configs to infra flake
 - [x] `prod` config overrides prod instance with cross-compiled API + web
 - [x] Update `make deploy` in the Makefile
-- [ ] Test end-to-end: `make deploy TAG=v0.x.x`
+- [x] Test end-to-end: `make deploy TAG=v0.4.16` (server built only 8 trivial derivations, zero compilation)
 
 ### Deploy flow
 

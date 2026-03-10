@@ -1,5 +1,6 @@
 <script lang="ts">
 	import '../app.css';
+	// PEP-018: deploy timing test
 	let { children } = $props();
 </script>
 

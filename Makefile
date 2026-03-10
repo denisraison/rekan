@@ -42,7 +42,7 @@ INFRA_DIR    := ../infra
 SERVER       := root@46.225.161.186
 
 deploy: ## Tag, cross-build locally, push to server, activate (usage: make deploy TAG=v0.4.3)
-	git push origin main && git tag $(TAG) && git push origin $(TAG)
+	git tag $(TAG) && git push origin $(TAG)
 	cd $(INFRA_DIR) && nix flake lock --override-input rekan github:denisraison/rekan/$(TAG)
 	cd $(INFRA_DIR) && nix build .#nixosConfigurations.prod.config.services.rekan.instances.prod.package -o result-api
 	cd $(INFRA_DIR) && nix build .#nixosConfigurations.prod.config.services.rekan.instances.prod.webRoot -o result-web
