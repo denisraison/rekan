@@ -22,7 +22,6 @@ import (
 )
 
 func main() {
-	log.Println("PEP-018: deploy timing test") // remove after benchmarking
 	ctx := context.Background()
 	if err := run(ctx, os.Getenv); err != nil {
 		log.Fatal(err)
