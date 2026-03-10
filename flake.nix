@@ -32,11 +32,9 @@
             x86_64-linux = "sha256-MG+gS6pVAQ0jhr5hOwt2gbVmXh9c+0QcMjyaL86gfJc=";
             aarch64-linux = "sha256-xVRWDvIsvWPOy94BzUolVzs/wX2k/goTzedvxS+x+s0=";
           }.${system} or (throw "unsupported system for BAML: ${system}");
-        in
-        {
-          api = (pkgs.buildGoModule.override { go = pkgs.go_1_26; }) {
+          buildApi = { buildGoModule, go, bamlLibPath }: (buildGoModule.override { inherit go; }) {
             pname = "rekan-api";
-            version = version;
+            inherit version;
             src = pkgs.lib.fileset.toSource {
               root = ./.;
               fileset = pkgs.lib.fileset.unions [
@@ -48,8 +46,15 @@
             subPackages = [ "." ];
             vendorHash = "sha256-JdSotTL3E3RWz/2lzUf2eXKf23tuhV1W6BcHvD9+2x8=";
             proxyVendor = true;
-            preCheck = "export BAML_LIBRARY_PATH=${bamlLib}";
+            preCheck = "export BAML_LIBRARY_PATH=${bamlLibPath}";
             meta.mainProgram = "api";
+          };
+        in
+        {
+          api = buildApi {
+            inherit (pkgs) buildGoModule;
+            go = pkgs.go_1_26;
+            bamlLibPath = bamlLib;
           };
 
           web = pkgs.lib.makeOverridable ({ publicEnv ? { PUBLIC_WHATSAPP_NUMBER = ""; } }: pkgs.stdenvNoCC.mkDerivation {
@@ -61,7 +66,7 @@
               pname = "rekan-web";
               version = "0.1.0";
               src = ./web;
-              hash = "sha256-tfByhcdwjvXIU/IJkOLun8E7XxvoAPc64jSPKWS3heI=";
+              hash = "sha256-MJ3TU0SG46X/oz7sLh/Q0GGgUkoidy/DHBMWTAXKinU=";
               fetcherVersion = 3;
             };
             buildPhase = let
@@ -79,7 +84,23 @@
               runHook postInstall
             '';
           }) {};
-        }
+        } // (if system == "x86_64-linux" then
+          let
+            pkgsCross = pkgs.pkgsCross.aarch64-multiplatform;
+            crossBamlLib = pkgs.fetchurl {
+              url = "https://github.com/boundaryml/baml/releases/download/${bamlVersion}/libbaml_cffi-aarch64-unknown-linux-gnu.so";
+              hash = "sha256-xVRWDvIsvWPOy94BzUolVzs/wX2k/goTzedvxS+x+s0=";
+            };
+          in
+          {
+            # Cross-compiled aarch64 API, no emulation needed (~13s vs ~4m30s)
+            api-cross-aarch64 = buildApi {
+              inherit (pkgsCross) buildGoModule;
+              go = pkgsCross.go_1_26;
+              bamlLibPath = crossBamlLib;
+            };
+          }
+        else {})
       );
 
       checks = forEachSystem (system: {
