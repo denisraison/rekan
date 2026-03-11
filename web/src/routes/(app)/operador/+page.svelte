@@ -13,119 +13,14 @@
     Service,
     WAStatus,
   } from "$lib/types";
+  import {
+    businessTypes, states,
+    findNudgeTier, resolveTemplate, findNearestSeasonal, getUpcomingDates,
+  } from "$lib/operator/constants";
+  import { computeClientHealth } from "$lib/operator/health";
+  import { initials, fmtTime, profilePictureUrl, mediaUrl, groupMessagesByDate } from "$lib/operator/format";
+  import * as api from "$lib/operator/api";
 
-  const BUSINESS_TYPES = [
-    "Salão de Beleza",
-    "Restaurante",
-    "Personal Trainer",
-    "Nail Designer",
-    "Confeitaria",
-    "Barbearia",
-    "Loja de Roupas",
-    "Pet Shop",
-    "Banda Musical",
-    "Estúdio de Tatuagem",
-    "Hamburgueria",
-    "Loja de Açaí",
-    "Outro",
-  ];
-
-  const STATES = [
-    "AC","AL","AP","AM","BA","CE","DF","ES","GO","MA","MT","MS","MG",
-    "PA","PB","PR","PE","PI","RJ","RN","RS","RO","RR","SC","SP","SE","TO",
-  ];
-
-  const NUDGE_TEMPLATES = [
-    {
-      minDays: 5,
-      maxDays: 7,
-      template: "Oi {name}, como foi a semana? Tem algo legal pra gente postar?",
-    },
-    {
-      minDays: 8,
-      maxDays: 14,
-      template: "{name}, tudo bem? Faz um tempinho que a gente não posta. Bora preparar algo novo?",
-    },
-    {
-      minDays: 15,
-      maxDays: Infinity,
-      template: "{name}, vi que faz um tempo! Quer retomar? Posso te mandar ideias de conteúdo pra essa semana.",
-    },
-  ];
-
-  type SeasonalDate = {
-    month: number;
-    day: number;
-    label: string;
-    niches: string[];
-    template: string;
-  };
-  // Moveable holidays (Carnaval, Páscoa, Dia das Mães) hardcoded for 2026
-  const SEASONAL_DATES: SeasonalDate[] = [
-    {
-      month: 2, day: 14, label: "Carnaval",
-      niches: ["Salão de Beleza", "Barbearia", "Personal Trainer", "Nail Designer"],
-      template: "{name}, Carnaval tá chegando! Vamos preparar posts especiais?",
-    },
-    {
-      month: 3, day: 8, label: "Dia da Mulher",
-      niches: ["Salão de Beleza", "Nail Designer", "Confeitaria", "Loja de Roupas"],
-      template: "{name}, Dia da Mulher vem ai! Que tal um post com promo especial?",
-    },
-    {
-      month: 4, day: 5, label: "Páscoa",
-      niches: ["Confeitaria", "Restaurante", "Hamburgueria", "Loja de Açaí"],
-      template: "{name}, Páscoa tá chegando! Vamos montar os posts das encomendas?",
-    },
-    {
-      month: 5, day: 10, label: "Dia das Mães",
-      niches: ["Salão de Beleza", "Confeitaria", "Nail Designer", "Loja de Roupas", "Restaurante"],
-      template: "{name}, Dia das Mães daqui a pouco! Bora preparar posts de presente e promo?",
-    },
-    {
-      month: 6, day: 12, label: "Dia dos Namorados",
-      niches: ["Confeitaria", "Restaurante", "Hamburgueria", "Salão de Beleza", "Loja de Roupas"],
-      template: "{name}, Dia dos Namorados vem ai! Vamos criar posts romanticos pro seu negocio?",
-    },
-    {
-      month: 6, day: 13, label: "Festas Juninas",
-      niches: ["Confeitaria", "Restaurante", "Hamburgueria", "Banda Musical"],
-      template: "{name}, Junho ta ai! Vamos postar algo com tema junino?",
-    },
-    {
-      month: 9, day: 1, label: "Dia do Educador Físico",
-      niches: ["Personal Trainer"],
-      template: "{name}, vem ai o Dia do Educador Fisico! Bora fazer um post especial?",
-    },
-    {
-      month: 10, day: 1, label: "Início do Verão",
-      niches: ["Personal Trainer", "Loja de Açaí"],
-      template: "{name}, verao chegando! Momento perfeito pra postar sobre preparacao e resultados.",
-    },
-    {
-      month: 10, day: 12, label: "Dia das Crianças",
-      niches: ["Confeitaria", "Pet Shop", "Loja de Roupas"],
-      template: "{name}, Dia das Criancas ta perto! Vamos criar posts com ofertas kids?",
-    },
-    {
-      month: 12, day: 19, label: "Dia do Cabeleireiro",
-      niches: ["Salão de Beleza", "Barbearia"],
-      template: "{name}, Dia do Cabeleireiro chegando! Que tal um post especial celebrando a profissao?",
-    },
-    {
-      month: 12, day: 25, label: "Natal",
-      niches: [],
-      template: "{name}, Natal chegando! Vamos preparar posts com ofertas e mensagem de final de ano?",
-    },
-    {
-      month: 12, day: 31, label: "Réveillon",
-      niches: ["Salão de Beleza", "Barbearia", "Nail Designer", "Personal Trainer", "Loja de Roupas"],
-      template: "{name}, Réveillon vem aí! Bora postar sobre agendamento e preparação?",
-    },
-  ];
-  const SEASONAL_DATES_SORTED = [...SEASONAL_DATES].sort((a, b) =>
-    a.month !== b.month ? a.month - b.month : a.day - b.day
-  );
 
   let clients = $state<Business[]>([]);
   let selectedId = $state<string | null>(null);
@@ -289,78 +184,10 @@
     );
   });
 
-  type MessageGroup = { date: Date; label: string; msgs: Message[] };
-  let groupedMessages = $derived.by(() => {
-    if (threadMessages.length === 0) return [];
-    const today = new Date();
-    today.setHours(0, 0, 0, 0);
-    const yesterday = new Date(today.getTime() - 86400000);
-    const groups: MessageGroup[] = [];
-    let current: MessageGroup | null = null;
-    for (const msg of threadMessages) {
-      const d = new Date(msg.wa_timestamp || msg.created);
-      d.setHours(0, 0, 0, 0);
-      if (!current || current.date.getTime() !== d.getTime()) {
-        let label: string;
-        if (d.getTime() === today.getTime()) label = "Hoje";
-        else if (d.getTime() === yesterday.getTime()) label = "Ontem";
-        else
-          label = d.toLocaleDateString("pt-BR", {
-            weekday: "short",
-            day: "numeric",
-            month: "short",
-          });
-        current = { date: d, label, msgs: [] };
-        groups.push(current);
-      }
-      current.msgs.push(msg);
-    }
-    return groups;
-  });
+  let groupedMessages = $derived(groupMessagesByDate(threadMessages));
 
   // Health indicators per client
-  type ClientHealth = {
-    daysSinceMsg: number;
-    postsThisMonth: number;
-    color: string;
-  };
-  let clientHealth = $derived.by(() => {
-    const now = Date.now();
-    const monthStart = new Date();
-    monthStart.setDate(1);
-    monthStart.setHours(0, 0, 0, 0);
-    const monthStr = monthStart.toISOString();
-
-    const health: Record<string, ClientHealth> = {};
-    for (const client of clients) {
-      const clientMsgs = messages.filter(
-        (m) => m.business === client.id && m.direction === "incoming",
-      );
-      const lastMsg =
-        clientMsgs.length > 0
-          ? clientMsgs.reduce((a, b) => (a.created > b.created ? a : b))
-          : null;
-      const daysSinceMsg = lastMsg
-        ? Math.floor(
-            (now -
-              new Date(lastMsg.wa_timestamp || lastMsg.created).getTime()) /
-              86400000,
-          )
-        : 999;
-
-      const postsThisMonth = posts.filter(
-        (p) => p.business === client.id && p.created >= monthStr,
-      ).length;
-
-      let color = "#10B981"; // green
-      if (daysSinceMsg >= 10)
-        color = "#EF4444"; // red
-      else if (daysSinceMsg >= 5) color = "#F59E0B"; // yellow
-
-      health[client.id] = { daysSinceMsg, postsThisMonth, color };
-    }
-    return health;
-  });
+  let clientHealth = $derived(computeClientHealth(clients, messages, posts));
 
   // Feature 4 — posts for selected client
   let clientPosts = $derived(selectedId ? posts.filter(p => p.business === selectedId) : []);
@@ -385,21 +212,8 @@
   // Feature 6 — morning summary derived values
   let unreadClientsCount = $derived(clients.filter(c => (unreadCounts[c.id] ?? 0) > 0).length);
   let pendingPaymentCount = $derived(clients.filter(c => c.charge_pending).length);
-  let globalNearestSeasonal = $derived.by(() => {
-    const now = new Date();
-    const limit = new Date(now.getTime() + 30 * 86400000);
-    const year = now.getFullYear();
-    for (const sd of SEASONAL_DATES_SORTED) {
-      const date = new Date(year, sd.month - 1, sd.day);
-      if (date < now) date.setFullYear(year + 1);
-      if (date > limit) continue;
-      const eligible = clients.filter(c => sd.niches.length === 0 || sd.niches.includes(c.type));
-      if (eligible.length > 0) {
-        return { ...sd, daysUntil: Math.ceil((date.getTime() - now.getTime()) / 86400000), eligibleCount: eligible.length };
-      }
-    }
-    return null;
-  });
+  let clientTypes = $derived(clients.map(c => c.type));
+  let globalNearestSeasonal = $derived(findNearestSeasonal(clientTypes));
 
   let filteredClients = $derived.by(() => {
     switch (clientFilter) {
@@ -422,40 +236,11 @@
     }
   });
 
-  let nudgeTier = $derived.by(() => {
-    if (!selected) return null;
-    const h = clientHealth[selected.id];
-    if (!h || h.daysSinceMsg < 5 || h.daysSinceMsg === 999) return null;
-    return (
-      NUDGE_TEMPLATES.find(
-        (t) => h.daysSinceMsg >= t.minDays && h.daysSinceMsg <= t.maxDays,
-      ) ?? NUDGE_TEMPLATES[NUDGE_TEMPLATES.length - 1]
-    );
-  });
+  let nudgeTier = $derived(
+    selected ? findNudgeTier(clientHealth[selected.id]?.daysSinceMsg ?? 999) : null,
+  );
 
-  let upcomingDates = $derived.by(() => {
-    if (!selected) return [];
-    const now = new Date();
-    const limit = new Date(now.getTime() + 30 * 86400000);
-    const year = now.getFullYear();
-
-    return SEASONAL_DATES.filter((d) => {
-      if (d.niches.length > 0 && !d.niches.includes(selected!.type))
-        return false;
-      const date = new Date(year, d.month - 1, d.day);
-      if (date < now) date.setFullYear(year + 1);
-      return date >= now && date <= limit;
-    })
-      .map((d) => {
-        const date = new Date(year, d.month - 1, d.day);
-        if (date < now) date.setFullYear(year + 1);
-        const daysUntil = Math.ceil(
-          (date.getTime() - now.getTime()) / 86400000,
-        );
-        return { ...d, daysUntil };
-      })
-      .sort((a, b) => a.daysUntil - b.daysUntil);
-  });
+  let upcomingDates = $derived(selected ? getUpcomingDates(selected.type) : []);
 
   let blockReason = $derived(
     !waConnected
@@ -493,10 +278,7 @@
       localStorage.getItem("rekan_operator_last_seen") ?? "{}",
     );
 
-    const [clientsRes] = await Promise.all([
-      pb.collection("businesses").getList<Business>(1, 200, { sort: "name" }),
-    ]);
-    clients = clientsRes.items;
+    clients = await api.fetchClients();
     loading = false;
 
     // Start WhatsApp stream early so waConnected is set before subscriptions complete
@@ -509,66 +291,56 @@
     await Promise.all([loadScheduledMessages(), loadAllSuggestionCounts()]);
 
     // Subscribe to realtime updates
-    unsubscribeMessages = await pb
-      .collection("messages")
-      .subscribe<Message>("*", (e) => {
-        if (e.action === "create") {
-          messages = [...messages, e.record];
-        } else if (e.action === "update") {
-          messages = messages.map((m) => (m.id === e.record.id ? e.record : m));
-        }
-      });
+    unsubscribeMessages = await api.subscribeMessages((action, record) => {
+      if (action === "create") {
+        messages = [...messages, record];
+      } else if (action === "update") {
+        messages = messages.map((m) => (m.id === record.id ? record : m));
+      }
+    });
 
-    unsubscribeBusinesses = await pb
-      .collection("businesses")
-      .subscribe<Business>("*", (e) => {
-        if (e.action === "create") {
-          if (!clients.some((c) => c.id === e.record.id)) {
-            clients = [...clients, e.record].sort((a, b) =>
-              a.name.localeCompare(b.name),
-            );
-          }
-        } else if (e.action === "update") {
-          clients = clients.map((c) => (c.id === e.record.id ? e.record : c));
-        } else if (e.action === "delete") {
-          clients = clients.filter((c) => c.id !== e.record.id);
+    unsubscribeBusinesses = await api.subscribeBusinesses((action, record) => {
+      if (action === "create") {
+        if (!clients.some((c) => c.id === record.id)) {
+          clients = [...clients, record].sort((a, b) =>
+            a.name.localeCompare(b.name),
+          );
         }
-      });
+      } else if (action === "update") {
+        clients = clients.map((c) => (c.id === record.id ? record : c));
+      } else if (action === "delete") {
+        clients = clients.filter((c) => c.id !== record.id);
+      }
+    });
 
-    unsubscribePosts = await pb
-      .collection("posts")
-      .subscribe<Post>("*", (e) => {
-        if (e.action === "create") {
-          if (!posts.some((p) => p.id === e.record.id)) {
-            posts = [e.record, ...posts];
-          }
-        } else if (e.action === "update") {
-          posts = posts.map((p) => (p.id === e.record.id ? e.record : p));
-        } else if (e.action === "delete") {
-          posts = posts.filter((p) => p.id !== e.record.id);
+    unsubscribePosts = await api.subscribePosts((action, record) => {
+      if (action === "create") {
+        if (!posts.some((p) => p.id === record.id)) {
+          posts = [record, ...posts];
         }
-      });
+      } else if (action === "update") {
+        posts = posts.map((p) => (p.id === record.id ? record : p));
+      } else if (action === "delete") {
+        posts = posts.filter((p) => p.id !== record.id);
+      }
+    });
 
-    unsubscribeScheduledMessages = await pb
-      .collection("scheduled_messages")
-      .subscribe<ScheduledMessage>("*", async () => {
-        await loadScheduledMessages();
-      });
+    unsubscribeScheduledMessages = await api.subscribeScheduledMessages(async () => {
+      await loadScheduledMessages();
+    });
 
-    unsubscribeSuggestions = await pb
-      .collection("profile_suggestions")
-      .subscribe<ProfileSuggestion>("*", (e) => {
-        if (e.action === "create" && !e.record.dismissed) {
-          const biz = e.record.business;
-          suggestionCounts = { ...suggestionCounts, [biz]: (suggestionCounts[biz] ?? 0) + 1 };
-          if (biz === selectedId) {
-            suggestions = [...suggestions, e.record];
-          }
-        } else if (e.action === "update" && e.record.dismissed) {
-          decrementSuggestionCount(e.record.business);
-          suggestions = suggestions.filter((s) => s.id !== e.record.id);
+    unsubscribeSuggestions = await api.subscribeSuggestions((action, record) => {
+      if (action === "create" && !record.dismissed) {
+        const biz = record.business;
+        suggestionCounts = { ...suggestionCounts, [biz]: (suggestionCounts[biz] ?? 0) + 1 };
+        if (biz === selectedId) {
+          suggestions = [...suggestions, record];
         }
-      });
+      } else if (action === "update" && record.dismissed) {
+        decrementSuggestionCount(record.business);
+        suggestions = suggestions.filter((s) => s.id !== record.id);
+      }
+    });
 
     // SSE stream dies when the browser suspends the page; restart on resume
     cleanupVisibility = onResume(() => {
@@ -664,10 +436,7 @@
   async function loadMessages() {
     messagesLoading = true;
     try {
-      const res = await pb.collection("messages").getList<Message>(1, 500, {
-        sort: "created",
-      });
-      messages = res.items;
+      messages = await api.fetchMessages();
     } finally {
       messagesLoading = false;
     }
@@ -675,10 +444,7 @@
 
   async function loadPosts() {
     try {
-      const res = await pb.collection("posts").getList<Post>(1, 500, {
-        sort: "-created",
-      });
-      posts = res.items;
+      posts = await api.fetchPosts();
     } catch {
       // Posts loading is non-critical for the page to work
     }
@@ -686,8 +452,7 @@
 
   async function loadScheduledMessages() {
     try {
-      const res = await pb.send("/api/scheduled-messages", { method: "GET" });
-      scheduledMessages = res as ScheduledMessage[];
+      scheduledMessages = await api.fetchScheduledMessages();
     } catch {
       // non-critical
     }
@@ -695,15 +460,7 @@
 
   async function loadAllSuggestionCounts() {
     try {
-      const res = await pb.collection("profile_suggestions").getList<ProfileSuggestion>(1, 500, {
-        filter: "dismissed = false",
-        fields: "business",
-      });
-      const counts: Record<string, number> = {};
-      for (const s of res.items) {
-        counts[s.business] = (counts[s.business] ?? 0) + 1;
-      }
-      suggestionCounts = counts;
+      suggestionCounts = await api.fetchSuggestionCounts();
     } catch {
       // non-critical
     }
@@ -711,12 +468,9 @@
 
   async function loadSuggestions(businessId: string) {
     try {
-      const res = await pb.collection("profile_suggestions").getList<ProfileSuggestion>(1, 50, {
-        filter: `business = "${businessId}" && dismissed = false`,
-        sort: "created",
-      });
+      const items = await api.fetchSuggestions(businessId);
       if (selectedId !== businessId) return;
-      suggestions = res.items;
+      suggestions = items;
     } catch {
       if (selectedId === businessId) suggestions = [];
     }
@@ -733,29 +487,8 @@
     const business = clients.find((c) => c.id === sug.business);
     if (!business) return;
 
-    const update: Record<string, unknown> = {};
-    if (sug.field === "services") {
-      const parts = sug.suggestion.split("|");
-      const name = parts[0]?.trim() ?? sug.suggestion;
-      const price = parseFloat(parts[1] ?? "0") || 0;
-      update.services = [...(business.services ?? []), { name, price_brl: price }];
-    } else if (sug.field === "quirks") {
-      const existing = business.quirks ?? "";
-      update.quirks = existing ? existing + "\n" + sug.suggestion : sug.suggestion;
-    } else if (sug.field === "target_audience") {
-      const existing = business.target_audience ?? "";
-      update.target_audience = existing ? existing + ", " + sug.suggestion : sug.suggestion;
-    } else if (sug.field === "brand_vibe") {
-      const existing = business.brand_vibe ?? "";
-      update.brand_vibe = existing ? existing + ", " + sug.suggestion : sug.suggestion;
-    } else {
-      return;
-    }
-
-    await Promise.all([
-      pb.collection("businesses").update<Business>(business.id, update),
-      pb.collection("profile_suggestions").update(sug.id, { dismissed: true }),
-    ]);
+    const update = await api.acceptSuggestion(business, sug);
+    if (Object.keys(update).length === 0) return;
 
     clients = clients.map((c) => (c.id === business.id ? ({ ...c, ...update } as Business) : c));
     suggestions = suggestions.filter((s) => s.id !== sug.id);
@@ -763,7 +496,7 @@
   }
 
   async function dismissSuggestion(sug: ProfileSuggestion) {
-    await pb.collection("profile_suggestions").update(sug.id, { dismissed: true });
+    await api.dismissSuggestion(sug.id);
     suggestions = suggestions.filter((s) => s.id !== sug.id);
     decrementSuggestionCount(sug.business);
   }
@@ -796,14 +529,9 @@
     // Auto-populate nudge text for inactive clients
     const client = clients.find((c) => c.id === id);
     const health = clientHealth[id];
-    if (client && health && health.daysSinceMsg >= 5 && health.daysSinceMsg !== 999) {
-      const tier =
-        NUDGE_TEMPLATES.find(
-          (t) =>
-            health.daysSinceMsg >= t.minDays &&
-            health.daysSinceMsg <= t.maxDays,
-        ) ?? NUDGE_TEMPLATES[NUDGE_TEMPLATES.length - 1];
-      nudgeText = tier.template.replace("{name}", client.client_name ? client.client_name.split(" ")[0] : client.name);
+    const tier = health ? findNudgeTier(health.daysSinceMsg) : null;
+    if (client && tier) {
+      nudgeText = resolveTemplate(tier.template, client.client_name, client.name);
     } else {
       nudgeText = "";
     }
@@ -850,15 +578,7 @@
     sendingQuick = true;
     quickReplyError = "";
     try {
-      await pb.send("/api/messages:send", {
-        method: "POST",
-        body: JSON.stringify({
-          business_id: selectedId,
-          caption: message.trim(),
-          hashtags: "",
-          production_note: "",
-        }),
-      });
+      await api.sendMessage(selectedId, message.trim());
       message = "";
     } catch {
       quickReplyError = "Erro ao enviar. Tente novamente.";
@@ -889,11 +609,7 @@
     if (!selectedId) return;
     sendingMedia = true;
     try {
-      const form = new FormData();
-      form.append("business_id", selectedId);
-      form.append("file", file);
-      form.append("caption", message.trim());
-      await pb.send("/api/messages:sendMedia", { method: "POST", body: form });
+      await api.sendMediaMessage(selectedId, file, message.trim());
       message = "";
       removeAttachment();
     } catch {
@@ -905,10 +621,7 @@
 
   async function describeAttachment(): Promise<string> {
     if (!attachedFile) return "";
-    const form = new FormData();
-    form.append("file", attachedFile);
-    const res = await pb.send("/api/media:describe", { method: "POST", body: form }) as { description: string };
-    return res.description;
+    return await api.describeMedia(attachedFile);
   }
 
   function handleAttachFile(accept: string, capture?: string) {
@@ -923,25 +636,6 @@
     input.click();
   }
 
-  function mediaUrl(msg: Message): string {
-    return pb.files.getURL(
-      { id: msg.id, collectionId: msg.collectionId },
-      msg.media,
-    );
-  }
-
-  function profilePictureUrl(business: Business): string | null {
-    if (!business.profile_picture) return null;
-    return pb.files.getURL(
-      { id: business.id, collectionId: business.collectionId },
-      business.profile_picture,
-    );
-  }
-
-  function initials(business: Business): string {
-    const name = business.client_name || business.name;
-    return name.split(' ').slice(0, 2).map((w: string) => w[0]).join('').toUpperCase();
-  }
 
   // --- Client form logic ---
 
@@ -1011,10 +705,6 @@
     formServices = formServices.filter((_: Service, idx: number) => idx !== i);
   }
 
-  function fmtTime(s: number): string {
-    return `${Math.floor(s / 60)}:${(s % 60).toString().padStart(2, '0')}`;
-  }
-
   function cancelRecording() {
     if (recordingTimer) { clearInterval(recordingTimer); recordingTimer = null; }
     // Set idle before stop so the onstop guard skips extraction
@@ -1051,7 +741,7 @@
       recorder.onstop = async () => {
         for (const t of stream.getTracks()) t.stop();
         const blob = new Blob(recordingChunks, { type: recorder.mimeType || 'audio/webm' });
-        await extractVoiceProfile(blob, recorder.mimeType || 'audio/webm');
+        await extractVoiceProfile(blob);
       };
       recorder.start(200);
       mediaRecorderRef = recorder;
@@ -1071,25 +761,15 @@
     }
   }
 
-  async function extractVoiceProfile(blob: Blob, mimeType: string) {
+  async function extractVoiceProfile(blob: Blob) {
     if (voiceMode !== 'analyzing') return; // recording was cancelled
     try {
-      const form = new FormData();
-      form.append('audio', blob, 'recording.webm');
-      form.append('business_type', formType || '');
-      const res = await fetch(`${pb.baseUrl}/api/businesses/profile:extract`, {
-        method: 'POST',
-        headers: { Authorization: pb.authStore.token },
-        body: form,
-      });
-      if (!res.ok) throw new Error('extract failed');
-      const data = await res.json();
+      const data = await api.extractVoiceProfile(blob, formType || '');
 
       const filled = new Set<string>();
-      type ExtractedService = { name: string; price_brl: number | null };
       const hasServices = formServices.some((s: Service) => s.name.trim());
       if (data.services?.length) {
-        const newServices = (data.services as ExtractedService[]).map((s) => ({
+        const newServices = data.services.map((s) => ({
           name: s.name,
           price_brl: s.price_brl ?? 0,
         }));
@@ -1105,7 +785,7 @@
         filled.add('brand_vibe');
       }
       if (data.quirks?.length && !formQuirks.trim()) {
-        formQuirks = (data.quirks as string[]).join('\n');
+        formQuirks = data.quirks.join('\n');
         filled.add('quirks');
       }
       aiFilledFields = filled;
@@ -1157,15 +837,11 @@
     const data = buildFormData();
     if (editingId) {
       const { user: _, ...updateData } = data;
-      const updated = await pb
-        .collection("businesses")
-        .update<Business>(editingId, updateData);
+      const updated = await api.updateBusiness(editingId, updateData);
       clients = clients.map((c) => (c.id === editingId ? updated : c));
       return editingId;
     }
-    const created = await pb
-      .collection("businesses")
-      .create<Business>(data);
+    const created = await api.createBusiness(data);
     clients = [...clients, created].sort((a, b) =>
       a.name.localeCompare(b.name),
     );
@@ -1197,12 +873,9 @@
       const bizId = await saveBusiness();
       editingId = bizId;
 
-      const res = await pb.send(`/api/businesses/${bizId}/invites:send`, {
-        method: "POST",
-      });
-      inviteUrl = res.invite_url || "";
+      inviteUrl = await api.sendInvite(bizId!);
 
-      const refreshed = await pb.collection("businesses").getOne<Business>(bizId!);
+      const refreshed = await api.refreshBusiness(bizId!);
       clients = clients.map((c) => (c.id === bizId ? refreshed : c));
     } catch {
       formError = "Erro ao enviar convite. Tente novamente.";
@@ -1237,10 +910,8 @@
     if (!confirm(`Cancelar assinatura de ${selected.name}? Essa ação não pode ser desfeita.`)) return;
     cancelling = true;
     try {
-      await pb.send(`/api/businesses/${selected.id}/authorization:cancel`, {
-        method: "POST",
-      });
-      const refreshed = await pb.collection("businesses").getOne<Business>(selected.id);
+      await api.cancelSubscription(selected.id);
+      const refreshed = await api.refreshBusiness(selected.id);
       clients = clients.map((c) => (c.id === selected!.id ? refreshed : c));
     } catch {
       alert("Erro ao cancelar assinatura. Tente novamente.");
@@ -1260,7 +931,6 @@
     try {
       const payload: Record<string, string> = {};
 
-      // Describe attached image/video via Gemini
       let imageDescription = "";
       if (hasAttachment) {
         imageDescription = await describeAttachment();
@@ -1279,14 +949,7 @@
         if (selected) parts.push(selected);
         payload.message = parts.join("\n\n");
       }
-      const res = await pb.send(
-        `/api/businesses/${selectedId}/posts:generateFromMessage`,
-        {
-          method: "POST",
-          body: JSON.stringify(payload),
-        },
-      );
-      result = res as GeneratedPost;
+      result = await api.generatePost(selectedId, payload);
       removeAttachment();
     } catch (err: unknown) {
       const e = err as { data?: { message?: string } };
@@ -1303,11 +966,7 @@
     generatingIdeas = true;
     ideaError = "";
     try {
-      const res = await pb.send(
-        `/api/businesses/${selectedId}/posts:generateIdeas`,
-        { method: "POST", body: JSON.stringify({}) },
-      );
-      ideaDrafts = res as GeneratedPost[];
+      ideaDrafts = await api.generateIdeas(selectedId);
     } catch {
       ideaError = "Erro ao gerar ideias. Tente novamente.";
     } finally {
@@ -1321,27 +980,11 @@
     sendError = "";
     try {
       const caption = editingCaption || result.caption;
-      // Feature 7 — if proactive, save the post first
       if (isProactive) {
-        await pb.send(`/api/businesses/${selectedId}/posts:saveProactive`, {
-          method: "POST",
-          body: JSON.stringify({
-            caption,
-            hashtags: result.hashtags,
-            production_note: result.production_note || "",
-          }),
-        });
+        await api.saveProactivePost(selectedId, caption, result.hashtags, result.production_note || "");
       }
 
-      await pb.send("/api/messages:send", {
-        method: "POST",
-        body: JSON.stringify({
-          business_id: selectedId,
-          caption,
-          hashtags: result.hashtags.join(" "),
-          production_note: result.production_note || "",
-        }),
-      });
+      await api.sendMessage(selectedId, caption, result.hashtags, result.production_note || "");
       result = null;
       message = "";
       isProactive = false;
@@ -1362,23 +1005,8 @@
       const indices = [...selectedIdeas].sort((a, b) => a - b);
       for (const idx of indices) {
         const draft = ideaDrafts[idx];
-        await pb.send(`/api/businesses/${selectedId}/posts:saveProactive`, {
-          method: "POST",
-          body: JSON.stringify({
-            caption: draft.caption,
-            hashtags: draft.hashtags,
-            production_note: draft.production_note || "",
-          }),
-        });
-        await pb.send("/api/messages:send", {
-          method: "POST",
-          body: JSON.stringify({
-            business_id: selectedId,
-            caption: draft.caption,
-            hashtags: draft.hashtags.join(" "),
-            production_note: draft.production_note || "",
-          }),
-        });
+        await api.saveProactivePost(selectedId, draft.caption, draft.hashtags, draft.production_note || "");
+        await api.sendMessage(selectedId, draft.caption, draft.hashtags, draft.production_note || "");
       }
       ideaDrafts = null;
       selectedIdeas = new Set();
@@ -1394,15 +1022,7 @@
     sendingNudge = true;
     sendNudgeError = "";
     try {
-      await pb.send("/api/messages:send", {
-        method: "POST",
-        body: JSON.stringify({
-          business_id: selectedId,
-          caption: nudgeText.trim(),
-          hashtags: "",
-          production_note: "",
-        }),
-      });
+      await api.sendMessage(selectedId, nudgeText.trim());
       nudgeText = "";
     } catch {
       sendNudgeError = "Erro ao enviar lembrete. Tente novamente.";
@@ -1414,7 +1034,7 @@
 
   function prefillSeasonalMessage(template: string) {
     if (!selected) return;
-    nudgeText = template.replace("{name}", selected.client_name ? selected.client_name.split(" ")[0] : selected.name);
+    nudgeText = resolveTemplate(template, selected.client_name, selected.name);
   }
 
   const copyTimers: Record<string, ReturnType<typeof setTimeout>> = {};
@@ -1429,7 +1049,7 @@
   async function approveScheduledMessage(id: string) {
     approvingId = id;
     try {
-      await pb.send(`/api/scheduled-messages/${id}/approve`, { method: "POST" });
+      await api.approveScheduledMessage(id);
       scheduledMessages = scheduledMessages.filter(m => m.id !== id);
     } catch {
       // silent — rare failure
@@ -1441,7 +1061,7 @@
   async function dismissScheduledMessage(id: string) {
     dismissingId = id;
     try {
-      await pb.send(`/api/scheduled-messages/${id}/dismiss`, { method: "POST" });
+      await api.dismissScheduledMessage(id);
       scheduledMessages = scheduledMessages.filter(m => m.id !== id);
     } catch {
       // silent
@@ -1485,7 +1105,7 @@
     <main class="flex-1 flex flex-col md:flex-row overflow-hidden">
       <!-- Left: Client list (or approval panel) -->
       <div
-        class="w-full md:w-80 md:border-r flex flex-col flex-1 min-h-0 md:flex-none {mobileView === 'list' ? '' : 'hidden md:flex'}"
+        class="w-full md:w-[480px] md:border-r flex flex-col flex-1 min-h-0 md:flex-none {mobileView === 'list' ? '' : 'hidden md:flex'}"
         style="border-color: var(--border); background: var(--surface)"
       >
         {#if showApprovalPanel}
@@ -1535,7 +1155,7 @@
         {:else}
           <!-- Feature 6 — Morning summary bar -->
           {#if unreadClientsCount > 0 || inactiveCount > 0 || globalNearestSeasonal || pendingPaymentCount > 0 || scheduledMessageCount > 0}
-            <div style="border-bottom: 1px solid var(--border); background: var(--bg);">
+            <div style="border-bottom: 2px solid var(--border); background: var(--bg); padding-bottom: 4px;">
               {#if unreadClientsCount > 0}
                 <button
                   onclick={() => { clientFilter = "com_mensagens"; }}
@@ -1698,9 +1318,9 @@
       <!-- Right: Thread or form -->
       <div class="flex-1 flex flex-col overflow-hidden {mobileView === 'detail' || mobileView === 'info' ? '' : 'hidden md:flex'}">
         {#if showForm}
-          <div class="flex-1 overflow-y-auto p-5 md:p-6">
+          <div class="flex-1 overflow-y-auto p-5 md:p-6 flex flex-col {voiceMode === 'idle' ? 'justify-center' : ''}">
             <div
-              class="max-w-xl rounded-2xl p-5 md:p-6"
+              class="max-w-xl rounded-2xl p-5 md:p-6 {voiceMode === 'idle' ? 'mx-auto w-full' : ''}"
               style="background: var(--surface); border: 1px solid var(--border); box-shadow: var(--shadow-sm)"
             >
               <h2 class="text-lg font-semibold mb-4" style="color: var(--text)">
@@ -1861,7 +1481,7 @@
                       <span class="text-base font-medium" style="color: var(--text)">Tipo de negócio</span>
                       <select bind:value={formType} class="px-3 py-3 rounded-xl text-base outline-none border" style="border-color: var(--border-strong); background: var(--surface); color: var(--text)">
                         <option value="">Selecione...</option>
-                        {#each BUSINESS_TYPES as t}<option value={t}>{t}</option>{/each}
+                        {#each businessTypes as t}<option value={t}>{t}</option>{/each}
                       </select>
                     </label>
                     <div class="flex gap-3">
@@ -1873,7 +1493,7 @@
                         <span class="text-base font-medium" style="color: var(--text)">Estado</span>
                         <select bind:value={formState} class="px-3 py-3 rounded-xl text-base outline-none border" style="border-color: var(--border-strong); background: var(--surface); color: var(--text)">
                           <option value="">UF</option>
-                          {#each STATES as stateCode}<option value={stateCode}>{stateCode}</option>{/each}
+                          {#each states as stateCode}<option value={stateCode}>{stateCode}</option>{/each}
                         </select>
                       </label>
                     </div>
@@ -1931,12 +1551,12 @@
 
                 {#if voiceMode !== 'recording' && voiceMode !== 'analyzing'}
                   <div class="flex flex-col md:flex-row gap-3 mt-6">
-                    <button onclick={closeForm} class="px-5 py-3 rounded-full text-base font-medium border" style="border-color: var(--border-strong); color: var(--text-secondary)">Cancelar</button>
                     {#if voiceMode === 'idle'}
-                      <button disabled class="px-5 py-3 rounded-full text-base font-medium" style="background: rgba(17,17,22,0.08); color: var(--text-muted); cursor: not-allowed;">Salvar cliente</button>
+                      <button onclick={closeForm} class="w-full px-5 py-3 rounded-full text-base font-medium border" style="border-color: var(--border-strong); color: var(--text-secondary)">Cancelar</button>
                     {:else}
-                      <button onclick={saveClient} disabled={formSaving} class="px-5 py-3 rounded-full text-base font-medium" style="background: var(--coral); color: #fff; opacity: {formSaving ? '0.6' : '1'}; cursor: {formSaving ? 'not-allowed' : 'pointer'}">{formSaving ? "Salvando..." : "Salvar"}</button>
-                      <button onclick={saveAndInvite} disabled={formSaving} class="px-5 py-3 rounded-full text-base font-medium" style="background: #25D366; color: #fff; opacity: {formSaving ? '0.6' : '1'}; cursor: {formSaving ? 'not-allowed' : 'pointer'}">{formSaving ? "Salvando..." : "Salvar e Enviar Convite"}</button>
+                      <button onclick={saveClient} disabled={formSaving} class="w-full px-5 py-3 rounded-full text-base font-medium" style="background: var(--coral); color: #fff; opacity: {formSaving ? '0.6' : '1'}; cursor: {formSaving ? 'not-allowed' : 'pointer'}">{formSaving ? "Salvando..." : "Salvar"}</button>
+                      <button onclick={saveAndInvite} disabled={formSaving} class="w-full px-5 py-3 rounded-full text-base font-medium" style="background: #25D366; color: #fff; opacity: {formSaving ? '0.6' : '1'}; cursor: {formSaving ? 'not-allowed' : 'pointer'}">{formSaving ? "Salvando..." : "Salvar e Enviar Convite"}</button>
+                      <button onclick={closeForm} class="w-full py-2 text-sm font-medium" style="color: var(--text-muted)">Cancelar</button>
                     {/if}
                   </div>
                 {/if}
@@ -2420,9 +2040,17 @@
           <!-- Message thread -->
           <div bind:this={threadEl} data-testid="message-thread" class="flex-1 overflow-y-auto px-4 py-3 flex flex-col gap-2" style="background: var(--chat-bg)">
             {#if groupedMessages.length === 0}
-              <p class="text-base text-center py-8" style="color: var(--text-muted)">
-                Quando {selected.name} mandar mensagem, aparece aqui.
-              </p>
+              <div class="flex-1 flex items-center justify-center">
+                {#if inputMode === 'generate'}
+                  <p class="text-base text-center px-8" style="color: var(--coral)">
+                    Toque nas mensagens que quer usar no post
+                  </p>
+                {:else}
+                  <p class="text-base text-center px-8" style="color: var(--text-muted)">
+                    Quando {selected.name} mandar mensagem, aparece aqui.
+                  </p>
+                {/if}
+              </div>
             {:else}
               {#each groupedMessages as group}
                 <div class="flex items-center gap-3 my-1">
@@ -2563,9 +2191,6 @@
               </div>
             {/if}
 
-            {#if inputMode === 'generate'}
-              <p class="text-sm" style="color: var(--coral);">Toque nas mensagens que quer usar no post</p>
-            {/if}
             {#if !blockReason}
               <!-- Action chips bar -->
               <div class="flex gap-2 items-center flex-wrap">
@@ -2611,8 +2236,8 @@
                 {/if}
                 <button
                   onclick={() => { inputMode = inputMode === 'chat' ? 'generate' : 'chat'; message = ''; selectedMessages = new Set(); removeAttachment(); }}
-                  class="ml-auto text-base px-4 py-1.5 min-h-12 rounded-full font-medium transition-colors flex items-center gap-1.5"
-                  style="background: {inputMode === 'generate' ? '#25D366' : 'var(--coral)'}; color: #fff;"
+                  class="ml-auto text-sm px-4 py-1.5 min-h-[44px] rounded-full font-medium transition-colors flex items-center gap-1.5"
+                  style="background: {inputMode === 'generate' ? 'var(--surface)' : 'var(--bg)'}; color: {inputMode === 'generate' ? '#25D366' : 'var(--coral)'}; border: 1px solid {inputMode === 'generate' ? '#25D366' : 'var(--coral-light)'};"
                 >
                   {#if inputMode === 'generate'}
                     <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
