@@ -13,17 +13,12 @@
 		<div style="display: contents">%sveltekit.body%</div>
 		<script>
 			if ('serviceWorker' in navigator) {
-				// Clean up old Workbox SW: update first (fetches self-destructing stub from
-				// server, which clears Cache Storage), then unregister. Remove after 2026-07-01.
 				navigator.serviceWorker.getRegistrations().then((regs) => {
-					regs.forEach((r) => {
-						r.update().finally(() => { r.unregister(); });
-					});
+					regs.forEach((r) => { r.unregister(); });
 				});
 				caches.keys().then((keys) => {
 					keys.forEach((k) => { caches.delete(k); });
 				});
-				navigator.serviceWorker.addEventListener('controllerchange', () => { location.reload(); });
 			}
 		</script>
 	</body>
