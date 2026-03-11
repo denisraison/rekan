@@ -16,7 +16,7 @@ test.describe('Browser back button navigation (Wave 5)', () => {
 		await page.goBack();
 
 		// Should return to list view (client buttons visible, input bar gone)
-		await page.locator('button.text-left.border-b').first().waitFor();
+		await page.locator('[data-testid="client-card"]').first().waitFor();
 		await expect(page.locator('input[placeholder="Escreve aqui..."]')).not.toBeVisible();
 	});
 
@@ -47,10 +47,10 @@ test.describe('Browser back button navigation (Wave 5)', () => {
 		await page.goBack();
 
 		// List view: no detail header with Voltar button visible
-		await page.locator('button.text-left.border-b').first().waitFor();
+		await page.locator('[data-testid="client-card"]').first().waitFor();
 
 		// Select a different client to confirm selectedId was cleared
-		const clients = page.locator('button.text-left.border-b');
+		const clients = page.locator('[data-testid="client-card"]');
 		const count = await clients.count();
 		if (count > 1) {
 			await clients.nth(1).click();

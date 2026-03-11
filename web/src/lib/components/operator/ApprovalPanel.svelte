@@ -1,0 +1,54 @@
+<script lang="ts">
+  import type { Business, ScheduledMessage } from "$lib/types";
+
+  type Props = {
+    scheduledMessages: ScheduledMessage[];
+    clients: Business[];
+    waConnected: boolean;
+    approvingId: string | null;
+    dismissingId: string | null;
+    onback: () => void;
+    onapprove: (id: string) => void;
+    ondismiss: (id: string) => void;
+  };
+
+  let { scheduledMessages, clients, waConnected, approvingId, dismissingId, onback, onapprove, ondismiss }: Props = $props();
+</script>
+
+<div class="flex-1 overflow-y-auto p-3 flex flex-col gap-2">
+  <button
+    onclick={onback}
+    class="min-h-12 px-1 rounded-full text-sm font-medium text-coral bg-transparent text-left self-start"
+  >← Clientes</button>
+  {#if scheduledMessages.length === 0}
+    <p class="text-base text-center py-8 text-muted-foreground">
+      Tudo em dia! Nenhuma mensagem pra aprovar.
+    </p>
+  {:else}
+    {#each scheduledMessages as msg (msg.id)}
+      {@const biz = clients.find(c => c.id === msg.business)}
+      <div class="rounded-xl p-4 bg-[--bg] border border-border">
+        <p class="text-sm font-medium mb-1.5 text-muted-foreground">
+          {biz?.name ?? msg.business}
+        </p>
+        <p class="text-sm py-1.5 text-text-secondary">{msg.text}</p>
+        <div class="flex gap-2 mt-2">
+          <button
+            onclick={() => onapprove(msg.id)}
+            disabled={approvingId === msg.id || !waConnected}
+            class="flex-1 py-3 rounded-lg text-sm font-medium transition-opacity text-white bg-[#25D366] disabled:opacity-60"
+          >
+            {approvingId === msg.id ? "..." : "Enviar"}
+          </button>
+          <button
+            onclick={() => ondismiss(msg.id)}
+            disabled={dismissingId === msg.id}
+            class="flex-1 py-3 rounded-lg text-sm font-medium border border-[--border-strong] text-text-secondary transition-opacity disabled:opacity-60"
+          >
+            {dismissingId === msg.id ? "..." : "Descartar"}
+          </button>
+        </div>
+      </div>
+    {/each}
+  {/if}
+</div>

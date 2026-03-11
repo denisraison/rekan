@@ -84,6 +84,7 @@
 	--color-dark: #111116;
 	--color-dark-muted: #1c1c24;
 	--color-text-secondary: #555566;
+	--color-chat-bg: #fef8f7;
 
 	/* Fonts */
 	--font-sans: "Urbanist", system-ui, sans-serif;
@@ -102,9 +103,12 @@
 }
 
 @layer base {
+	html {
+		font-size: 18px;
+	}
 	body {
 		font-family: var(--font-primary);
-		font-size: 16px;
+		font-size: inherit;
 		line-height: 1.6;
 		color: var(--text);
 		background: var(--bg);

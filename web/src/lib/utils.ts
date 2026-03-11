@@ -8,3 +8,7 @@ export type WithElementRef<T, U extends HTMLElement = HTMLElement> = T & {
 export function cn(...inputs: ClassValue[]) {
 	return twMerge(clsx(inputs));
 }
+
+export async function copyText(text: string) {
+	if (navigator.clipboard?.writeText) await navigator.clipboard.writeText(text);
+}
