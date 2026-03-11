@@ -1786,62 +1786,15 @@
                 </div>
 
               {:else}
-                <!-- idle / recording / analyzing / manual — basic fields always visible -->
-
-                {#if voiceMode === 'manual'}
-                  <button onclick={resetVoice} class="w-full flex items-center gap-3 mb-5" style="min-height: 64px; background: var(--coral-pale); border: none; border-bottom: 1.5px solid var(--coral-light); border-radius: 12px; padding: 14px 16px; cursor: pointer; text-align: left;">
-                    <div class="flex items-center justify-center flex-shrink-0" style="width: 36px; height: 36px; border-radius: 50%; background: var(--coral);">
-                      <svg width="16" height="16" viewBox="0 0 24 24" fill="white"><path d="M12 2a3 3 0 0 1 3 3v6a3 3 0 0 1-6 0V5a3 3 0 0 1 3-3z"/><path d="M19 10v1a7 7 0 0 1-14 0v-1M12 18v4M8 22h8" stroke="white" stroke-width="1.5" fill="none" stroke-linecap="round"/></svg>
-                    </div>
-                    <p class="text-sm flex-1" style="color: var(--text-secondary); margin: 0; line-height: 1.4;">Prefere gravar uma descrição? É mais rápido.</p>
-                    <span class="text-sm font-bold" style="color: var(--coral); white-space: nowrap;">Gravar →</span>
-                  </button>
-                {/if}
+                <!-- idle: mic-first / recording / analyzing / manual+done: fields -->
 
                 {#if voiceError}
                   <p class="text-sm mb-4 p-3 rounded-lg" style="color: #DC2626; background: #FEF2F2">{voiceError}</p>
                 {/if}
 
                 <div class="flex flex-col gap-4">
-                  <label class="flex flex-col gap-1.5">
-                    <span class="text-base font-medium" style="color: var(--text)">Nome do cliente</span>
-                    <input bind:value={formClientName} placeholder="Ex: Ana Silva" class="px-3 py-3 rounded-xl text-base outline-none border" style="border-color: var(--border-strong); background: var(--surface); color: var(--text)" />
-                  </label>
-                  <label class="flex flex-col gap-1.5">
-                    <span class="text-base font-medium" style="color: var(--text)">Email do cliente</span>
-                    <input bind:value={formClientEmail} type="email" placeholder="ana@email.com" class="px-3 py-3 rounded-xl text-base outline-none border" style="border-color: var(--border-strong); background: var(--surface); color: var(--text)" />
-                  </label>
-                  <label class="flex flex-col gap-1.5">
-                    <span class="text-base font-medium" style="color: var(--text)">Nome do negócio</span>
-                    <input bind:value={formName} placeholder="Nome do negócio" class="px-3 py-3 rounded-xl text-base outline-none border" style="border-color: var(--border-strong); background: var(--surface); color: var(--text)" />
-                  </label>
-                  <label class="flex flex-col gap-1.5">
-                    <span class="text-base font-medium" style="color: var(--text)">Tipo de negócio</span>
-                    <select bind:value={formType} class="px-3 py-3 rounded-xl text-base outline-none border" style="border-color: var(--border-strong); background: var(--surface); color: var(--text)">
-                      <option value="">Selecione...</option>
-                      {#each BUSINESS_TYPES as t}<option value={t}>{t}</option>{/each}
-                    </select>
-                  </label>
-                  <div class="flex gap-3">
-                    <label class="flex flex-col gap-1.5 flex-1">
-                      <span class="text-base font-medium" style="color: var(--text)">Cidade</span>
-                      <input bind:value={formCity} placeholder="Ex: São Paulo" class="px-3 py-3 rounded-xl text-base outline-none border" style="border-color: var(--border-strong); background: var(--surface); color: var(--text)" />
-                    </label>
-                    <label class="flex flex-col gap-1.5 w-28">
-                      <span class="text-base font-medium" style="color: var(--text)">Estado</span>
-                      <select bind:value={formState} class="px-3 py-3 rounded-xl text-base outline-none border" style="border-color: var(--border-strong); background: var(--surface); color: var(--text)">
-                        <option value="">UF</option>
-                        {#each STATES as stateCode}<option value={stateCode}>{stateCode}</option>{/each}
-                      </select>
-                    </label>
-                  </div>
-                  <label class="flex flex-col gap-1.5">
-                    <span class="text-base font-medium" style="color: var(--text)">Telefone WhatsApp</span>
-                    <input bind:value={formPhone} placeholder="5511999998888" class="px-3 py-3 rounded-xl text-base outline-none border" style="border-color: var(--border-strong); background: var(--surface); color: var(--text)" />
-                  </label>
-
                   {#if voiceMode === 'idle'}
-                    <!-- Idle: mic card -->
+                    <!-- Idle: mic card first, fields hidden -->
                     <div class="flex items-center gap-3 md:gap-4 p-3 md:p-5 rounded-2xl" style="background: var(--coral-pale); border: 1.5px solid var(--coral-light)">
                       <button onclick={startVoiceRecording} aria-label="Gravar descrição" class="mic-btn" style="border-radius: 50%; background: var(--coral); border: none; display: flex; align-items: center; justify-content: center; cursor: pointer; flex-shrink: 0; box-shadow: 0 4px 16px rgba(249,115,104,0.35);">
                         <svg width="30" height="30" viewBox="0 0 24 24" fill="white"><path d="M12 2a3 3 0 0 1 3 3v6a3 3 0 0 1-6 0V5a3 3 0 0 1 3-3z"/><path d="M19 10v1a7 7 0 0 1-14 0v-1M12 18v4M8 22h8" stroke="white" stroke-width="1.5" fill="none" stroke-linecap="round"/></svg>
@@ -1881,7 +1834,52 @@
                     </div>
 
                   {:else}
-                    <!-- Manual: content fields -->
+                    <!-- manual/done: gravar prompt + basic fields + content fields -->
+                    {#if voiceMode === 'manual'}
+                      <button onclick={resetVoice} class="w-full flex items-center gap-3 mb-1" style="min-height: 64px; background: var(--coral-pale); border: none; border-bottom: 1.5px solid var(--coral-light); border-radius: 12px; padding: 14px 16px; cursor: pointer; text-align: left;">
+                        <div class="flex items-center justify-center flex-shrink-0" style="width: 36px; height: 36px; border-radius: 50%; background: var(--coral);">
+                          <svg width="16" height="16" viewBox="0 0 24 24" fill="white"><path d="M12 2a3 3 0 0 1 3 3v6a3 3 0 0 1-6 0V5a3 3 0 0 1 3-3z"/><path d="M19 10v1a7 7 0 0 1-14 0v-1M12 18v4M8 22h8" stroke="white" stroke-width="1.5" fill="none" stroke-linecap="round"/></svg>
+                        </div>
+                        <p class="text-sm flex-1" style="color: var(--text-secondary); margin: 0; line-height: 1.4;">Prefere gravar uma descrição? É mais rápido.</p>
+                        <span class="text-sm font-bold" style="color: var(--coral); white-space: nowrap;">Gravar →</span>
+                      </button>
+                    {/if}
+                    <label class="flex flex-col gap-1.5">
+                      <span class="text-base font-medium" style="color: var(--text)">Nome do cliente</span>
+                      <input bind:value={formClientName} placeholder="Ex: Ana Silva" class="px-3 py-3 rounded-xl text-base outline-none border" style="border-color: var(--border-strong); background: var(--surface); color: var(--text)" />
+                    </label>
+                    <label class="flex flex-col gap-1.5">
+                      <span class="text-base font-medium" style="color: var(--text)">Email do cliente</span>
+                      <input bind:value={formClientEmail} type="email" placeholder="ana@email.com" class="px-3 py-3 rounded-xl text-base outline-none border" style="border-color: var(--border-strong); background: var(--surface); color: var(--text)" />
+                    </label>
+                    <label class="flex flex-col gap-1.5">
+                      <span class="text-base font-medium" style="color: var(--text)">Nome do negócio</span>
+                      <input bind:value={formName} placeholder="Nome do negócio" class="px-3 py-3 rounded-xl text-base outline-none border" style="border-color: var(--border-strong); background: var(--surface); color: var(--text)" />
+                    </label>
+                    <label class="flex flex-col gap-1.5">
+                      <span class="text-base font-medium" style="color: var(--text)">Tipo de negócio</span>
+                      <select bind:value={formType} class="px-3 py-3 rounded-xl text-base outline-none border" style="border-color: var(--border-strong); background: var(--surface); color: var(--text)">
+                        <option value="">Selecione...</option>
+                        {#each BUSINESS_TYPES as t}<option value={t}>{t}</option>{/each}
+                      </select>
+                    </label>
+                    <div class="flex gap-3">
+                      <label class="flex flex-col gap-1.5 flex-1">
+                        <span class="text-base font-medium" style="color: var(--text)">Cidade</span>
+                        <input bind:value={formCity} placeholder="Ex: São Paulo" class="px-3 py-3 rounded-xl text-base outline-none border" style="border-color: var(--border-strong); background: var(--surface); color: var(--text)" />
+                      </label>
+                      <label class="flex flex-col gap-1.5 w-28">
+                        <span class="text-base font-medium" style="color: var(--text)">Estado</span>
+                        <select bind:value={formState} class="px-3 py-3 rounded-xl text-base outline-none border" style="border-color: var(--border-strong); background: var(--surface); color: var(--text)">
+                          <option value="">UF</option>
+                          {#each STATES as stateCode}<option value={stateCode}>{stateCode}</option>{/each}
+                        </select>
+                      </label>
+                    </div>
+                    <label class="flex flex-col gap-1.5">
+                      <span class="text-base font-medium" style="color: var(--text)">Telefone WhatsApp</span>
+                      <input bind:value={formPhone} placeholder="5511999998888" class="px-3 py-3 rounded-xl text-base outline-none border" style="border-color: var(--border-strong); background: var(--surface); color: var(--text)" />
+                    </label>
                     <div style="height: 1px; background: var(--border); margin: 4px 0;"></div>
                     <div>
                       <span class="text-base font-medium" style="color: var(--text)">Serviços</span>
@@ -2488,8 +2486,9 @@
 
           <!-- Unified input bar -->
           <div
+            data-testid="input-bar"
             class="shrink-0 border-t px-3 md:px-4 py-3 flex flex-col gap-2"
-            style="border-color: {inputMode === 'generate' ? 'var(--coral)' : 'var(--border)'}; background: var(--surface); {inputMode === 'generate' ? 'border-top-width: 2px;' : ''}"
+            style="border-color: {inputMode === 'generate' ? 'var(--coral)' : 'var(--border)'}; background: {inputMode === 'generate' ? 'var(--coral-pale)' : 'var(--surface)'}; {inputMode === 'generate' ? 'border-top-width: 2px;' : ''}"
           >
             <!-- Idea drafts (desktop only) -->
             {#if ideaDrafts !== null}
@@ -2563,6 +2562,9 @@
               </div>
             {/if}
 
+            {#if inputMode === 'generate'}
+              <p class="text-sm" style="color: var(--coral);">Toque nas mensagens que quer usar no post</p>
+            {/if}
             {#if !blockReason}
               <!-- Action chips bar -->
               <div class="flex gap-2 items-center flex-wrap">
@@ -2608,7 +2610,7 @@
                 {/if}
                 <button
                   onclick={() => { inputMode = inputMode === 'chat' ? 'generate' : 'chat'; message = ''; selectedMessages = new Set(); removeAttachment(); }}
-                  class="ml-auto text-sm px-3 py-1.5 min-h-11 rounded-full font-medium transition-colors flex items-center gap-1.5"
+                  class="ml-auto text-base px-4 py-1.5 min-h-12 rounded-full font-medium transition-colors flex items-center gap-1.5"
                   style="background: {inputMode === 'generate' ? '#25D366' : 'var(--coral)'}; color: #fff;"
                 >
                   {#if inputMode === 'generate'}

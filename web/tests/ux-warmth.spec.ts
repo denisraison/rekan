@@ -1,5 +1,5 @@
 import { expect, test } from '@playwright/test';
-import { loginAsOperador, selectFirstClient, openInfoScreen } from './helpers';
+import { loginAsOperador, selectFirstClient, openInfoScreen, openNewClientForm, switchToGenerateMode } from './helpers';
 
 // Moto G viewport
 test.use({ viewport: { width: 360, height: 740 } });
@@ -39,5 +39,57 @@ test.describe('UX warmth (PEP-019 Wave 1)', () => {
 		await header.waitFor();
 		const fontSize = await header.evaluate((el) => parseFloat(getComputedStyle(el).fontSize));
 		expect(fontSize).toBeGreaterThanOrEqual(13);
+	});
+});
+
+test.describe('UX warmth (PEP-019 Wave 2)', () => {
+	test('new client form shows mic first', async ({ page }) => {
+		await loginAsOperador(page);
+		await openNewClientForm(page);
+
+		await expect(page.locator('button[aria-label="Gravar descrição"]')).toBeVisible();
+		// Fields should NOT be visible in idle mode
+		await expect(page.locator('input[placeholder="Ex: Ana Silva"]')).not.toBeVisible();
+	});
+
+	test('manual mode shows fields', async ({ page }) => {
+		await loginAsOperador(page);
+		await openNewClientForm(page);
+		await page.getByText('Preencher manualmente').click();
+
+		await expect(page.locator('input[placeholder="Ex: Ana Silva"]')).toBeVisible();
+	});
+
+	test('generate mode has distinct background', async ({ page }) => {
+		await loginAsOperador(page);
+		await selectFirstClient(page);
+
+		const inputBar = page.locator('[data-testid="input-bar"]');
+		const chatBg = await inputBar.evaluate((el) => getComputedStyle(el).backgroundColor);
+
+		await switchToGenerateMode(page);
+
+		const genBg = await inputBar.evaluate((el) => getComputedStyle(el).backgroundColor);
+		expect(genBg).not.toBe(chatBg);
+	});
+
+	test('generate mode shows instruction banner', async ({ page }) => {
+		await loginAsOperador(page);
+		await selectFirstClient(page);
+		await switchToGenerateMode(page);
+
+		await expect(page.getByText('Toque nas mensagens que quer usar no post')).toBeVisible();
+	});
+
+	test('screenshot: new client idle', async ({ page }) => {
+		await loginAsOperador(page);
+		await openNewClientForm(page);
+
+		await page.screenshot({ path: '/tmp/pep019-newclient.png' });
+
+		const micBtn = page.locator('button[aria-label="Gravar descrição"]');
+		const box = await micBtn.boundingBox();
+		expect(box).not.toBeNull();
+		expect(box!.y).toBeLessThan(400);
 	});
 });

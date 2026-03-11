@@ -108,21 +108,26 @@ The 6 basic fields (Nome do cliente through Telefone, ~lines 1805-1841) should b
 Current state: the Post/Chat toggle is a small pill in the chips bar. Generate mode looks nearly identical to chat mode (2px border color change).
 
 Changes:
-- [ ] When `inputMode === 'generate'`, change the entire input bar container background from `var(--surface)` to `var(--coral-pale)`. This is the `div.shrink-0.border-t` at ~line 2490. Add `background: {inputMode === 'generate' ? 'var(--coral-pale)' : 'var(--surface)'}`.
-- [ ] Add a one-line banner inside the input bar (before the chips row, ~line 2568) visible only in generate mode: `<p class="text-sm" style="color: var(--coral);">Toque nas mensagens que quer usar no post</p>`. No dismiss button needed, it disappears when switching back to chat.
-- [ ] Mode toggle button: already fixed to `min-h-11` in the current codebase. Increase to `min-h-12 px-4 text-base` for this wave.
+- [x] When `inputMode === 'generate'`, change the entire input bar container background from `var(--surface)` to `var(--coral-pale)`. This is the `div.shrink-0.border-t` at ~line 2490. Add `background: {inputMode === 'generate' ? 'var(--coral-pale)' : 'var(--surface)'}`.
+- [x] Add a one-line banner inside the input bar (before the chips row, ~line 2568) visible only in generate mode: `<p class="text-sm" style="color: var(--coral);">Toque nas mensagens que quer usar no post</p>`. No dismiss button needed, it disappears when switching back to chat.
+- [x] Mode toggle button: already fixed to `min-h-11` in the current codebase. Increase to `min-h-12 px-4 text-base` for this wave.
 
 **Gate:**
 
-1. [ ] `cd web && pnpm check`
-2. [ ] `cd web && npx playwright test` — all pass
-3. [ ] New tests in `tests/ux-warmth.spec.ts` (or same file from Wave 1):
+1. [x] `cd web && pnpm check`
+2. [x] `cd web && npx playwright test` — all pass
+3. [x] New tests in `tests/ux-warmth.spec.ts` (or same file from Wave 1):
    - Test "new client form shows mic first": tap "+ Novo", verify `button[aria-label="Gravar descrição"]` is visible, verify `input[placeholder*="Nome"]` is NOT visible (fields hidden until manual mode)
    - Test "manual mode shows fields": tap "+ Novo", tap "Preencher manualmente", verify `input[placeholder*="Nome"]` is visible
    - Test "generate mode has distinct background": enter generate mode, verify input bar container's computed `background-color` differs from chat mode
    - Test "generate mode shows instruction banner": enter generate mode, verify text "Toque nas mensagens" is visible
-4. [ ] Screenshot gate in same test file:
+4. [x] Screenshot gate in same test file:
    - Test "screenshot: new client idle": tap "+ Novo", take screenshot to `/tmp/pep019-newclient.png`, read it to verify mic card is above the fold (mic button's `boundingBox().y < 400`)
+
+**Notes:**
+- The basic fields and content fields are now inside `{:else}` (covers both 'manual' and 'done'), with recording and analyzing modes also hiding fields.
+- The "Gravar" prompt button (shown in manual mode) was moved inside the else branch, so it appears above the fields when manually filling.
+- Pre-existing `selectFirstClient` flakiness under high worker counts remains (same as Wave 1). All tests pass on retry or with reduced parallelism.
 
 ---
 

@@ -28,6 +28,11 @@ export async function switchToGenerateMode(page: Page) {
 	await page.locator('input[placeholder="Sobre o que é o post?"]').waitFor();
 }
 
+export async function openNewClientForm(page: Page) {
+	await page.getByRole('button', { name: '+ Novo' }).click();
+	await page.locator('button[aria-label="Gravar descrição"]').waitFor();
+}
+
 export async function openInfoScreen(page: Page) {
 	await page.locator('button.min-w-0.flex-1').first().click();
 	await page.locator('button').filter({ hasText: 'Voltar' }).first().waitFor();
