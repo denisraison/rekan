@@ -29,7 +29,7 @@ export async function switchToGenerateMode(page: Page) {
 }
 
 export async function openNewClientForm(page: Page) {
-	await page.getByRole('button', { name: '+ Novo' }).click();
+	await page.getByRole('button', { name: '+ Novo Cliente' }).click();
 	await page.locator('button[aria-label="Gravar descrição"]').waitFor();
 }
 

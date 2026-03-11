@@ -1,6 +1,6 @@
 <script lang="ts">
-	import { goto } from '$app/navigation';
 	import { onMount } from 'svelte';
+	import { goto } from '$app/navigation';
 	import LogoCombo from '$lib/components/LogoCombo.svelte';
 	import { pb } from '$lib/pb';
 

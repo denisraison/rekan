@@ -193,6 +193,7 @@
   function selectClient(id: string) {
     selectedId = id; mobileView = 'detail'; history.pushState({ mobileView: 'detail' }, '');
     result = null; generateError = ""; sendNudgeError = ""; historyLimit = 10; expandedPosts = new Set();
+    showForm = false; editingId = null; showApprovalPanel = false;
     ideaDrafts = null; ideaError = ""; isProactive = false; selectedIdeas = new Set(); sendingIdeas = false;
     inputMode = 'chat'; message = ""; quickReplyError = ""; selectedMessages = new Set(); removeAttachment();
     lastSeen = { ...lastSeen, [id]: new Date().toISOString() };
@@ -306,7 +307,7 @@
 <div class="h-dvh flex flex-col bg-[--bg]">
   <header class="border-b border-border px-5 py-4 flex items-center gap-3 shrink-0 bg-[--surface] {mobileView !== 'list' ? 'hidden md:flex' : ''}">
     <span class="font-semibold text-lg md:text-base text-foreground font-[--font-primary]">Rekan</span>
-    <Button onclick={openNewForm} size="sm" class="ml-auto font-semibold">+ Novo</Button>
+    <Button onclick={openNewForm} class="ml-auto font-semibold">+ Novo Cliente</Button>
   </header>
   {#if !waConnected && !waChecking}
     <a href="/operador/whatsapp" class="shrink-0 flex items-center justify-center gap-2 px-4 py-3 text-sm font-medium bg-[#FDE8E8] text-[#9B1C1C]">

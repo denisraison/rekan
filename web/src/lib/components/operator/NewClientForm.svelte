@@ -216,20 +216,18 @@
             <Button onclick={() => voiceMode = 'manual'} variant="link" size="sm" class="text-muted-foreground underline underline-offset-[3px]">Preencher manualmente</Button>
           </div>
         {:else if voiceMode === 'recording'}
-          <div class="rounded-2xl overflow-hidden border-[1.5px] border-[--border-strong]">
-            <div class="flex items-center rec-bar">
-              <Button onclick={cancelRecording} aria-label="Cancelar gravação" variant="ghost" class="rec-side-btn flex items-center justify-center rounded-none bg-[#FEF2F2] border-r border-r-[--border-strong] min-h-0 p-0">
-                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#EF4444" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
-              </Button>
-              <div class="flex-1 flex items-center justify-center gap-3">
-                <div class="w-2.5 h-2.5 rounded-full shrink-0 animate-[blink_1s_ease-in-out_infinite] bg-[#EF4444]"></div>
-                <span class="rec-timer font-bold tracking-wide text-foreground tabular-nums">{fmtTime(recordingSeconds)}</span>
-                <span class="text-sm rec-label text-muted-foreground">Gravando</span>
-              </div>
-              <Button onclick={submitRecording} aria-label="Enviar gravação" variant="default" class="rec-side-btn flex items-center justify-center rounded-none min-h-0 p-0">
-                <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="19" x2="12" y2="5"/><polyline points="5 12 12 5 19 12"/></svg>
-              </Button>
+          <div class="rec-bar flex items-stretch rounded-2xl overflow-hidden border-[1.5px] border-[--border-strong]">
+            <button onclick={cancelRecording} aria-label="Cancelar gravação" class="rec-side-btn flex items-center justify-center bg-[#FEF2F2] border-r border-r-[--border-strong]">
+              <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#EF4444" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+            </button>
+            <div class="flex-1 flex items-center justify-center gap-3">
+              <div class="w-2.5 h-2.5 rounded-full shrink-0 animate-[blink_1s_ease-in-out_infinite] bg-[#EF4444]"></div>
+              <span class="rec-timer font-bold tracking-wide text-foreground tabular-nums">{fmtTime(recordingSeconds)}</span>
+              <span class="text-sm rec-label text-muted-foreground">Gravando</span>
             </div>
+            <button onclick={submitRecording} aria-label="Enviar gravação" class="rec-side-btn flex items-center justify-center bg-primary text-white">
+              <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="19" x2="12" y2="5"/><polyline points="5 12 12 5 19 12"/></svg>
+            </button>
           </div>
         {:else if voiceMode === 'analyzing'}
           <div class="rounded-2xl flex items-center justify-center gap-3 rec-bar border-[1.5px] border-[--border-strong]">
@@ -238,11 +236,11 @@
           </div>
         {:else}
           {#if voiceMode === 'manual'}
-            <Button onclick={resetVoice} variant="ghost" class="w-full flex items-center gap-3 mb-1 min-h-16 bg-coral-pale rounded-xl px-4 py-3.5 text-left border-b-[1.5px] border-coral-light">
+            <Button onclick={resetVoice} variant="ghost" class="w-full flex items-center gap-3 mb-1 min-h-16 bg-coral-pale rounded-xl px-4 py-3.5 text-left border-b-[1.5px] border-coral-light whitespace-normal">
               <div class="flex items-center justify-center shrink-0 w-9 h-9 rounded-full bg-coral">
                 <svg width="16" height="16" viewBox="0 0 24 24" fill="white"><path d="M12 2a3 3 0 0 1 3 3v6a3 3 0 0 1-6 0V5a3 3 0 0 1 3-3z"/><path d="M19 10v1a7 7 0 0 1-14 0v-1M12 18v4M8 22h8" stroke="white" stroke-width="1.5" fill="none" stroke-linecap="round"/></svg>
               </div>
-              <p class="text-sm flex-1 text-text-secondary leading-snug">Prefere gravar uma descrição? É mais rápido.</p>
+              <p class="text-sm flex-1 min-w-0 text-text-secondary leading-snug">Prefere gravar uma descrição? É mais rápido.</p>
               <span class="text-sm font-bold text-coral whitespace-nowrap">Gravar →</span>
             </Button>
           {/if}
@@ -281,9 +279,9 @@
 <style>
   @keyframes blink { 0%, 100% { opacity: 1; } 50% { opacity: 0.2; } }
   .mic-btn { width: 56px; height: 56px; }
-  .rec-bar { height: 56px; }
-  .rec-side-btn { width: 56px; height: 100%; }
+  .rec-bar { height: 64px; }
+  .rec-side-btn { width: 64px; }
   .rec-timer { font-size: 20px; }
   @media (max-width: 359px) { .rec-label { display: none; } }
-  @media (min-width: 768px) { .mic-btn { width: 72px; height: 72px; } .rec-bar { height: 72px; } .rec-side-btn { width: 72px; } .rec-timer { font-size: 26px; } }
+  @media (min-width: 768px) { .mic-btn { width: 72px; height: 72px; } .rec-bar { height: 72px; } .rec-side-btn { width: 72px; } }
 </style>

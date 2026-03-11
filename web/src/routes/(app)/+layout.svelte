@@ -32,14 +32,4 @@
 		width: 100%;
 		height: 100%;
 	}
-	@media (min-width: 768px) {
-		.app-shell {
-			zoom: 1.25;
-		}
-	}
-	@media (min-width: 1200px) {
-		.app-shell {
-			zoom: 1.4;
-		}
-	}
 </style>
