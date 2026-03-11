@@ -93,3 +93,30 @@ test.describe('UX warmth (PEP-019 Wave 2)', () => {
 		expect(box!.y).toBeLessThan(400);
 	});
 });
+
+test.describe('UX warmth (PEP-019 Wave 3)', () => {
+	test('screenshot: full flow', async ({ page }) => {
+		await loginAsOperador(page);
+
+		// List view
+		await page.screenshot({ path: '/tmp/pep019-final-list.png' });
+
+		// Chat view
+		await selectFirstClient(page);
+		await page.screenshot({ path: '/tmp/pep019-final-chat.png' });
+
+		// Generate view
+		await switchToGenerateMode(page);
+		await page.screenshot({ path: '/tmp/pep019-final-generate.png' });
+
+		// Info view
+		await openInfoScreen(page);
+		await page.screenshot({ path: '/tmp/pep019-final-info.png' });
+
+		// New client view
+		await page.goBack();
+		await page.goBack();
+		await openNewClientForm(page);
+		await page.screenshot({ path: '/tmp/pep019-final-newclient.png' });
+	});
+});

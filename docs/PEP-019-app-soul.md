@@ -1,6 +1,6 @@
 # PEP-019 — App Soul: Making Rekan Feel Warm and Intuitive
 
-**Status:** In Progress
+**Status:** Complete
 **Date:** 2026-03-11
 
 ## Context
@@ -150,19 +150,28 @@ Changes:
 - The sparkle icon on the Post toggle (3 sparkles, ~20 path segments) is too complex at 14px. Replace with text-only "Post" label or a simple pencil icon (single path).
 
 **Approach:** Do NOT add an icon library. Standardize each inline SVG in place. Group changes:
-- [ ] Navigation chevrons (~5 instances): normalize to `stroke-width="2" stroke-linecap="round" stroke-linejoin="round"`
-- [ ] Action icons (paperclip, camera, gallery, close X): same normalization
-- [ ] Utility icons (spinner, arrow up): same normalization
-- [ ] Remove sparkle SVG from Post toggle, keep text label only
-- [ ] Verify the chat bubble icon in the Chat toggle also matches
+- [x] Navigation chevrons (~5 instances): normalize to `stroke-width="2" stroke-linecap="round" stroke-linejoin="round"`
+- [x] Action icons (paperclip, camera, gallery, close X): same normalization
+- [x] Utility icons (spinner, arrow up): same normalization
+- [x] Remove sparkle SVG from Post toggle, keep text label only
+- [x] Verify the chat bubble icon in the Chat toggle also matches
 
 **Gate:**
 
-1. [ ] `cd web && pnpm check`
-2. [ ] `cd web && npx playwright test` — all pass (no functional changes, only SVG attributes)
-3. [ ] `grep -P 'stroke-width="(?!2"|2\.5"|3")' web/src/routes/\(app\)/operador/+page.svelte | grep -v 'stroke-width="1.5"'` returns 0 unexpected stroke widths. Allowed: 2 (standard), 2.5 (emphasis), 3 (checkmarks).
-4. [ ] Screenshot gate in `tests/ux-warmth.spec.ts`:
+1. [x] `cd web && pnpm check`
+2. [x] `cd web && npx playwright test` — all pass (no functional changes, only SVG attributes)
+3. [x] `grep -P 'stroke-width="(?!2"|2\.5"|3")' web/src/routes/\(app\)/operador/+page.svelte | grep -v 'stroke-width="1.5"'` returns 0 unexpected stroke widths. Allowed: 2 (standard), 2.5 (emphasis), 3 (checkmarks).
+4. [x] Screenshot gate in `tests/ux-warmth.spec.ts`:
    - Test "screenshot: full flow": take screenshots of list, chat, generate, info, new client on Moto G viewport (360x740). Save to `/tmp/pep019-final-*.png`. Visual review that icons are consistent (no automated assertion, manual check by developer).
+
+**Notes:**
+- Navigation chevrons were converted from filled SVGs (viewBox 20, `fill="currentColor"`) to stroke-based (viewBox 24, `stroke="currentColor"`). 5 instances total (4 at 20x20, 1 at 18x18).
+- The "Perfil extraido" checkmark (white on sage circle) was at stroke-width="2.5", normalized to "3" to match the other checkmarks-in-circles convention.
+- Close X (cancel recording) went from 2.5 to 2. Arrow up (submit recording) went from 2.5 to 2.
+- All 4 spinners normalized to stroke-width="2" with linecap/linejoin round (2 were at 2.5).
+- Mic icons on coral buttons (fill="white" with stroke-width="1.5" on the stand path) left unchanged per PEP.
+- Warning triangle (line ~1476) is a filled icon, not stroke-based. Left unchanged since it has no stroke-width attributes.
+- Final stroke-width distribution: 15x "2" (standard), 3x "3" (checkmarks), 2x "1.5" (mic fill icons). No 2.5 values remain.
 
 ---
 

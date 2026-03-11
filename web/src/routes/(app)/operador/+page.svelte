@@ -1727,7 +1727,7 @@
 
                 <div class="flex items-center gap-3 mb-5 p-3 rounded-xl" style="background: var(--sage-pale); border: 1.5px solid var(--sage-light)">
                   <div class="flex items-center justify-center flex-shrink-0" style="width: 32px; height: 32px; border-radius: 50%; background: var(--sage);">
-                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg>
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
                   </div>
                   <div>
                     <p class="text-sm font-bold" style="color: var(--text); margin: 0 0 2px;">Perfil extraído da gravação</p>
@@ -1771,7 +1771,7 @@
 
                 <div class="text-center mt-4">
                   <button onclick={resetVoice} class="text-sm inline-flex items-center gap-1.5 p-3" style="color: var(--text-muted); border: none; background: none; cursor: pointer;">
-                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M12 2a3 3 0 0 1 3 3v6a3 3 0 0 1-6 0V5a3 3 0 0 1 3-3z"/><path d="M19 10v1a7 7 0 0 1-14 0v-1M12 18v4M8 22h8"/></svg>
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2a3 3 0 0 1 3 3v6a3 3 0 0 1-6 0V5a3 3 0 0 1 3-3z"/><path d="M19 10v1a7 7 0 0 1-14 0v-1M12 18v4M8 22h8"/></svg>
                     Gravar de novo
                   </button>
                 </div>
@@ -1814,7 +1814,7 @@
                     <div class="rounded-2xl overflow-hidden" style="border: 1.5px solid var(--border-strong);">
                       <div class="flex items-center rec-bar">
                         <button onclick={cancelRecording} aria-label="Cancelar gravação" class="rec-side-btn" style="background: #FEF2F2; border: none; border-right: 1px solid var(--border-strong); display: flex; align-items: center; justify-content: center; cursor: pointer; flex-shrink: 0;">
-                          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#EF4444" stroke-width="2.5" stroke-linecap="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+                          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#EF4444" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
                         </button>
                         <div class="flex-1 flex items-center justify-center gap-3">
                           <div style="width: 10px; height: 10px; border-radius: 50%; background: #EF4444; flex-shrink: 0; animation: blink 1s ease-in-out infinite;"></div>
@@ -1822,7 +1822,7 @@
                           <span class="text-sm rec-label" style="color: var(--text-muted)">Gravando</span>
                         </div>
                         <button onclick={submitRecording} aria-label="Enviar gravação" class="rec-side-btn" style="background: var(--coral); border: none; border-left: 1px solid var(--coral-light); display: flex; align-items: center; justify-content: center; cursor: pointer; flex-shrink: 0;">
-                          <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="19" x2="12" y2="5"/><polyline points="5 12 12 5 19 12"/></svg>
+                          <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="19" x2="12" y2="5"/><polyline points="5 12 12 5 19 12"/></svg>
                         </button>
                       </div>
                     </div>
@@ -1954,7 +1954,7 @@
                   onclick={() => { history.back(); }}
                   style="display: flex; align-items: center; gap: 4px; min-height: 60px; padding: 0 12px 0 0; font-size: 14px; font-weight: 500; color: var(--coral); flex-shrink: 0;"
                 >
-                  <svg viewBox="0 0 20 20" fill="currentColor" width="20" height="20"><path fill-rule="evenodd" d="M12.707 5.293a1 1 0 010 1.414L9.414 10l3.293 3.293a1 1 0 01-1.414 1.414l-4-4a1 1 0 010-1.414l4-4a1 1 0 011.414 0z" clip-rule="evenodd" /></svg>
+                  <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 18 9 12 15 6"/></svg>
                   Voltar
                 </button>
                 <!-- Avatar -->
@@ -2217,7 +2217,7 @@
                 class="md:hidden flex items-center gap-1 py-2 pr-2 -ml-1 rounded-lg shrink-0 text-sm font-medium"
                 style="color: var(--coral)"
               >
-                <svg viewBox="0 0 20 20" fill="currentColor" width="18" height="18"><path fill-rule="evenodd" d="M12.707 5.293a1 1 0 010 1.414L9.414 10l3.293 3.293a1 1 0 01-1.414 1.414l-4-4a1 1 0 010-1.414l4-4a1 1 0 011.414 0z" clip-rule="evenodd" /></svg>
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 18 9 12 15 6"/></svg>
                 Voltar
               </button>
               <!-- Tappable name opens info screen -->
@@ -2255,7 +2255,7 @@
                     onclick={() => { ideaDrafts = null; selectedIdeas = new Set(); }}
                     style="display: flex; align-items: center; gap: 4px; min-height: 60px; padding: 0 12px 0 0; font-size: 14px; font-weight: 500; color: var(--coral); flex-shrink: 0;"
                   >
-                    <svg viewBox="0 0 20 20" fill="currentColor" width="20" height="20"><path fill-rule="evenodd" d="M12.707 5.293a1 1 0 010 1.414L9.414 10l3.293 3.293a1 1 0 01-1.414 1.414l-4-4a1 1 0 010-1.414l4-4a1 1 0 011.414 0z" clip-rule="evenodd"/></svg>
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 18 9 12 15 6"/></svg>
                     Voltar
                   </button>
                 {/if}
@@ -2265,7 +2265,7 @@
               </div>
               {#if generatingIdeas}
                 <div class="flex-1 flex flex-col items-center justify-center gap-4 p-8">
-                  <svg class="animate-spin" width="36" height="36" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="color: var(--coral)"><path d="M12 2v4M12 18v4M4.93 4.93l2.83 2.83M16.24 16.24l2.83 2.83M2 12h4M18 12h4M4.93 19.07l2.83-2.83M16.24 7.76l2.83-2.83"/></svg>
+                  <svg class="animate-spin" width="36" height="36" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="color: var(--coral)"><path d="M12 2v4M12 18v4M4.93 4.93l2.83 2.83M16.24 16.24l2.83 2.83M2 12h4M18 12h4M4.93 19.07l2.83-2.83M16.24 7.76l2.83-2.83"/></svg>
                   <p class="text-base text-center" style="color: var(--text-muted)">Escrevendo 3 ideias<br>caprichadas pra você...</p>
                 </div>
               {:else}
@@ -2339,7 +2339,7 @@
                   onclick={() => { if (ideaDrafts) { result = null; } else { showReviewOverlay = false; } }}
                   style="display: flex; align-items: center; gap: 4px; min-height: 60px; padding: 0 12px 0 0; font-size: 14px; font-weight: 500; color: var(--coral); flex-shrink: 0;"
                 >
-                  <svg viewBox="0 0 20 20" fill="currentColor" width="20" height="20"><path fill-rule="evenodd" d="M12.707 5.293a1 1 0 010 1.414L9.414 10l3.293 3.293a1 1 0 01-1.414 1.414l-4-4a1 1 0 010-1.414l4-4a1 1 0 011.414 0z" clip-rule="evenodd"/></svg>
+                  <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 18 9 12 15 6"/></svg>
                   Voltar
                 </button>
                 <span class="text-base font-semibold" style="color: var(--text)">Post gerado</span>
@@ -2601,7 +2601,7 @@
                       style="background: var(--sage-pale); color: var(--text-secondary); opacity: {generatingIdeas || generating ? '0.5' : '1'}"
                     >
                       {#if generatingIdeas}
-                        <svg class="animate-spin" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M12 2v4M12 18v4M4.93 4.93l2.83 2.83M16.24 16.24l2.83 2.83M2 12h4M18 12h4M4.93 19.07l2.83-2.83M16.24 7.76l2.83-2.83"/></svg>
+                        <svg class="animate-spin" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2v4M12 18v4M4.93 4.93l2.83 2.83M16.24 16.24l2.83 2.83M2 12h4M18 12h4M4.93 19.07l2.83-2.83M16.24 7.76l2.83-2.83"/></svg>
                         Criando o post...
                       {:else}
                         3 ideias
@@ -2618,7 +2618,6 @@
                     <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
                     Chat
                   {:else}
-                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3l1.09 3.26L16.36 7.5l-3.27 1.15L12 12l-1.09-3.35L7.64 7.5l3.27-1.24L12 3z"/><path d="M5 16l.55 1.64L7.18 18.2 5.55 18.76 5 20.4l-.55-1.64L2.82 18.2l1.63-.56L5 16z"/><path d="M18 12l.55 1.64 1.63.56-1.63.56L18 16.4l-.55-1.64-1.63-.56 1.63-.56L18 12z"/></svg>
                     Post
                   {/if}
                 </button>
@@ -2648,7 +2647,7 @@
                   aria-label="Anexar arquivo"
                 >
                   {#if sendingMedia}
-                    <svg class="animate-spin" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2v4M12 18v4M4.93 4.93l2.83 2.83M16.24 16.24l2.83 2.83M2 12h4M18 12h4M4.93 19.07l2.83-2.83M16.24 7.76l2.83-2.83"/></svg>
+                    <svg class="animate-spin" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2v4M12 18v4M4.93 4.93l2.83 2.83M16.24 16.24l2.83 2.83M2 12h4M18 12h4M4.93 19.07l2.83-2.83M16.24 7.76l2.83-2.83"/></svg>
                   {:else}
                     <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21.44 11.05l-9.19 9.19a6 6 0 0 1-8.49-8.49l9.19-9.19a4 4 0 0 1 5.66 5.66l-9.2 9.19a2 2 0 0 1-2.83-2.83l8.49-8.48"/></svg>
                   {/if}
@@ -2697,7 +2696,7 @@
                     style="background: var(--coral); color: #fff; opacity: {generating || (!message.trim() && selectedMessages.size === 0 && !attachedFile) ? '0.6' : '1'}; cursor: {generating || (!message.trim() && selectedMessages.size === 0 && !attachedFile) ? 'not-allowed' : 'pointer'}"
                   >
                     {#if generating}
-                      <svg class="animate-spin" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M12 2v4M12 18v4M4.93 4.93l2.83 2.83M16.24 16.24l2.83 2.83M2 12h4M18 12h4M4.93 19.07l2.83-2.83M16.24 7.76l2.83-2.83"/></svg>
+                      <svg class="animate-spin" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2v4M12 18v4M4.93 4.93l2.83 2.83M16.24 16.24l2.83 2.83M2 12h4M18 12h4M4.93 19.07l2.83-2.83M16.24 7.76l2.83-2.83"/></svg>
                       Criando o post...
                     {:else}
                       Gerar
