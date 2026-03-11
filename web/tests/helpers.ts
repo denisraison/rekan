@@ -19,11 +19,16 @@ export async function loginAsOperador(page: Page) {
 export async function selectFirstClient(page: Page) {
 	await page.locator('button.text-left.border-b').first().click();
 	// Wait for the input bar to appear (proves detail view loaded)
-	await page.locator('input[placeholder="Mensagem..."]').waitFor();
+	await page.locator('input[placeholder="Escreve aqui..."]').waitFor();
 }
 
 export async function switchToGenerateMode(page: Page) {
 	await page.getByRole('button', { name: 'Post', exact: true }).click();
 	// Wait for the generate-mode placeholder to appear
-	await page.locator('input[placeholder="Descreva o post..."]').waitFor();
+	await page.locator('input[placeholder="Sobre o que é o post?"]').waitFor();
+}
+
+export async function openInfoScreen(page: Page) {
+	await page.locator('button.min-w-0.flex-1').first().click();
+	await page.locator('button').filter({ hasText: 'Voltar' }).first().waitFor();
 }

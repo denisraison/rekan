@@ -47,7 +47,7 @@ test.describe('Attach button (Wave 5)', () => {
 
 	test('preview persists when typing', async ({ page }) => {
 		await attachImage(page);
-		await page.locator('input[placeholder="Mensagem..."]').fill('some text');
+		await page.locator('input[placeholder="Escreve aqui..."]').fill('some text');
 		await expect(page.getByAltText('Anexo')).toBeVisible();
 	});
 

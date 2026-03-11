@@ -44,8 +44,9 @@ SERVER       := root@46.225.161.186
 deploy: ## Tag, cross-build locally, push to server, activate (usage: make deploy TAG=v0.4.3)
 	git tag $(TAG) && git push origin $(TAG)
 	cd $(INFRA_DIR) && nix flake lock --override-input rekan github:denisraison/rekan/$(TAG)
-	cd $(INFRA_DIR) && nix build .#nixosConfigurations.prod.config.services.rekan.instances.prod.package -o result-api
-	cd $(INFRA_DIR) && nix build .#nixosConfigurations.prod.config.services.rekan.instances.prod.webRoot -o result-web
+	cd $(INFRA_DIR) && nix build .#nixosConfigurations.prod.config.services.rekan.instances.prod.package -o result-api & \
+	cd $(INFRA_DIR) && nix build .#nixosConfigurations.prod.config.services.rekan.instances.prod.webRoot -o result-web & \
+	wait
 	nix copy --to ssh://$(SERVER) $(INFRA_DIR)/result-api $(INFRA_DIR)/result-web
 	cd $(INFRA_DIR) && git add flake.lock && git commit -m "Update rekan to $(TAG)" && git push
 	ssh $(SERVER) "nixos-rebuild switch --flake github:denisraison/infra#prod --refresh"

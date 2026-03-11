@@ -14,7 +14,8 @@
 	--dark-muted: #1c1c24;
 	--text: #111116;
 	--text-secondary: #555566;
-	--text-muted: #999aaa;
+	--text-muted: #9a9590;
+	--chat-bg: #fef8f7;
 	--bg: #fafaf7;
 	--surface: #ffffff;
 	--border: rgba(17, 17, 22, 0.07);
@@ -43,7 +44,7 @@
 	--accent: #fff3f2;
 	--accent-foreground: #111116;
 	--muted: #fafaf7;
-	--muted-foreground: #999aaa;
+	--muted-foreground: #9a9590;
 	--destructive: #dc2626;
 	--input: rgba(17, 17, 22, 0.14);
 	--ring: #f97368;

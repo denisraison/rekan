@@ -24,7 +24,7 @@ test.describe('Small screen accessibility (Wave 4)', () => {
 	test('message input bar has enough space for input and send button', async ({ page }) => {
 		await loginAsOperador(page);
 		await selectFirstClient(page);
-		const input = page.locator('input[placeholder="Mensagem..."]');
+		const input = page.locator('input[placeholder="Escreve aqui..."]');
 		await expect(input).toBeVisible();
 		const inputBox = await input.boundingBox();
 		expect(inputBox).not.toBeNull();

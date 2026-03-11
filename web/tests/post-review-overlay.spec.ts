@@ -4,7 +4,7 @@ import { loginAsOperador, selectFirstClient, switchToGenerateMode } from './help
 const overlay = '.absolute.inset-0.z-10';
 
 async function generatePost(page: any, prompt: string) {
-	await page.locator('input[placeholder="Descreva o post..."]').fill(prompt);
+	await page.locator('input[placeholder="Sobre o que é o post?"]').fill(prompt);
 	await page.getByRole('button', { name: 'Gerar' }).click();
 	await page.getByText('Post gerado').waitFor({ timeout: 30000 });
 }
@@ -74,6 +74,6 @@ test.describe('Post review overlay (Wave 3)', () => {
 		// Idea list overlay should be gone
 		await expect(ideasOverlay).not.toBeVisible();
 		// Generate mode input should be back
-		await expect(page.locator('input[placeholder="Descreva o post..."]')).toBeVisible();
+		await expect(page.locator('input[placeholder="Sobre o que é o post?"]')).toBeVisible();
 	});
 });

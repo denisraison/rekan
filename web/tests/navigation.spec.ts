@@ -10,14 +10,14 @@ test.describe('Browser back button navigation (Wave 5)', () => {
 		await selectFirstClient(page);
 
 		// Detail view is showing (input bar visible)
-		await expect(page.locator('input[placeholder="Mensagem..."]')).toBeVisible();
+		await expect(page.locator('input[placeholder="Escreve aqui..."]')).toBeVisible();
 
 		// Press browser back
 		await page.goBack();
 
 		// Should return to list view (client buttons visible, input bar gone)
 		await page.locator('button.text-left.border-b').first().waitFor();
-		await expect(page.locator('input[placeholder="Mensagem..."]')).not.toBeVisible();
+		await expect(page.locator('input[placeholder="Escreve aqui..."]')).not.toBeVisible();
 	});
 
 	test('opening info screen pushes history, back returns to detail', async ({ page }) => {
@@ -36,7 +36,7 @@ test.describe('Browser back button navigation (Wave 5)', () => {
 		await page.goBack();
 
 		// Should return to detail view (input bar visible)
-		await expect(page.locator('input[placeholder="Mensagem..."]')).toBeVisible();
+		await expect(page.locator('input[placeholder="Escreve aqui..."]')).toBeVisible();
 	});
 
 	test('back from detail clears selectedId', async ({ page }) => {
@@ -57,6 +57,6 @@ test.describe('Browser back button navigation (Wave 5)', () => {
 		} else {
 			await clients.first().click();
 		}
-		await expect(page.locator('input[placeholder="Mensagem..."]')).toBeVisible();
+		await expect(page.locator('input[placeholder="Escreve aqui..."]')).toBeVisible();
 	});
 });

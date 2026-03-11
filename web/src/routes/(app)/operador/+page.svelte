@@ -1478,7 +1478,7 @@
   {/if}
 
   {#if loading}
-    <p class="text-base p-6" style="color: var(--text-muted)">Carregando...</p>
+    <p class="text-base p-6" style="color: var(--text-muted)">Já vou...</p>
   {:else}
     <!-- Main operator layout -->
     <main class="flex-1 flex flex-col md:flex-row overflow-hidden">
@@ -1496,7 +1496,7 @@
             >← Clientes</button>
             {#if scheduledMessages.length === 0}
               <p class="text-base text-center py-8" style="color: var(--text-muted)">
-                Nenhuma mensagem pendente.
+                Tudo em dia! Nenhuma mensagem pra aprovar.
               </p>
             {:else}
               {#each scheduledMessages as msg (msg.id)}
@@ -1590,14 +1590,14 @@
 
           <!-- Color legend -->
           <div style="display: flex; gap: 16px; align-items: center; padding: 8px 20px; background: var(--bg); border-bottom: 1px solid var(--border);">
-            <span style="font-size: 12px; color: var(--text-muted);">Estado:</span>
-            <span style="display: flex; align-items: center; gap: 5px; font-size: 12px; color: var(--text-muted);">
+            <span style="font-size: 13px; color: var(--text-muted);">Estado:</span>
+            <span style="display: flex; align-items: center; gap: 5px; font-size: 13px; color: var(--text-muted);">
               <span style="width: 8px; height: 8px; border-radius: 9999px; background: #10B981; display: inline-block;"></span>Ativo
             </span>
-            <span style="display: flex; align-items: center; gap: 5px; font-size: 12px; color: var(--text-muted);">
+            <span style="display: flex; align-items: center; gap: 5px; font-size: 13px; color: var(--text-muted);">
               <span style="width: 8px; height: 8px; border-radius: 9999px; background: #F59E0B; display: inline-block;"></span>5–9d
             </span>
-            <span style="display: flex; align-items: center; gap: 5px; font-size: 12px; color: var(--text-muted);">
+            <span style="display: flex; align-items: center; gap: 5px; font-size: 13px; color: var(--text-muted);">
               <span style="width: 8px; height: 8px; border-radius: 9999px; background: #EF4444; display: inline-block;"></span>+10d
             </span>
           </div>
@@ -1612,7 +1612,7 @@
             {/if}
             {#if clients.length === 0}
               <p class="text-base p-5" style="color: var(--text-muted)">
-                Nenhum cliente cadastrado.
+                Você ainda não tem clientes. Toca no + pra começar!
               </p>
             {:else}
               {#each filteredClients as client (client.id)}
@@ -1877,7 +1877,7 @@
                     <!-- Analyzing bar -->
                     <div class="rounded-2xl flex items-center justify-center gap-3 rec-bar" style="border: 1.5px solid var(--border-strong);">
                       <div style="width: 22px; height: 22px; border-radius: 50%; border: 2.5px solid var(--coral); border-top-color: transparent; animation: spin 0.8s linear infinite; flex-shrink: 0;"></div>
-                      <span class="text-base font-medium" style="color: var(--text-secondary)">Analisando...</span>
+                      <span class="text-base font-medium" style="color: var(--text-secondary)">Lendo o que você falou...</span>
                     </div>
 
                   {:else}
@@ -2020,7 +2020,7 @@
 
                 <!-- Section: Serviços -->
                 {#if selected.services?.length > 0}
-                  <span style="font-size: 11px; font-weight: 700; letter-spacing: 0.08em; text-transform: uppercase; color: var(--text-muted); padding: 14px 20px 8px; background: var(--bg); border-top: 1px solid var(--border); display: block;">Serviços</span>
+                  <span style="font-size: 13px; font-weight: 700; letter-spacing: 0.08em; text-transform: uppercase; color: var(--text-muted); padding: 14px 20px 8px; background: var(--bg); border-top: 1px solid var(--border); display: block;">Serviços</span>
                   <div style="background: var(--surface); padding: 4px 0 12px;">
                     {#each selected.services as svc}
                       <div style="display: flex; align-items: baseline; gap: 12px; padding: 6px 20px;">
@@ -2033,7 +2033,7 @@
 
                 <!-- Section: Perfil -->
                 {#if selected.target_audience || selected.brand_vibe || selected.quirks}
-                  <span style="font-size: 11px; font-weight: 700; letter-spacing: 0.08em; text-transform: uppercase; color: var(--text-muted); padding: 14px 20px 8px; background: var(--bg); border-top: 1px solid var(--border); display: block;">Perfil</span>
+                  <span style="font-size: 13px; font-weight: 700; letter-spacing: 0.08em; text-transform: uppercase; color: var(--text-muted); padding: 14px 20px 8px; background: var(--bg); border-top: 1px solid var(--border); display: block;">Perfil</span>
                   <div style="background: var(--surface); padding: 4px 0 12px;">
                     {#if selected.target_audience}
                       <div style="display: flex; align-items: baseline; gap: 12px; padding: 6px 20px;">
@@ -2063,7 +2063,7 @@
                     style="width: 100%; display: flex; align-items: center; justify-content: space-between; padding: 14px 20px 8px; background: var(--bg); border-top: 1px solid var(--border); border-left: none; border-right: none; border-bottom: none; cursor: pointer;"
                   >
                     <div style="display: flex; align-items: center; gap: 8px;">
-                      <span style="font-size: 11px; font-weight: 700; letter-spacing: 0.08em; text-transform: uppercase; color: var(--sage-dark);">Sugestões de perfil</span>
+                      <span style="font-size: 13px; font-weight: 700; letter-spacing: 0.08em; text-transform: uppercase; color: var(--sage-dark);">Sugestões de perfil</span>
                       <span style="font-size: 12px; font-weight: 700; padding: 1px 7px; border-radius: 9999px; background: var(--sage); color: #fff;">{suggestions.length}</span>
                     </div>
                     <span style="font-size: 13px; color: var(--text-muted);">{suggestionsOpen ? '▴' : '▾'}</span>
@@ -2072,7 +2072,7 @@
                     <div style="background: var(--surface);">
                       {#each suggestions as sug (sug.id)}
                         <div style="padding: 12px 20px; border-bottom: 1px solid var(--border);">
-                          <span style="font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.06em; color: var(--text-muted);">
+                          <span style="font-size: 13px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.06em; color: var(--text-muted);">
                             {sug.field === 'services' ? 'Serviço detectado' : sug.field === 'quirks' ? 'Diferencial detectado' : sug.field === 'target_audience' ? 'Público detectado' : 'Estilo detectado'}
                           </span>
                           <p style="font-size: 15px; color: var(--text-secondary); margin: 4px 0 10px; line-height: 1.5;">{sug.suggestion}</p>
@@ -2094,7 +2094,7 @@
 
                 <!-- Section: Posts recentes -->
                 {#if clientPosts.length > 0}
-                  <span style="font-size: 11px; font-weight: 700; letter-spacing: 0.08em; text-transform: uppercase; color: var(--text-muted); padding: 14px 20px 8px; background: var(--bg); border-top: 1px solid var(--border); display: block;">Posts recentes</span>
+                  <span style="font-size: 13px; font-weight: 700; letter-spacing: 0.08em; text-transform: uppercase; color: var(--text-muted); padding: 14px 20px 8px; background: var(--bg); border-top: 1px solid var(--border); display: block;">Posts recentes</span>
                   <div style="background: var(--surface);">
                     {#each clientPosts.slice(0, historyLimit) as post (post.id)}
                       {@const postExpanded = expandedPosts.has(post.id)}
@@ -2114,7 +2114,7 @@
                             {post.caption}
                           </button>
                           {#if !postExpanded}
-                            <span style="font-size: 13px; color: var(--text-muted); margin-top: 2px; display: block;">toque para expandir</span>
+                            <span style="font-size: 13px; color: var(--text-muted); margin-top: 2px; display: block;">ver mais</span>
                           {/if}
                           {#if postExpanded && post.production_note}
                             <p style="font-size: 14px; font-style: italic; margin-top: 4px; color: var(--text-muted);">{post.production_note}</p>
@@ -2141,7 +2141,7 @@
 
                 <!-- Section: Lembrete -->
                 {#if nudgeTier || nudgeText}
-                  <span style="font-size: 11px; font-weight: 700; letter-spacing: 0.08em; text-transform: uppercase; padding: 14px 20px 8px; display: block; {nudgeTier ? 'background: #FFF7ED; border-top: 1px solid #FDE68A; color: #92400E;' : 'background: var(--bg); border-top: 1px solid var(--border); color: var(--text-muted);'}">
+                  <span style="font-size: 13px; font-weight: 700; letter-spacing: 0.08em; text-transform: uppercase; padding: 14px 20px 8px; display: block; {nudgeTier ? 'background: #FFF7ED; border-top: 1px solid #FDE68A; color: #92400E;' : 'background: var(--bg); border-top: 1px solid var(--border); color: var(--text-muted);'}">
                     {nudgeTier ? `⚠ Lembrete — ${clientHealth[selected!.id]?.daysSinceMsg} dias sem mensagem` : 'Mensagem'}
                   </span>
                   <div style="padding: 12px 20px 16px; border-bottom: 1px solid var(--border); {nudgeTier ? 'background: #FFFBEB;' : 'background: var(--surface);'}">
@@ -2172,7 +2172,7 @@
 
                 <!-- Section: Datas próximas -->
                 {#if upcomingDates.length > 0}
-                  <span style="font-size: 11px; font-weight: 700; letter-spacing: 0.08em; text-transform: uppercase; color: var(--text-muted); padding: 14px 20px 8px; background: var(--bg); border-top: 1px solid var(--border); display: block;">Datas próximas</span>
+                  <span style="font-size: 13px; font-weight: 700; letter-spacing: 0.08em; text-transform: uppercase; color: var(--text-muted); padding: 14px 20px 8px; background: var(--bg); border-top: 1px solid var(--border); display: block;">Datas próximas</span>
                   <div style="background: var(--surface); padding: 8px 20px 16px; display: flex; flex-wrap: wrap; gap: 8px;">
                     {#each upcomingDates as sd}
                       <button
@@ -2419,10 +2419,10 @@
           {/if}
 
           <!-- Message thread -->
-          <div bind:this={threadEl} class="flex-1 overflow-y-auto px-4 py-3 flex flex-col gap-2">
+          <div bind:this={threadEl} data-testid="message-thread" class="flex-1 overflow-y-auto px-4 py-3 flex flex-col gap-2" style="background: var(--chat-bg)">
             {#if groupedMessages.length === 0}
               <p class="text-base text-center py-8" style="color: var(--text-muted)">
-                Nenhuma mensagem ainda.
+                Quando {selected.name} mandar mensagem, aparece aqui.
               </p>
             {:else}
               {#each groupedMessages as group}
@@ -2599,7 +2599,7 @@
                     >
                       {#if generatingIdeas}
                         <svg class="animate-spin" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M12 2v4M12 18v4M4.93 4.93l2.83 2.83M16.24 16.24l2.83 2.83M2 12h4M18 12h4M4.93 19.07l2.83-2.83M16.24 7.76l2.83-2.83"/></svg>
-                        Gerando...
+                        Criando o post...
                       {:else}
                         3 ideias
                       {/if}
@@ -2608,7 +2608,7 @@
                 {/if}
                 <button
                   onclick={() => { inputMode = inputMode === 'chat' ? 'generate' : 'chat'; message = ''; selectedMessages = new Set(); removeAttachment(); }}
-                  class="ml-auto text-sm px-3 py-1.5 rounded-full font-medium transition-colors flex items-center gap-1.5"
+                  class="ml-auto text-sm px-3 py-1.5 min-h-11 rounded-full font-medium transition-colors flex items-center gap-1.5"
                   style="background: {inputMode === 'generate' ? '#25D366' : 'var(--coral)'}; color: #fff;"
                 >
                   {#if inputMode === 'generate'}
@@ -2675,8 +2675,8 @@
                 {/if}
                 <input
                   bind:value={message}
-                  placeholder={inputMode === 'generate' ? 'Descreva o post...' : 'Mensagem...'}
-                  class="flex-1 px-3 md:px-4 py-3 rounded-xl text-base outline-none border"
+                  placeholder={inputMode === 'generate' ? 'Sobre o que é o post?' : 'Escreve aqui...'}
+                  class="flex-1 min-w-0 px-3 md:px-4 py-3 rounded-xl text-base outline-none border"
                   style="border-color: var(--border-strong); background: var(--bg); color: var(--text); min-height: 48px;"
                   onkeydown={(e) => {
                     if (e.key === 'Enter' && !e.shiftKey) {
@@ -2695,7 +2695,7 @@
                   >
                     {#if generating}
                       <svg class="animate-spin" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M12 2v4M12 18v4M4.93 4.93l2.83 2.83M16.24 16.24l2.83 2.83M2 12h4M18 12h4M4.93 19.07l2.83-2.83M16.24 7.76l2.83-2.83"/></svg>
-                      Gerando...
+                      Criando o post...
                     {:else}
                       Gerar
                     {/if}
@@ -2729,7 +2729,7 @@
         {:else}
           <div class="flex-1 flex items-center justify-center">
             <p class="text-base" style="color: var(--text-muted)">
-              Selecione um cliente para ver as mensagens.
+              Escolhe uma cliente na lista pra começar.
             </p>
           </div>
         {/if}

@@ -152,19 +152,19 @@
 	const examples = [
 		{
 			username: 'padaria.donaelza',
-			image: '/demo/demo-padaria.png',
+			image: '/demo/demo-padaria.webp',
 			caption: 'Semana passada o forno de baixo apagou no meio da madrugada. 4h da manhã, 3 formas de bolo de cenoura dentro, a resistência simplesmente parou. Dona Elza olhou pra mim e disse: "Tira tudo, passa pro de cima, e reza." Queimei o dedo. O bolo? Saiu perfeito.',
 			hashtags: '#bolodecenoura #padariaartesanal #lapasp #bastidores #vidadepadeiro',
 		},
 		{
 			username: 'studio.viva',
-			image: '/demo/demo-studio.png',
+			image: '/demo/demo-studio.webp',
 			caption: 'Semana passada uma aluna chegou aqui segurando a lombar com as duas mãos. Ela tinha 3 hérnias e já tinha desistido de academia, yoga, tudo. Depois de 2 meses no Studio Viva Pilates, ela me mandou esse áudio: "Ju, hoje eu amarrei meu tênis sem sentar." Parece pouco né? Mas quem convive com dor crônica sabe que isso é TUDO.',
 			hashtags: '#pilatespinheiros #dorlombar #reabilitação #herniaDeDisco #pilatesreabilitação',
 		},
 		{
 			username: 'lu.nails',
-			image: '/demo/demo-nails.png',
+			image: '/demo/demo-nails.webp',
 			caption: 'Ontem uma cliente sentou na cadeira e disse: "Lu, eu quero aquela francesinha que ninguém faz direito". Eu ouço isso pelo menos 3 vezes por semana. A real é que francesinha parece simples mas é técnica pura. Eu me formei em nail design justamente porque queria dominar esse detalhe. R$45 e sai com acabamento que parece filtro, mas é real.',
 			hashtags: '#Francesinha #NailDesigner #EsmalteriaSantoAndré #NailArt #LuNails',
 		},
