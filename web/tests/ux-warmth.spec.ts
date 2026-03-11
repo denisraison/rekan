@@ -113,9 +113,11 @@ test.describe('UX warmth (PEP-019 Wave 3)', () => {
 		await openInfoScreen(page);
 		await page.screenshot({ path: '/tmp/pep019-final-info.png' });
 
-		// New client view
+		// New client view (info -> detail -> list)
 		await page.goBack();
+		await page.locator('[data-testid="input-bar"]').waitFor();
 		await page.goBack();
+		await page.getByRole('button', { name: '+ Novo' }).waitFor();
 		await openNewClientForm(page);
 		await page.screenshot({ path: '/tmp/pep019-final-newclient.png' });
 	});
