@@ -499,6 +499,9 @@
     clients = clientsRes.items;
     loading = false;
 
+    // Start WhatsApp stream early so waConnected is set before subscriptions complete
+    connectWhatsAppStream();
+
     // Load all messages and posts
     await Promise.all([loadMessages(), loadPosts()]);
 
@@ -566,8 +569,6 @@
           suggestions = suggestions.filter((s) => s.id !== e.record.id);
         }
       });
-
-    connectWhatsAppStream();
 
     // SSE stream dies when the browser suspends the page; restart on resume
     cleanupVisibility = onResume(() => {
