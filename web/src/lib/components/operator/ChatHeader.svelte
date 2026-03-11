@@ -1,4 +1,5 @@
 <script lang="ts">
+  import { Button } from "$lib/components/ui/button";
   import { initials, profilePictureUrl } from "$lib/operator/format";
   import type { Business } from "$lib/types";
 
@@ -14,16 +15,19 @@
 
 <div class="px-5 py-4 border-b border-border shrink-0 bg-[--surface]">
   <div class="flex items-center gap-2">
-    <button
+    <Button
       onclick={onback}
-      class="md:hidden flex items-center gap-1 py-2 pr-2 -ml-1 rounded-lg shrink-0 text-sm font-medium text-coral"
+      variant="ghost"
+      size="sm"
+      class="md:hidden flex items-center gap-1 py-2 pr-2 -ml-1 rounded-lg shrink-0 text-coral"
     >
       <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 18 9 12 15 6"/></svg>
       Voltar
-    </button>
-    <button
+    </Button>
+    <Button
       onclick={onopeninfo}
-      class="min-w-0 flex-1 flex items-center gap-3 text-left"
+      variant="ghost"
+      class="min-w-0 flex-1 flex items-center gap-3 text-left min-h-0 px-0 py-0"
     >
       <div class="shrink-0 w-9 h-9 rounded-full overflow-hidden flex items-center justify-center text-sm font-semibold bg-coral-pale text-coral">
         {#if pic}
@@ -39,6 +43,6 @@
           <span class="ml-1 text-xs text-muted-foreground">›</span>
         </p>
       </div>
-    </button>
+    </Button>
   </div>
 </div>

@@ -1,4 +1,5 @@
 <script lang="ts">
+  import { Button } from "$lib/components/ui/button";
   import { inviteBadgeClass, inviteBadgeLabel } from "$lib/operator/format";
   import type { ClientHealth } from "$lib/operator/health";
   import type { Business } from "$lib/types";
@@ -15,10 +16,11 @@
   let { client, selected, health, unreadCount, suggestionCount, onselect }: Props = $props();
 </script>
 
-<button
+<Button
   onclick={onselect}
   data-testid="client-card"
-  class="w-full text-left px-5 py-4 border-b border-border transition-colors {selected ? 'bg-coral-pale' : 'hover:bg-coral-pale/40'}"
+  variant="ghost"
+  class="w-full text-left px-5 py-4 border-b border-border rounded-none h-auto min-h-0 whitespace-normal font-normal block {selected ? 'bg-coral-pale' : 'hover:bg-coral-pale/40'}"
 >
   <div class="flex items-center justify-between">
     <div class="flex items-center gap-2.5 min-w-0">
@@ -67,4 +69,4 @@
       <span class="text-[13px] px-2.5 py-0.5 rounded-full bg-[#FEF3C7] text-[#92400E]">⚠ pagamento pendente</span>
     </div>
   {/if}
-</button>
+</Button>

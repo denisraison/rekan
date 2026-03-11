@@ -1,4 +1,6 @@
 <script lang="ts">
+  import { Button } from "$lib/components/ui/button";
+  import { Textarea } from "$lib/components/ui/textarea";
   import type { GeneratedPost } from "$lib/types";
   import { copyText } from "$lib/utils";
 
@@ -28,10 +30,10 @@
 
 <div class="absolute inset-0 flex flex-col z-10 bg-[--bg]">
   <div class="flex items-center gap-3 px-4 shrink-0 min-h-15 bg-[--surface] border-b border-border">
-    <button onclick={onback} class="flex items-center gap-1 min-h-15 pr-3 text-sm font-medium text-coral shrink-0">
+    <Button onclick={onback} variant="ghost" size="sm" class="text-coral shrink-0 gap-1 pr-3">
       <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 18 9 12 15 6"/></svg>
       Voltar
-    </button>
+    </Button>
     <span class="text-base font-semibold text-foreground">Post gerado</span>
   </div>
 
@@ -39,23 +41,23 @@
     <div>
       <div class="flex items-center justify-between mb-1">
         <span class="text-sm font-medium text-muted-foreground">Legenda</span>
-        <button onclick={() => copyWithFeedback("caption", editingCaption)} class="text-sm py-1 text-coral">
+        <Button onclick={() => copyWithFeedback("caption", editingCaption)} variant="ghost" size="sm" class="text-coral py-1 min-h-0">
           {copied.caption ? "Copiado!" : "Copiar"}
-        </button>
+        </Button>
       </div>
-      <textarea
+      <Textarea
         bind:value={editingCaption}
-        class="w-full rounded-xl p-3 text-base leading-relaxed resize-none bg-[--surface] border border-border text-foreground min-h-[120px]"
+        class="w-full rounded-xl p-3 text-base leading-relaxed bg-[--surface] border border-border text-foreground min-h-[120px]"
         style="field-sizing: content"
-      ></textarea>
+      />
     </div>
 
     <div>
       <div class="flex items-center justify-between mb-1">
         <span class="text-sm font-medium text-muted-foreground">Hashtags</span>
-        <button onclick={() => copyWithFeedback("hashtags", result.hashtags.join(" "))} class="text-sm py-1 text-coral">
+        <Button onclick={() => copyWithFeedback("hashtags", result.hashtags.join(" "))} variant="ghost" size="sm" class="text-coral py-1 min-h-0">
           {copied.hashtags ? "Copiado!" : "Copiar"}
-        </button>
+        </Button>
       </div>
       <p class="text-sm text-text-secondary">{result.hashtags.join(" ")}</p>
     </div>
@@ -64,9 +66,9 @@
       <div>
         <div class="flex items-center justify-between mb-1">
           <span class="text-sm font-medium text-muted-foreground">Nota de produção</span>
-          <button onclick={() => copyWithFeedback("note", result.production_note!)} class="text-sm py-1 text-coral">
+          <Button onclick={() => copyWithFeedback("note", result.production_note!)} variant="ghost" size="sm" class="text-coral py-1 min-h-0">
             {copied.note ? "Copiado!" : "Copiar"}
-          </button>
+          </Button>
         </div>
         <p class="text-sm italic mt-1 text-text-secondary border-l-2 border-[--border-strong] pl-3">{result.production_note}</p>
       </div>
@@ -77,14 +79,13 @@
     {#if blockReason}
       <span class="text-sm text-muted-foreground">{blockReason} — não é possível enviar agora.</span>
     {:else}
-      <button onclick={() => onsend(editingCaption)} disabled={sending}
-        class="w-full px-6 py-3 rounded-full text-base font-medium transition-opacity text-white bg-[#25D366] disabled:opacity-60 disabled:cursor-not-allowed">
+      <Button onclick={() => onsend(editingCaption)} disabled={sending} variant="whatsapp" class="w-full">
         {sending ? "Enviando..." : "Enviar pelo WhatsApp"}
-      </button>
+      </Button>
       {#if sendError}
         <span class="text-sm text-destructive">{sendError}</span>
       {/if}
     {/if}
-    <button onclick={ondiscard} class="w-full py-2 text-sm font-medium text-destructive">Descartar</button>
+    <Button onclick={ondiscard} variant="ghost" size="sm" class="w-full text-destructive">Descartar</Button>
   </div>
 </div>

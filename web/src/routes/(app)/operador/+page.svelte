@@ -17,6 +17,7 @@
   import { pb } from "$lib/pb";
   import { onResume, readSSE } from "$lib/sse";
   import type { Business, GeneratedPost, Message, Post, ProfileSuggestion, ScheduledMessage, WAStatus } from "$lib/types";
+  import { Button } from "$lib/components/ui/button";
   import { copyText } from "$lib/utils";
 
   let clients = $state<Business[]>([]);
@@ -305,7 +306,7 @@
 <div class="h-dvh flex flex-col bg-[--bg]">
   <header class="border-b border-border px-5 py-4 flex items-center gap-3 shrink-0 bg-[--surface] {mobileView !== 'list' ? 'hidden md:flex' : ''}">
     <span class="font-semibold text-lg md:text-base text-foreground font-[--font-primary]">Rekan</span>
-    <button onclick={openNewForm} class="ml-auto px-4 py-1.5 rounded-full text-sm font-semibold bg-coral text-white">+ Novo</button>
+    <Button onclick={openNewForm} size="sm" class="ml-auto font-semibold">+ Novo</Button>
   </header>
   {#if !waConnected && !waChecking}
     <a href="/operador/whatsapp" class="shrink-0 flex items-center justify-center gap-2 px-4 py-3 text-sm font-medium bg-[#FDE8E8] text-[#9B1C1C]">

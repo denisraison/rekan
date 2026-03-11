@@ -1,4 +1,6 @@
 <script lang="ts">
+  import { Button } from "$lib/components/ui/button";
+  import { Textarea } from "$lib/components/ui/textarea";
   import type { NudgeTemplate, UpcomingDate } from "$lib/operator/constants";
   import { initials, inviteBadgeClass, inviteBadgeLabel, profilePictureUrl } from "$lib/operator/format";
   import type { ClientHealth } from "$lib/operator/health";
@@ -47,13 +49,15 @@
 <div class="flex-1 flex flex-col overflow-hidden">
   <!-- Header -->
   <div class="bg-[--surface] border-b border-border flex items-center min-h-15 px-4 gap-1 shrink-0">
-    <button
+    <Button
       onclick={onback}
-      class="flex items-center gap-1 min-h-15 pr-3 text-sm font-medium text-coral shrink-0"
+      variant="ghost"
+      size="sm"
+      class="text-coral shrink-0 gap-1 pr-3 min-h-15"
     >
       <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 18 9 12 15 6"/></svg>
       Voltar
-    </button>
+    </Button>
     <div class="w-11 h-11 rounded-full overflow-hidden shrink-0 flex items-center justify-center text-base font-semibold bg-coral-pale text-coral">
       {#if pic}
         <img src={pic} alt={client.name} class="w-full h-full object-cover" />
@@ -65,10 +69,12 @@
       <div class="text-[17px] font-semibold text-foreground truncate">{client.name}</div>
       <div class="text-sm text-text-secondary">{client.type} — {client.city}/{client.state}</div>
     </div>
-    <button
+    <Button
       onclick={onedit}
-      class="min-h-12 px-4.5 rounded-full text-sm font-medium text-text-secondary border border-[--border-strong] shrink-0"
-    >Editar</button>
+      variant="outline"
+      size="sm"
+      class="shrink-0 px-4.5 text-text-secondary"
+    >Editar</Button>
   </div>
 
   <div class="flex-1 overflow-y-auto">
@@ -91,10 +97,7 @@
         <span class="text-sm px-3 py-1 rounded-full font-medium bg-[#FEE2E2] text-[#991B1B]">Pagamento pendente</span>
       {/if}
       {#if client.type === 'Desconhecido'}
-        <button
-          onclick={onedit}
-          class="min-h-12 px-5 rounded-full text-[15px] font-semibold text-white bg-[#25D366]"
-        >Criar conta</button>
+        <Button onclick={onedit} variant="whatsapp" class="text-[15px] font-semibold">Criar conta</Button>
       {/if}
     </div>
 
@@ -138,16 +141,17 @@
 
     <!-- Suggestions -->
     {#if suggestions.length > 0}
-      <button
+      <Button
         onclick={ontogglesuggestions}
-        class="w-full flex items-center justify-between px-5 pt-3.5 pb-2 bg-[--bg] border-t border-border cursor-pointer"
+        variant="ghost"
+        class="w-full flex items-center justify-between px-5 pt-3.5 pb-2 bg-[--bg] border-t border-border rounded-none min-h-0 h-auto"
       >
         <div class="flex items-center gap-2">
           <span class="text-[13px] font-bold tracking-wider uppercase text-sage-dark">Sugestões de perfil</span>
           <span class="text-xs font-bold px-1.5 py-px rounded-full bg-sage text-white">{suggestions.length}</span>
         </div>
         <span class="text-[13px] text-muted-foreground">{suggestionsOpen ? '▴' : '▾'}</span>
-      </button>
+      </Button>
       {#if suggestionsOpen}
         <div class="bg-[--surface]">
           {#each suggestions as sug (sug.id)}
@@ -157,14 +161,18 @@
               </span>
               <p class="text-[15px] text-text-secondary my-1 leading-relaxed">{sug.suggestion}</p>
               <div class="flex gap-2">
-                <button
+                <Button
                   onclick={() => onacceptsuggestion(sug)}
-                  class="min-h-10 px-4 rounded-full text-sm font-semibold bg-sage-pale text-sage-dark border border-sage-light"
-                >Adicionar</button>
-                <button
+                  variant="secondary"
+                  size="sm"
+                  class="font-semibold border border-sage-light"
+                >Adicionar</Button>
+                <Button
                   onclick={() => ondismisssuggestion(sug)}
-                  class="min-h-10 px-4 rounded-full text-sm font-medium text-muted-foreground border border-[--border-strong] bg-transparent"
-                >Ignorar</button>
+                  variant="outline"
+                  size="sm"
+                  class="text-muted-foreground"
+                >Ignorar</Button>
               </div>
             </div>
           {/each}
@@ -183,12 +191,13 @@
               {new Date(post.created).toLocaleDateString("pt-BR", { day: "numeric", month: "short" })}
             </span>
             <div class="flex-1 min-w-0">
-              <button
+              <Button
                 onclick={() => ontogglepost(post.id)}
-                class="text-[15px] text-text-secondary leading-relaxed text-left w-full bg-transparent border-none p-0 {postExpanded ? '' : 'line-clamp-2'}"
+                variant="ghost"
+                class="text-[15px] text-text-secondary leading-relaxed text-left w-full min-h-0 h-auto p-0 whitespace-normal font-normal {postExpanded ? '' : 'line-clamp-2'}"
               >
                 {post.caption}
-              </button>
+              </Button>
               {#if !postExpanded}
                 <span class="text-[13px] text-muted-foreground mt-0.5 block">ver mais</span>
               {/if}
@@ -196,19 +205,23 @@
                 <p class="text-sm italic mt-1 text-muted-foreground">{post.production_note}</p>
               {/if}
             </div>
-            <button
+            <Button
               onclick={() => oncopypost(post.caption + (post.hashtags?.length ? '\n\n' + post.hashtags.join(' ') : ''))}
-              class="min-h-12 px-3.5 rounded-full text-sm font-medium text-coral border border-coral-light bg-coral-pale whitespace-nowrap shrink-0"
-            >Copiar</button>
+              variant="soft"
+              size="sm"
+              class="shrink-0 border border-coral-light whitespace-nowrap"
+            >Copiar</Button>
           </div>
         {/each}
         {#if clientPosts.length > historyLimit}
-          <button
+          <Button
             onclick={onshowallposts}
-            class="block w-full min-h-12 px-5 text-left text-sm font-medium text-coral bg-transparent border-none"
+            variant="ghost"
+            size="sm"
+            class="w-full text-left px-5 text-coral rounded-none justify-start"
           >
             Ver todos ({clientPosts.length})
-          </button>
+          </Button>
         {/if}
       </div>
     {/if}
@@ -221,21 +234,22 @@
         {nudgeTier ? `⚠ Lembrete — ${health?.daysSinceMsg} dias sem mensagem` : 'Mensagem'}
       </span>
       <div class="px-5 py-3 pb-4 border-b border-border {nudgeTier ? 'bg-[#FFFBEB]' : 'bg-[--surface]'}">
-        <textarea
+        <Textarea
           value={nudgeText}
           oninput={(e) => onnudgetextchange(e.currentTarget.value)}
           rows={2}
-          class="w-full rounded-xl text-base outline-none border border-[--border-strong] resize-none px-4 py-3 bg-[--surface] text-foreground"
-        ></textarea>
+          class="w-full rounded-xl text-base border border-[--border-strong] px-4 py-3 bg-[--surface] text-foreground"
+        />
         <div class="flex items-center gap-2 mt-2">
-          <button
+          <Button
             onclick={onsendnudge}
             disabled={sendingNudge || !nudgeText.trim() || !!blockReason}
             title={blockReason ?? undefined}
-            class="min-h-12 px-6 rounded-full text-[15px] font-semibold text-white bg-[#25D366] disabled:opacity-60 disabled:cursor-not-allowed"
+            variant="whatsapp"
+            class="text-[15px] font-semibold"
           >
             {sendingNudge ? "Enviando..." : "Enviar lembrete"}
-          </button>
+          </Button>
           {#if blockReason && nudgeText.trim()}
             <span class="text-sm text-muted-foreground">{blockReason}</span>
           {/if}
@@ -251,12 +265,14 @@
       <span class="text-[13px] font-bold tracking-wider uppercase text-muted-foreground px-5 pt-3.5 pb-2 bg-[--bg] border-t border-border block">Datas próximas</span>
       <div class="bg-[--surface] px-5 py-2 pb-4 flex flex-wrap gap-2">
         {#each upcomingDates as sd}
-          <button
+          <Button
             onclick={() => onprefillseasonal(sd.template)}
-            class="min-h-12 px-4 rounded-full text-sm font-medium border border-[--border-strong] text-text-secondary bg-transparent"
+            variant="outline"
+            size="sm"
+            class="text-text-secondary"
           >
             {sd.label} · {sd.daysUntil}d
-          </button>
+          </Button>
         {/each}
       </div>
     {/if}
@@ -267,13 +283,15 @@
         <p class="text-sm leading-relaxed mb-2.5 text-[#991B1B]">
           Cancelar a assinatura desativa o acesso de {client.name} ao rekan.
         </p>
-        <button
+        <Button
           onclick={oncancelsubscription}
           disabled={cancelling}
-          class="min-h-12 px-5 rounded-full text-sm font-semibold bg-transparent border-[1.5px] border-[#EF4444] text-[#EF4444] disabled:opacity-60"
+          variant="outline"
+          size="sm"
+          class="border-[1.5px] border-[#EF4444] text-[#EF4444]"
         >
           {cancelling ? "Cancelando..." : "Cancelar assinatura"}
-        </button>
+        </Button>
       </div>
     {/if}
   </div>

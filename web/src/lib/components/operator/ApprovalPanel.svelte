@@ -1,4 +1,5 @@
 <script lang="ts">
+  import { Button } from "$lib/components/ui/button";
   import type { Business, ScheduledMessage } from "$lib/types";
 
   type Props = {
@@ -16,10 +17,12 @@
 </script>
 
 <div class="flex-1 overflow-y-auto p-3 flex flex-col gap-2">
-  <button
+  <Button
     onclick={onback}
-    class="min-h-12 px-1 rounded-full text-sm font-medium text-coral bg-transparent text-left self-start"
-  >← Clientes</button>
+    variant="ghost"
+    size="sm"
+    class="text-coral self-start px-1"
+  >← Clientes</Button>
   {#if scheduledMessages.length === 0}
     <p class="text-base text-center py-8 text-muted-foreground">
       Tudo em dia! Nenhuma mensagem pra aprovar.
@@ -33,20 +36,24 @@
         </p>
         <p class="text-sm py-1.5 text-text-secondary">{msg.text}</p>
         <div class="flex gap-2 mt-2">
-          <button
+          <Button
             onclick={() => onapprove(msg.id)}
             disabled={approvingId === msg.id || !waConnected}
-            class="flex-1 py-3 rounded-lg text-sm font-medium transition-opacity text-white bg-[#25D366] disabled:opacity-60"
+            variant="whatsapp"
+            size="sm"
+            class="flex-1 py-3 rounded-lg"
           >
             {approvingId === msg.id ? "..." : "Enviar"}
-          </button>
-          <button
+          </Button>
+          <Button
             onclick={() => ondismiss(msg.id)}
             disabled={dismissingId === msg.id}
-            class="flex-1 py-3 rounded-lg text-sm font-medium border border-[--border-strong] text-text-secondary transition-opacity disabled:opacity-60"
+            variant="outline"
+            size="sm"
+            class="flex-1 py-3 rounded-lg text-text-secondary"
           >
             {dismissingId === msg.id ? "..." : "Descartar"}
-          </button>
+          </Button>
         </div>
       </div>
     {/each}

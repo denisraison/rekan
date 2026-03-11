@@ -1,4 +1,7 @@
 <script lang="ts">
+  import { Button } from "$lib/components/ui/button";
+  import { Input } from "$lib/components/ui/input";
+  import { Textarea } from "$lib/components/ui/textarea";
   import * as api from "$lib/operator/api";
   import { businessTypes, states } from "$lib/operator/constants";
   import { fmtTime } from "$lib/operator/format";
@@ -116,17 +119,17 @@
     <div class="flex flex-col gap-2 {voiceMode === 'done' ? 'mt-1.5' : ''}">
       {#each formServices as service, i}
         <div class="flex gap-2 items-center">
-          <input bind:value={service.name} placeholder="Nome do serviço" class="flex-1 px-3 py-3 rounded-xl text-base outline-none border min-h-13 text-[--text] {highlight && aiFilledFields.has('services') ? 'border-sage bg-sage-pale' : 'border-[--border-strong] bg-[--surface]'}" />
+          <Input bind:value={service.name} placeholder="Nome do serviço" class={`flex-1 ${highlight && aiFilledFields.has('services') ? 'border-sage bg-sage-pale' : 'border-[--border-strong] bg-[--surface]'}`} />
           <div class="relative w-28">
             <span class="absolute left-3 top-1/2 -translate-y-1/2 text-base text-muted-foreground">R$</span>
-            <input type="number" bind:value={service.price_brl} min="0" class="w-full pl-9 pr-3 py-3 rounded-xl text-base outline-none border min-h-13 text-[--text] {highlight && aiFilledFields.has('services') ? 'border-sage bg-sage-pale' : 'border-[--border-strong] bg-[--surface]'}" />
+            <Input type="number" bind:value={service.price_brl} min="0" class={`w-full pl-9 ${highlight && aiFilledFields.has('services') ? 'border-sage bg-sage-pale' : 'border-[--border-strong] bg-[--surface]'}`} />
           </div>
           {#if formServices.length > 1 || voiceMode === 'done'}
-            <button onclick={() => removeService(i)} class="w-10 h-13 flex items-center justify-center shrink-0 text-muted-foreground text-[22px] bg-transparent border-none cursor-pointer">×</button>
+            <Button onclick={() => removeService(i)} variant="ghost" size="icon" class="shrink-0 w-10 h-13 text-muted-foreground text-[22px]">×</Button>
           {/if}
         </div>
       {/each}
-      <button onclick={addService} class="text-base font-medium mt-1 py-1 text-primary">+ Adicionar serviço</button>
+      <Button onclick={addService} variant="ghost" size="sm" class="text-primary self-start mt-1 py-1 min-h-0">+ Adicionar serviço</Button>
     </div>
   </div>
 {/snippet}
@@ -135,27 +138,27 @@
   <label class="flex flex-col gap-1.5">
     <span class={labelCls}>Quem são os clientes?</span>
     <span class="text-sm text-muted-foreground">ex: mulheres de 25 a 50 anos que moram no bairro</span>
-    <textarea bind:value={formTargetAudience} placeholder="Descreve quem costuma ir lá..." rows={2} class="px-3 py-3 rounded-xl text-base outline-none border resize-none min-h-13 text-[--text] {highlight && aiFilledFields.has('target_audience') ? 'border-sage bg-sage-pale' : 'border-[--border-strong] bg-[--surface]'}"></textarea>
+    <Textarea bind:value={formTargetAudience} placeholder="Descreve quem costuma ir lá..." rows={2} class={highlight && aiFilledFields.has('target_audience') ? 'border-sage bg-sage-pale' : 'border-[--border-strong] bg-[--surface]'} />
   </label>
   <label class="flex flex-col gap-1.5">
     <span class={labelCls}>Como é o ambiente?</span>
     <span class="text-sm text-muted-foreground">ex: acolhedor, descontraído, serve cafezinho</span>
-    <textarea bind:value={formBrandVibe} placeholder="Conta um pouco sobre o clima do lugar..." rows={2} class="px-3 py-3 rounded-xl text-base outline-none border resize-none min-h-13 text-[--text] {highlight && aiFilledFields.has('brand_vibe') ? 'border-sage bg-sage-pale' : 'border-[--border-strong] bg-[--surface]'}"></textarea>
+    <Textarea bind:value={formBrandVibe} placeholder="Conta um pouco sobre o clima do lugar..." rows={2} class={highlight && aiFilledFields.has('brand_vibe') ? 'border-sage bg-sage-pale' : 'border-[--border-strong] bg-[--surface]'} />
   </label>
   <label class="flex flex-col gap-1.5">
     <span class={labelCls}>O que faz diferente?</span>
     <span class="text-sm text-muted-foreground">ex: agenda lotada às quintas</span>
-    <textarea bind:value={formQuirks} placeholder="Detalhes que fazem a cliente escolher esse lugar..." rows={2} class="px-3 py-3 rounded-xl text-base outline-none border resize-none text-[--text] {highlight && aiFilledFields.has('quirks') ? 'border-sage bg-sage-pale' : 'border-[--border-strong] bg-[--surface]'}"></textarea>
+    <Textarea bind:value={formQuirks} placeholder="Detalhes que fazem a cliente escolher esse lugar..." rows={2} class={highlight && aiFilledFields.has('quirks') ? 'border-sage bg-sage-pale' : 'border-[--border-strong] bg-[--surface]'} />
   </label>
 {/snippet}
 
 {#snippet actionButtons(showSave: boolean)}
   {#if voiceMode === 'idle'}
-    <button onclick={onclose} class="w-full px-5 py-3 rounded-full text-base font-medium border border-[--border-strong] text-text-secondary">Cancelar</button>
+    <Button onclick={onclose} variant="outline" class="w-full text-text-secondary">Cancelar</Button>
   {:else if showSave}
-    <button onclick={saveClient} disabled={formSaving} class="w-full px-5 py-3 rounded-full text-base font-medium bg-coral text-white disabled:opacity-60">{formSaving ? "Salvando..." : "Salvar"}</button>
-    <button onclick={saveAndInvite} disabled={formSaving} class="w-full px-5 py-3 rounded-full text-base font-medium text-white bg-[#25D366] disabled:opacity-60">{formSaving ? "Salvando..." : "Salvar e Enviar Convite"}</button>
-    <button onclick={onclose} class="w-full py-2 text-sm font-medium text-muted-foreground">Cancelar</button>
+    <Button onclick={saveClient} disabled={formSaving} class="w-full">{formSaving ? "Salvando..." : "Salvar"}</Button>
+    <Button onclick={saveAndInvite} disabled={formSaving} variant="whatsapp" class="w-full">{formSaving ? "Salvando..." : "Salvar e Enviar Convite"}</Button>
+    <Button onclick={onclose} variant="ghost" size="sm" class="w-full text-muted-foreground">Cancelar</Button>
   {/if}
 {/snippet}
 
@@ -170,7 +173,7 @@
           <span class="font-semibold text-foreground">{formName || 'Novo cliente'}</span>
           {#if formType || formCity}<span class="text-muted-foreground"> · {[formType, formCity].filter(Boolean).join(', ')}</span>{/if}
         </div>
-        <button onclick={() => voiceMode = 'idle'} class="text-xs px-2 py-1 rounded-lg text-muted-foreground border border-[--border-strong]">Editar</button>
+        <Button onclick={() => voiceMode = 'idle'} variant="outline" size="sm" class="text-xs px-2 py-1 rounded-lg min-h-0 text-muted-foreground">Editar</Button>
       </div>
       <div class="flex items-center gap-3 mb-5 p-3 rounded-xl bg-sage-pale border-[1.5px] border-sage-light">
         <div class="flex items-center justify-center shrink-0 w-8 h-8 rounded-full bg-sage">
@@ -186,46 +189,46 @@
         {@render contentFields(true)}
       </div>
       <div class="text-center mt-4">
-        <button onclick={resetVoice} class="text-sm inline-flex items-center gap-1.5 p-3 text-muted-foreground bg-transparent border-none cursor-pointer">
+        <Button onclick={resetVoice} variant="ghost" size="sm" class="text-muted-foreground gap-1.5">
           <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2a3 3 0 0 1 3 3v6a3 3 0 0 1-6 0V5a3 3 0 0 1 3-3z"/><path d="M19 10v1a7 7 0 0 1-14 0v-1M12 18v4M8 22h8"/></svg>
           Gravar de novo
-        </button>
+        </Button>
       </div>
       <div class="flex flex-col md:flex-row gap-3 mt-4">
-        <button onclick={onclose} class="px-5 py-3 rounded-full text-base font-medium border border-[--border-strong] text-text-secondary">Cancelar</button>
-        <button onclick={saveClient} disabled={formSaving} class="px-5 py-3 rounded-full text-base font-medium bg-coral text-white disabled:opacity-60">{formSaving ? "Salvando..." : "Salvar e continuar"}</button>
-        <button onclick={saveAndInvite} disabled={formSaving} class="px-5 py-3 rounded-full text-base font-medium text-white bg-[#25D366] disabled:opacity-60">{formSaving ? "Salvando..." : "Salvar e Enviar Convite"}</button>
+        <Button onclick={onclose} variant="outline" class="text-text-secondary">Cancelar</Button>
+        <Button onclick={saveClient} disabled={formSaving}>{formSaving ? "Salvando..." : "Salvar e continuar"}</Button>
+        <Button onclick={saveAndInvite} disabled={formSaving} variant="whatsapp">{formSaving ? "Salvando..." : "Salvar e Enviar Convite"}</Button>
       </div>
     {:else}
       {#if voiceError}<p class="text-sm mb-4 p-3 rounded-lg text-[#DC2626] bg-[#FEF2F2]">{voiceError}</p>{/if}
       <div class="flex flex-col gap-4">
         {#if voiceMode === 'idle'}
           <div class="flex items-center gap-3 md:gap-4 p-3 md:p-5 rounded-2xl bg-coral-pale border-[1.5px] border-coral-light">
-            <button onclick={startVoiceRecording} aria-label="Gravar descrição" class="mic-btn rounded-full bg-coral flex items-center justify-center cursor-pointer shrink-0 shadow-[0_4px_16px_rgba(249,115,104,0.35)]">
+            <Button onclick={startVoiceRecording} aria-label="Gravar descrição" variant="default" class="mic-btn rounded-full flex items-center justify-center shadow-[0_4px_16px_rgba(249,115,104,0.35)] p-0">
               <svg width="30" height="30" viewBox="0 0 24 24" fill="white"><path d="M12 2a3 3 0 0 1 3 3v6a3 3 0 0 1-6 0V5a3 3 0 0 1 3-3z"/><path d="M19 10v1a7 7 0 0 1-14 0v-1M12 18v4M8 22h8" stroke="white" stroke-width="1.5" fill="none" stroke-linecap="round"/></svg>
-            </button>
+            </Button>
             <div class="min-w-0">
               <p class="text-base font-bold text-foreground mb-1">Gravar descrição</p>
               <p class="text-sm text-text-secondary leading-snug">Toca no microfone e fala sobre a cliente</p>
             </div>
           </div>
           <div class="text-center">
-            <button onclick={() => voiceMode = 'manual'} class="text-sm p-3 text-muted-foreground bg-transparent border-none cursor-pointer underline underline-offset-[3px]">Preencher manualmente</button>
+            <Button onclick={() => voiceMode = 'manual'} variant="link" size="sm" class="text-muted-foreground underline underline-offset-[3px]">Preencher manualmente</Button>
           </div>
         {:else if voiceMode === 'recording'}
           <div class="rounded-2xl overflow-hidden border-[1.5px] border-[--border-strong]">
             <div class="flex items-center rec-bar">
-              <button onclick={cancelRecording} aria-label="Cancelar gravação" class="rec-side-btn flex items-center justify-center cursor-pointer shrink-0 border-none bg-[#FEF2F2] border-r border-r-[--border-strong]">
+              <Button onclick={cancelRecording} aria-label="Cancelar gravação" variant="ghost" class="rec-side-btn flex items-center justify-center rounded-none bg-[#FEF2F2] border-r border-r-[--border-strong] min-h-0 p-0">
                 <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#EF4444" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
-              </button>
+              </Button>
               <div class="flex-1 flex items-center justify-center gap-3">
                 <div class="w-2.5 h-2.5 rounded-full shrink-0 animate-[blink_1s_ease-in-out_infinite] bg-[#EF4444]"></div>
                 <span class="rec-timer font-bold tracking-wide text-foreground tabular-nums">{fmtTime(recordingSeconds)}</span>
                 <span class="text-sm rec-label text-muted-foreground">Gravando</span>
               </div>
-              <button onclick={submitRecording} aria-label="Enviar gravação" class="rec-side-btn flex items-center justify-center cursor-pointer shrink-0 bg-coral border-none border-l border-l-coral-light">
+              <Button onclick={submitRecording} aria-label="Enviar gravação" variant="default" class="rec-side-btn flex items-center justify-center rounded-none min-h-0 p-0">
                 <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="19" x2="12" y2="5"/><polyline points="5 12 12 5 19 12"/></svg>
-              </button>
+              </Button>
             </div>
           </div>
         {:else if voiceMode === 'analyzing'}
@@ -235,25 +238,25 @@
           </div>
         {:else}
           {#if voiceMode === 'manual'}
-            <button onclick={resetVoice} class="w-full flex items-center gap-3 mb-1 min-h-16 bg-coral-pale border-none border-b-[1.5px] border-coral-light rounded-xl px-4 py-3.5 cursor-pointer text-left">
+            <Button onclick={resetVoice} variant="ghost" class="w-full flex items-center gap-3 mb-1 min-h-16 bg-coral-pale rounded-xl px-4 py-3.5 text-left border-b-[1.5px] border-coral-light">
               <div class="flex items-center justify-center shrink-0 w-9 h-9 rounded-full bg-coral">
                 <svg width="16" height="16" viewBox="0 0 24 24" fill="white"><path d="M12 2a3 3 0 0 1 3 3v6a3 3 0 0 1-6 0V5a3 3 0 0 1 3-3z"/><path d="M19 10v1a7 7 0 0 1-14 0v-1M12 18v4M8 22h8" stroke="white" stroke-width="1.5" fill="none" stroke-linecap="round"/></svg>
               </div>
               <p class="text-sm flex-1 text-text-secondary leading-snug">Prefere gravar uma descrição? É mais rápido.</p>
               <span class="text-sm font-bold text-coral whitespace-nowrap">Gravar →</span>
-            </button>
+            </Button>
           {/if}
-          <label class="flex flex-col gap-1.5"><span class={labelCls}>Nome do cliente</span><input bind:value={formClientName} placeholder="Ex: Ana Silva" class={inputCls} /></label>
-          <label class="flex flex-col gap-1.5"><span class={labelCls}>Email do cliente</span><input bind:value={formClientEmail} type="email" placeholder="ana@email.com" class={inputCls} /></label>
-          <label class="flex flex-col gap-1.5"><span class={labelCls}>Nome do negócio</span><input bind:value={formName} placeholder="Nome do negócio" class={inputCls} /></label>
+          <label class="flex flex-col gap-1.5"><span class={labelCls}>Nome do cliente</span><Input bind:value={formClientName} placeholder="Ex: Ana Silva" class={inputCls} /></label>
+          <label class="flex flex-col gap-1.5"><span class={labelCls}>Email do cliente</span><Input bind:value={formClientEmail} type="email" placeholder="ana@email.com" class={inputCls} /></label>
+          <label class="flex flex-col gap-1.5"><span class={labelCls}>Nome do negócio</span><Input bind:value={formName} placeholder="Nome do negócio" class={inputCls} /></label>
           <label class="flex flex-col gap-1.5"><span class={labelCls}>Tipo de negócio</span>
             <select bind:value={formType} class={inputCls}><option value="">Selecione...</option>{#each businessTypes as t}<option value={t}>{t}</option>{/each}</select>
           </label>
           <div class="flex gap-3">
-            <label class="flex flex-col gap-1.5 flex-1"><span class={labelCls}>Cidade</span><input bind:value={formCity} placeholder="Ex: São Paulo" class={inputCls} /></label>
+            <label class="flex flex-col gap-1.5 flex-1"><span class={labelCls}>Cidade</span><Input bind:value={formCity} placeholder="Ex: São Paulo" class={inputCls} /></label>
             <label class="flex flex-col gap-1.5 w-28"><span class={labelCls}>Estado</span><select bind:value={formState} class={inputCls}><option value="">UF</option>{#each states as s}<option value={s}>{s}</option>{/each}</select></label>
           </div>
-          <label class="flex flex-col gap-1.5"><span class={labelCls}>Telefone WhatsApp</span><input bind:value={formPhone} placeholder="5511999998888" class={inputCls} /></label>
+          <label class="flex flex-col gap-1.5"><span class={labelCls}>Telefone WhatsApp</span><Input bind:value={formPhone} placeholder="5511999998888" class={inputCls} /></label>
           <div class="h-px bg-border my-1"></div>
           {@render serviceEditor(false)}
           {@render contentFields(false)}
@@ -263,8 +266,8 @@
         <div class="mt-4 rounded-xl p-4 bg-sage-pale border border-border">
           <p class="text-base font-medium mb-2 text-foreground">Convite enviado!</p>
           <div class="flex items-center gap-2">
-            <input readonly value={inviteUrl} class="flex-1 px-3 py-3 rounded-lg text-sm outline-none border border-[--border-strong] bg-[--surface] text-foreground" />
-            <button onclick={copyInviteUrl} class="px-4 py-3 rounded-lg text-sm font-medium bg-coral text-white">{inviteCopied ? "Copiado!" : "Copiar"}</button>
+            <Input readonly value={inviteUrl} class="flex-1 rounded-lg text-sm" />
+            <Button onclick={copyInviteUrl} size="sm" class="rounded-lg">{inviteCopied ? "Copiado!" : "Copiar"}</Button>
           </div>
         </div>
       {/if}

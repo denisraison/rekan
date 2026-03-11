@@ -1,4 +1,5 @@
 <script lang="ts">
+  import { Button } from "$lib/components/ui/button";
   import type { GeneratedPost } from "$lib/types";
 
   type Props = {
@@ -19,13 +20,15 @@
 <div class="md:hidden absolute inset-0 flex flex-col z-10 bg-[--bg]">
   <div class="flex items-center gap-3 px-4 shrink-0 min-h-15 bg-[--surface] border-b border-border">
     {#if !generatingIdeas}
-      <button
+      <Button
         onclick={onback}
-        class="flex items-center gap-1 min-h-15 pr-3 text-sm font-medium text-coral shrink-0"
+        variant="ghost"
+        size="sm"
+        class="text-coral shrink-0 gap-1 pr-3 min-h-15"
       >
         <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 18 9 12 15 6"/></svg>
         Voltar
-      </button>
+      </Button>
     {/if}
     <span class="text-base font-semibold text-foreground">
       {generatingIdeas ? 'Gerando ideias...' : 'Selecione ideias'}
@@ -39,11 +42,12 @@
   {:else}
     <div class="flex-1 overflow-y-auto p-4 flex flex-col gap-4">
       {#each ideaDrafts! as draft, i}
-        <button
+        <Button
           onclick={() => ontoggle(i)}
-          class="rounded-2xl p-5 text-left transition-colors bg-[--surface] border-2 {selectedIdeas.has(i) ? 'border-coral' : 'border-border'}"
+          variant="ghost"
+          class="rounded-2xl p-5 text-left h-auto min-h-0 transition-colors bg-[--surface] border-2 whitespace-normal {selectedIdeas.has(i) ? 'border-coral' : 'border-border'}"
         >
-          <div class="flex items-start gap-3">
+          <div class="flex items-start gap-3 w-full">
             <div class="shrink-0 w-6 h-6 rounded-full flex items-center justify-center mt-0.5 border-2 {selectedIdeas.has(i) ? 'border-coral bg-coral' : 'border-border bg-transparent'}">
               {#if selectedIdeas.has(i)}
                 <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
@@ -56,27 +60,33 @@
               {/if}
             </div>
           </div>
-        </button>
+        </Button>
       {/each}
     </div>
     {#if selectedIdeas.size > 0}
       <div class="shrink-0 p-4 flex gap-2 bg-[--surface] border-t border-border">
         {#if selectedIdeas.size === 1}
-          <button
+          <Button
             onclick={() => onreview([...selectedIdeas][0])}
-            class="flex-1 rounded-full text-base font-semibold min-h-13 bg-coral text-white"
-          >Revisar e enviar</button>
+            variant="default"
+            size="lg"
+            class="flex-1 font-semibold"
+          >Revisar e enviar</Button>
         {:else}
-          <button
+          <Button
             onclick={onsend}
             disabled={sendingIdeas}
-            class="flex-1 rounded-full text-base font-semibold min-h-13 text-white bg-[#25D366] disabled:opacity-60"
-          >{sendingIdeas ? 'Enviando...' : `Enviar ${selectedIdeas.size} selecionadas`}</button>
+            variant="whatsapp"
+            size="lg"
+            class="flex-1 font-semibold"
+          >{sendingIdeas ? 'Enviando...' : `Enviar ${selectedIdeas.size} selecionadas`}</Button>
         {/if}
-        <button
+        <Button
           onclick={onclear}
-          class="shrink-0 px-4 rounded-full text-base font-medium min-h-13 text-destructive bg-[--bg] border border-border"
-        >Cancelar</button>
+          variant="outline"
+          size="lg"
+          class="shrink-0 text-destructive"
+        >Cancelar</Button>
       </div>
     {/if}
   {/if}

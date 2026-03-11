@@ -1,4 +1,5 @@
 <script lang="ts">
+  import { Button } from "$lib/components/ui/button";
   import type { NearestSeasonal } from "$lib/operator/constants";
   import type { ClientHealth } from "$lib/operator/health";
   import type { Business } from "$lib/types";
@@ -35,54 +36,59 @@
 {#if unreadClientsCount > 0 || inactiveCount > 0 || globalNearestSeasonal || pendingPaymentCount > 0 || scheduledMessageCount > 0}
   <div class="border-b-2 border-border bg-[--bg] pb-1">
     {#if unreadClientsCount > 0}
-      <button
+      <Button
         onclick={() => onselectfilter("com_mensagens")}
-        class="flex items-center gap-2.5 w-full min-h-12 px-5 text-left text-sm text-text-secondary border-b border-border bg-transparent"
+        variant="ghost"
+        class="flex items-center gap-2.5 w-full min-h-12 px-5 text-left text-sm text-text-secondary border-b border-border rounded-none justify-start"
       >
         <span class="w-2 h-2 rounded-full bg-coral shrink-0 inline-block"></span>
         {unreadClientsCount} {unreadClientsCount === 1 ? "cliente" : "clientes"} com mensagens novas
         <span class="ml-auto text-muted-foreground text-xl leading-none">›</span>
-      </button>
+      </Button>
     {/if}
     {#if inactiveCount > 0}
-      <button
+      <Button
         onclick={() => onselectfilter("inativos")}
-        class="flex items-center gap-2.5 w-full min-h-12 px-5 text-left text-sm text-text-secondary border-b border-border bg-transparent"
+        variant="ghost"
+        class="flex items-center gap-2.5 w-full min-h-12 px-5 text-left text-sm text-text-secondary border-b border-border rounded-none justify-start"
       >
         <span class="w-2 h-2 rounded-full shrink-0 inline-block bg-[#EF4444]"></span>
         {inactiveCount} {inactiveCount === 1 ? "cliente" : "clientes"} inativos
         <span class="ml-auto text-muted-foreground text-xl leading-none">›</span>
-      </button>
+      </Button>
     {/if}
     {#if pendingPaymentCount > 0}
-      <button
+      <Button
         onclick={() => onselectfilter("cobranca")}
-        class="flex items-center gap-2.5 w-full min-h-12 px-5 text-left text-sm text-text-secondary border-b border-border bg-transparent"
+        variant="ghost"
+        class="flex items-center gap-2.5 w-full min-h-12 px-5 text-left text-sm text-text-secondary border-b border-border rounded-none justify-start"
       >
         <span class="w-2 h-2 rounded-full shrink-0 inline-block bg-[#F59E0B]"></span>
         {pendingPaymentCount} {pendingPaymentCount === 1 ? "cliente" : "clientes"} com pagamento pendente
         <span class="ml-auto text-muted-foreground text-xl leading-none">›</span>
-      </button>
+      </Button>
     {/if}
     {#if scheduledMessageCount > 0}
-      <button
+      <Button
         onclick={onshowaproval}
-        class="flex items-center gap-2.5 w-full min-h-12 px-5 text-left text-sm font-medium text-coral bg-transparent"
+        variant="ghost"
+        class="flex items-center gap-2.5 w-full min-h-12 px-5 text-left text-sm font-medium text-coral rounded-none justify-start"
       >
         <span class="text-base shrink-0">📅</span>
         {scheduledMessageCount} {scheduledMessageCount === 1 ? "mensagem sazonal" : "mensagens sazonais"} para aprovar
         <span class="ml-auto text-coral text-xl leading-none">›</span>
-      </button>
+      </Button>
     {/if}
     {#if globalNearestSeasonal}
-      <button
+      <Button
         onclick={() => onselectfilter("sazonal")}
-        class="flex items-center gap-2.5 w-full min-h-12 px-5 text-left text-sm text-text-secondary border-t border-border bg-transparent"
+        variant="ghost"
+        class="flex items-center gap-2.5 w-full min-h-12 px-5 text-left text-sm text-text-secondary border-t border-border rounded-none justify-start"
       >
         <span class="w-2 h-2 rounded-full bg-sage shrink-0 inline-block"></span>
         {globalNearestSeasonal.label} em {globalNearestSeasonal.daysUntil}d ({globalNearestSeasonal.eligibleCount} clientes)
         <span class="ml-auto text-muted-foreground text-xl leading-none">›</span>
-      </button>
+      </Button>
     {/if}
   </div>
 {/if}
@@ -104,10 +110,12 @@
 <!-- Client list -->
 <div class="flex-1 overflow-y-auto">
   {#if clientFilter !== 'todos'}
-    <button
+    <Button
       onclick={() => onselectfilter('todos')}
-      class="flex items-center gap-1.5 w-full min-h-11 px-5 text-sm text-coral bg-coral-pale border-b border-coral-light cursor-pointer"
-    >← Todos os clientes</button>
+      variant="soft"
+      size="sm"
+      class="flex items-center gap-1.5 w-full min-h-11 px-5 rounded-none border-b border-coral-light justify-start"
+    >← Todos os clientes</Button>
   {/if}
   {#if clients.length === 0}
     <p class="text-base p-5 text-muted-foreground">

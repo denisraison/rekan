@@ -60,27 +60,34 @@ Add `whatsapp` and `soft` variants to `button.svelte`. Change base border-radius
 - [x] `cd web && pnpm build` succeeds
 - [ ] Button component renders all variants correctly (manual check in dev)
 
-### Wave 2: Operator components
+### Wave 2: Operator components (done)
 
 Replace raw `<button>` elements in all 11 operator components with `<Button>`. Replace raw `<input>` and `<textarea>` in NewClientForm with the new Input/Textarea components. Replace raw `<input>` in InputBar with Input.
 
-**Components to update (estimated button count):**
-- InputBar.svelte (~12 buttons, 1 input)
-- NewClientForm.svelte (~10 buttons, 4 inputs, 3 textareas)
-- InfoScreen.svelte (~10 buttons, 1 textarea)
-- IdeaPicker.svelte (~4 buttons)
-- PostReviewOverlay.svelte (~4 buttons, 1 textarea)
-- ApprovalPanel.svelte (~3 buttons)
-- ChatHeader.svelte (~2 buttons)
-- ClientList.svelte (~3 buttons)
-- ClientCard.svelte (1 button)
-- `operador/+page.svelte` (1 button, 1 link)
+**Components updated:**
+- InputBar.svelte (~12 buttons -> Button, 1 input -> Input)
+- NewClientForm.svelte (~10 buttons -> Button, 4 inputs -> Input, 3 textareas -> Textarea)
+- InfoScreen.svelte (~10 buttons -> Button, 1 textarea -> Textarea)
+- IdeaPicker.svelte (~4 buttons -> Button)
+- PostReviewOverlay.svelte (~4 buttons -> Button, 1 textarea -> Textarea)
+- ApprovalPanel.svelte (~3 buttons -> Button)
+- ChatHeader.svelte (~2 buttons -> Button)
+- ClientList.svelte (~8 buttons -> Button)
+- ClientCard.svelte (1 button -> Button variant="ghost")
+- `operador/+page.svelte` (1 button -> Button)
+
+**Notes:**
+- ClientCard wraps the entire card in `Button variant="ghost"` with `block`, `rounded-none`, `h-auto` overrides. The health dot stays as an inline `style` (runtime computed color).
+- Summary bar buttons in ClientList use `Button variant="ghost"` with `rounded-none justify-start` to preserve full-width list row appearance.
+- `<select>` elements in NewClientForm kept as raw HTML. shadcn Select requires bits-ui Select primitive with complex open/close state, which is overkill for simple dropdowns. These can be revisited later.
+- Svelte warned about quoted dynamic class attributes on component props (`class="{expr}"`). Fixed by using template literals or unquoted `class={expr}`.
+- The attach menu backdrop in InputBar uses an invisible full-screen `Button` to capture clicks. This preserves the focus management benefits.
 
 **Gate:**
-- [ ] `cd web && pnpm check` passes
-- [ ] `cd web && npx playwright test --project=default` passes
-- [ ] `grep -c '<button' web/src/lib/components/operator/*.svelte` returns 0
-- [ ] `npx playwright test screenshot-all.spec.ts --project=default` passes (no visual regression)
+- [x] `cd web && pnpm check` passes (0 errors, 0 warnings)
+- [x] `cd web && npx playwright test --project=default` passes (78/78)
+- [x] `grep -c '<button' web/src/lib/components/operator/*.svelte` returns 0 for all 11 files
+- [x] `npx playwright test screenshot-all.spec.ts --project=default` passes (no visual regression)
 
 ### Wave 3: Login, experimentation, invite pages
 
