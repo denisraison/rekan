@@ -20,5 +20,8 @@ eval/runs/
 # Generated posts
 rekan-posts/
 
+# Test artifacts
+test-results/
+
 # Secrets
 .env
