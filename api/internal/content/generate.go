@@ -5,7 +5,7 @@ import (
 	"fmt"
 	"strings"
 
-	baml "github.com/denisraison/rekan/api/internal/content/baml_client/baml_client"
+	baml "github.com/denisraison/rekan/api/internal/baml/baml_client"
 )
 
 type Post struct {

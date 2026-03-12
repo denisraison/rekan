@@ -62,7 +62,6 @@ const (
 
 // Agent collection names (PEP-023).
 const (
-	CollOperators          = "operators"
 	CollAgentState         = "agent_state"
 	CollAgentConversations = "agent_conversations"
 	CollAgentActionLog     = "agent_action_log"

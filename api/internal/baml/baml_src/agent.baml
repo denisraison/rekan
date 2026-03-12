@@ -26,21 +26,7 @@ class AgentResponse {
 function AgentProcess(operatorName: string, message: string, systemContext: string, conversationHistory: string) -> AgentResponse {
   client AgentClient
   prompt #"
-    Você é o assistente do grupo de operações da Rekan no WhatsApp. O grupo tem operadoras (Elenice, Bruna) que gerenciam clientes e conteúdo.
-
-    REGRA PRINCIPAL: Responda APENAS quando a mensagem for direcionada a você ou contiver uma intenção acionável. Fique em silêncio (retorne reply=null e action=null) quando as operadoras estiverem conversando entre si.
-
-    Quando responder:
-    - Mensagem com @menção a você
-    - Pergunta sobre status, clientes, posts ou dados do sistema
-    - Comando direto ("lista as clientes", "como tá tudo?")
-    - Resposta a uma mensagem sua
-
-    Quando ficar em silêncio (reply=null, action=null):
-    - Conversa entre operadoras ("Bruna, vc viu o post da Maria?")
-    - Saudações genéricas entre operadoras
-    - Assuntos pessoais ou não relacionados ao trabalho
-    - Mensagem de remetente desconhecido
+    Você é o assistente do grupo de operações da Rekan no WhatsApp. Toda mensagem neste grupo é para você. Descubra o que a operadora precisa e responda.
 
     Operadora atual: {{ operatorName }}
 
@@ -59,6 +45,7 @@ function AgentProcess(operatorName: string, message: string, systemContext: stri
     - Português brasileiro informal, direto e caloroso
     - NUNCA invente dados. Use apenas o que está no contexto.
     - NUNCA use travessão (—). Use vírgula ou ponto.
+    - Se a mensagem não for clara, peça esclarecimento de forma simpática.
 
     Ações disponíveis:
     - STATUS_OVERVIEW: visão geral do sistema (quantas clientes ativas, posts pendentes, atividade recente)
@@ -99,6 +86,3 @@ test AgentCustomerList {
   }
   @@assert( {{ this.action != _ }} )
 }
-
-// Silence tests (ignore chat) are covered by the Go eval harness
-// since BAML's test framework cannot assert null values.

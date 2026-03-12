@@ -11,7 +11,6 @@ import (
 // HydratedContext holds the pre-queried data for both the BAML prompt and the action router.
 type HydratedContext struct {
 	OperatorName string
-	OperatorRole string
 	Businesses   []*core.Record
 	PostCount    int64
 	Formatted    string
@@ -19,10 +18,9 @@ type HydratedContext struct {
 
 // HydrateContext builds context for the BAML agent prompt and caches query results
 // so the action router can reuse them without re-querying.
-func HydrateContext(app core.App, operatorName, operatorRole string) HydratedContext {
+func HydrateContext(app core.App, operatorName string) HydratedContext {
 	ctx := HydratedContext{
 		OperatorName: operatorName,
-		OperatorRole: operatorRole,
 	}
 
 	// Active businesses
@@ -46,11 +44,7 @@ func HydrateContext(app core.App, operatorName, operatorRole string) HydratedCon
 
 	// Format for BAML prompt
 	var b strings.Builder
-	fmt.Fprintf(&b, "Operadora: %s", operatorName)
-	if operatorRole != "" {
-		fmt.Fprintf(&b, " (%s)", operatorRole)
-	}
-	b.WriteByte('\n')
+	fmt.Fprintf(&b, "Operadora: %s\n", operatorName)
 
 	fmt.Fprintf(&b, "\nClientes ativas: %d\n", len(ctx.Businesses))
 	for _, biz := range ctx.Businesses {

@@ -5,7 +5,7 @@ import (
 	"strings"
 	"time"
 
-	"github.com/denisraison/rekan/api/internal/content/baml_client/baml_client/types"
+	"github.com/denisraison/rekan/api/internal/baml/baml_client/types"
 	"github.com/denisraison/rekan/api/internal/domain"
 	"github.com/pocketbase/pocketbase/core"
 )

@@ -16,8 +16,8 @@ package baml_client
 import (
 	"reflect"
 
-	"github.com/denisraison/rekan/api/internal/content/baml_client/baml_client/stream_types"
-	"github.com/denisraison/rekan/api/internal/content/baml_client/baml_client/types"
+	"github.com/denisraison/rekan/api/internal/baml/baml_client/stream_types"
+	"github.com/denisraison/rekan/api/internal/baml/baml_client/types"
 )
 
 var typeMap = map[string]reflect.Type{

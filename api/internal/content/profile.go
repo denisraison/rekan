@@ -4,7 +4,7 @@ import (
 	"context"
 	"fmt"
 
-	baml "github.com/denisraison/rekan/api/internal/content/baml_client/baml_client"
+	baml "github.com/denisraison/rekan/api/internal/baml/baml_client"
 )
 
 // PartialService is a service extracted from a voice transcript.

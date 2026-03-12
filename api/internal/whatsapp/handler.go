@@ -26,6 +26,7 @@ type HandlerDeps struct {
 	Transcribe        *transcribe.Client         // nil if GEMINI_API_KEY not set
 	ExtractSignal     content.ExtractSignalFunc   // nil if GEMINI_API_KEY not set
 	HandleGroupMsg    GroupMessageHandler         // nil if agent not configured
+	AgentGroupJID     string                      // filter to this group; empty means all groups
 }
 
 // RegisterMessageHandler wires incoming WhatsApp messages to PocketBase storage.

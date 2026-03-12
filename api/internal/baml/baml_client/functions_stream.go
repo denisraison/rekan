@@ -18,8 +18,8 @@ import (
 	"fmt"
 
 	baml "github.com/boundaryml/baml/engine/language_client_go/pkg"
-	"github.com/denisraison/rekan/api/internal/content/baml_client/baml_client/stream_types"
-	"github.com/denisraison/rekan/api/internal/content/baml_client/baml_client/types"
+	"github.com/denisraison/rekan/api/internal/baml/baml_client/stream_types"
+	"github.com/denisraison/rekan/api/internal/baml/baml_client/types"
 )
 
 type stream struct{}

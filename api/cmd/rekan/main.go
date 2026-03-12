@@ -83,6 +83,7 @@ func run(ctx context.Context, getenv func(string) string) error {
 				Transcribe:     whisperClient,
 				ExtractSignal:  extractSignal,
 				HandleGroupMsg: handleGroupMsg,
+				AgentGroupJID:  getenv("REKAN_AGENT_GROUP_JID"),
 			})
 			if err := wac.Connect(ctx); err != nil {
 				app.Logger().Warn("whatsapp connect failed", "error", err)

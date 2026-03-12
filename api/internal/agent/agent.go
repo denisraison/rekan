@@ -8,8 +8,7 @@ import (
 	"go.mau.fi/whatsmeow/types"
 	"go.mau.fi/whatsmeow/types/events"
 
-	baml "github.com/denisraison/rekan/api/internal/content/baml_client/baml_client"
-	"github.com/denisraison/rekan/api/internal/domain"
+	baml "github.com/denisraison/rekan/api/internal/baml/baml_client"
 	"github.com/pocketbase/pocketbase/core"
 )
 
@@ -32,6 +31,7 @@ func New(app core.App, waClient WAClient, logger *slog.Logger) *Agent {
 }
 
 // HandleGroupMessage is called for every incoming group message.
+// Every message in the configured group is processed (group membership is the auth boundary).
 func (a *Agent) HandleGroupMessage(evt *events.Message) {
 	if evt.Message == nil {
 		return
@@ -47,21 +47,11 @@ func (a *Agent) HandleGroupMessage(evt *events.Message) {
 		senderJID = resolved
 	}
 
-	// Look up operator
-	operator, _ := a.App.FindFirstRecordByFilter(
-		domain.CollOperators,
-		"jid = {:jid} && active = true",
-		map[string]any{"jid": senderJID.User},
-	)
-	if operator == nil {
-		a.Logger.Debug("agent: ignoring unknown sender", "jid", senderJID.User)
-		LogAction(a.App, "unknown", senderJID.User, "UNKNOWN_SENDER", nil, "ignored", false, time.Now())
-		return
+	operatorName := evt.Info.PushName
+	if operatorName == "" {
+		operatorName = senderJID.User
 	}
-
-	operatorName := operator.GetString("name")
-	operatorJID := operator.GetString("jid")
-	operatorRole := operator.GetString("role")
+	operatorJID := senderJID.User
 
 	// Extract text content
 	text := extractText(evt)
@@ -71,7 +61,7 @@ func (a *Agent) HandleGroupMessage(evt *events.Message) {
 
 	// Submit to debouncer
 	a.Debouncer.Submit(operatorJID, text, func(combined string) {
-		a.processMessage(evt, combined, operatorName, operatorJID, operatorRole)
+		a.processMessage(evt, combined, operatorName, operatorJID)
 	})
 }
 
@@ -87,7 +77,7 @@ func extractText(evt *events.Message) string {
 	}
 }
 
-func (a *Agent) processMessage(evt *events.Message, message, operatorName, operatorJID, operatorRole string) {
+func (a *Agent) processMessage(evt *events.Message, message, operatorName, operatorJID string) {
 	start := time.Now()
 	ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
 	defer cancel()
@@ -100,7 +90,7 @@ func (a *Agent) processMessage(evt *events.Message, message, operatorName, opera
 	}
 
 	// Hydrate context and load conversation history
-	hydrated := HydrateContext(a.App, operatorName, operatorRole)
+	hydrated := HydrateContext(a.App, operatorName)
 
 	history, err := LoadRecent(a.App, 15)
 	if err != nil {
@@ -121,12 +111,6 @@ func (a *Agent) processMessage(evt *events.Message, message, operatorName, opera
 	if err != nil {
 		a.Logger.Error("agent: BAML call failed", "error", err)
 		LogAction(a.App, operatorName, operatorJID, "ERROR", nil, err.Error(), false, start)
-		return
-	}
-
-	// Silent response: agent chose not to respond (operator-to-operator chat)
-	if response.Reply == nil && response.Action == nil {
-		LogAction(a.App, operatorName, operatorJID, "SILENT", nil, "operator chat", true, start)
 		return
 	}
 

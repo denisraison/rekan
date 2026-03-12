@@ -1,6 +1,6 @@
 # PEP-023: WhatsApp Group Agent for Operators
 
-**Status:** In Progress (Wave 1 complete)
+**Status:** In Progress (Wave 1.1 complete)
 **Date:** 2026-03-12
 **Depends on:** PEP-022
 
@@ -228,6 +228,73 @@ tests:
 - Agent uses Claude Sonnet 4.6 (via `AgentClient` in BAML) for speed/cost at expected message volume.
 - BAML field `params` is a reserved keyword; renamed to `actionParams` in `AgentAction` class.
 
+### Wave 1.1: Dedicated group model + BAML separation
+
+Wave 1 proved the pipeline works but revealed unnecessary complexity: the agent tries to distinguish "message for me" from "operator-to-operator chat" using LLM intent detection. This is fragile in informal pt-BR group conversations and will misfire. Wave 1.1 simplifies the architecture by making two structural changes.
+
+**Decision 1: Dedicated group, no intent gating.**
+
+The agent listens to a single configured WhatsApp group (by group JID). Every message in that group is for the agent. Operators chat in their normal groups/DMs. This eliminates the entire "should I respond?" classification problem.
+
+- Replace `operators` collection with a `group_id` config (env var `REKAN_AGENT_GROUP_JID`)
+- Every message from the configured group gets processed, no silence logic
+- Sender name resolved from whatsmeow contact/participant info
+- Drop the `operators` collection entirely. Group membership is the auth boundary. If role-based permissions are needed later, that's a separate PEP.
+- Remove intent detection from the BAML prompt entirely
+- Remove silence/ignore test cases from eval (they test a problem that no longer exists)
+
+**Decision 2: Shared BAML package at `api/internal/baml/`.**
+
+`agent.baml` currently lives in `content/baml_src/` alongside content generation prompts. The generated `baml_client` is nested under `content`, making agent's import path awkward. Move all BAML to a neutral shared location.
+
+- `.baml` sources live at `api/internal/baml/baml_src/` (`baml-cli` requires the directory to be named `baml_src`)
+- Generated client at `api/internal/baml/baml_client/`
+- Both `content` and `agent` packages import from `baml/baml_client`
+- One compilation unit, one `baml-cli generate`, no duplication or version drift
+- Delete `content/baml_src/` and `content/baml_client/` after migration
+
+**Deliverables:**
+
+1. **Simplified BAML prompt** (`api/internal/baml/baml_src/agent.baml`)
+   - [x] Remove all "when to respond / when to stay silent" rules
+   - [x] Focus purely on: "you received a message, figure out what they need"
+   - [x] Keep attribution rule (address operator by name)
+   - [x] Keep 300 char limit, pt-BR tone, no hallucination rules
+
+2. **BAML package migration** (`api/internal/baml/`)
+   - [x] Move all `.baml` files from `content/baml_src/` to `api/internal/baml/baml_src/`
+   - [x] Update `generators.baml` output dir
+   - [x] Run `baml-cli generate` to produce `api/internal/baml/baml_client/`
+   - [x] Delete `content/baml_src/` and `content/baml_client/`
+
+3. **Group config** (`api/internal/whatsapp/group.go`)
+   - [x] Replace operator JID lookup with group JID check
+   - [x] Read `REKAN_AGENT_GROUP_JID` from env
+   - [x] Resolve sender name from whatsmeow `PushName`
+
+4. **Updated eval cases** (`api/internal/agent/cases/wave1.yaml`)
+   - [x] Remove `w1_ignore_chat` (5 tests) and `w1_unknown_sender` tests
+   - [x] Keep `w1_status_overview`, `w1_customer_list`, `w1_status_question`
+   - [x] Add `w1_unclear_intent` test (agent asks for clarification instead of staying silent)
+
+5. **Import rewire** across `agent` and `content` packages
+   - [x] Update all imports from `content/baml_client/baml_client` to `baml/baml_client`
+
+**Gate:**
+- [x] `cd api && go build ./...` compiles
+- [x] `baml-cli generate` succeeds from `api/internal/baml/`
+- [x] `make eval-agent` passes with updated test cases (4/4, 100%)
+- [x] Agent processes every message in the configured group (no false silences)
+- [x] Content eval (`make eval`) unaffected by BAML separation (72/72)
+- [x] Existing E2E tests pass (frontend typecheck 0 errors)
+
+**Notes:**
+- `baml-cli` requires the source directory to be named `baml_src/`, so files live at `api/internal/baml/baml_src/` instead of flat in `api/internal/baml/`.
+- `w1_status_overview` changed from checking `action_type=STATUS_OVERVIEW` to `has_reply=true` because the simplified prompt correctly answers "como tá tudo?" directly from context without needing an action.
+- `w1_debounce` test removed from YAML (debounce is a Go-level concern tested by unit tests, not BAML eval).
+- Operators collection dropped via migration `1740000024_drop_operators.go`. `CollOperators` constant removed from domain.
+- Sender name resolved from `evt.Info.PushName` (whatsmeow's push name for the sender).
+
 ### Wave 2: Customer management + confirmation flow
 
 Operators can create, update, and pause businesses through the group chat. Confirmation state machine ensures no writes happen without explicit "sim".
@@ -340,7 +407,7 @@ Operators can review, approve, and reject posts. Images sent inline. Business ca
 
 3. **Claude model choice.** Sonnet vs Haiku for the agent function. Run eval suite against both, pick better pass rate vs cost trade-off at the current volume (~50-100 messages/day).
 
-4. **Intent detection threshold.** Too eager = annoying false triggers on operator chat. Too passive = misses actionable messages. Start conservative (respond only to @mentions and clear commands), loosen as confidence grows. Track false trigger rate in `agent_action_log`.
+4. **Intent detection threshold.** Resolved in Wave 1.1: dedicated group eliminates the problem entirely. Every message in the group is for the agent.
 
 5. **Whisper vs Gemini for audio.** Currently using Gemini for transcription. Evaluate quality for Portuguese voice notes at low volume.
 

@@ -4,8 +4,8 @@ import (
 	"context"
 	"fmt"
 
-	baml "github.com/denisraison/rekan/api/internal/content/baml_client/baml_client"
-	"github.com/denisraison/rekan/api/internal/content/baml_client/baml_client/types"
+	baml "github.com/denisraison/rekan/api/internal/baml/baml_client"
+	"github.com/denisraison/rekan/api/internal/baml/baml_client/types"
 )
 
 var JudgeNames = []string{

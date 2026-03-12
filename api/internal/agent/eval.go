@@ -6,19 +6,18 @@ import (
 	"os"
 	"strings"
 
-	baml "github.com/denisraison/rekan/api/internal/content/baml_client/baml_client"
+	baml "github.com/denisraison/rekan/api/internal/baml/baml_client"
 	"gopkg.in/yaml.v3"
 )
 
 // TestCase represents a single eval test case from YAML.
 type TestCase struct {
-	ID                  string    `yaml:"id"`
-	Message             string    `yaml:"message"`
-	Operator            Operator  `yaml:"operator"`
-	Context             string    `yaml:"context"`
-	ConversationHistory string    `yaml:"conversation_history"`
-	UnknownSender       bool      `yaml:"unknown_sender"`
-	Graders             []Grader  `yaml:"graders"`
+	ID                  string   `yaml:"id"`
+	Message             string   `yaml:"message"`
+	Operator            Operator `yaml:"operator"`
+	Context             string   `yaml:"context"`
+	ConversationHistory string   `yaml:"conversation_history"`
+	Graders             []Grader `yaml:"graders"`
 }
 
 // Operator identifies the test sender.
@@ -74,20 +73,6 @@ func RunEval(ctx context.Context, cases []TestCase, verbose bool) ([]TestResult,
 
 	for _, tc := range cases {
 		result := TestResult{ID: tc.ID, Passed: true}
-
-		if tc.UnknownSender {
-			// Unknown sender test: verify the agent would be silent
-			// (the agent layer rejects unknown senders before calling BAML)
-			for _, g := range tc.Graders {
-				cr := CheckResult{Grader: g, Passed: true}
-				result.Checks = append(result.Checks, cr)
-			}
-			results = append(results, result)
-			if verbose {
-				fmt.Printf("  [%s] PASS (unknown sender, skipped BAML)\n", tc.ID)
-			}
-			continue
-		}
 
 		// Call BAML agent
 		history := tc.ConversationHistory

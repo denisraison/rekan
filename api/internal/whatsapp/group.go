@@ -7,5 +7,10 @@ func handleGroupMessage(deps HandlerDeps, evt *events.Message) {
 		deps.Logger.Debug("whatsapp: group message ignored (agent not configured)")
 		return
 	}
+
+	if deps.AgentGroupJID != "" && evt.Info.Chat.User != deps.AgentGroupJID {
+		return
+	}
+
 	deps.HandleGroupMsg(evt)
 }
