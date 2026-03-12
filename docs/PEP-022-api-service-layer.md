@@ -53,9 +53,70 @@ Move business logic out of HTTP handlers into `internal/service/`. Handlers keep
 
 **Notes:**
 - `postingtime.Tip` computation moved into `service.SendTextMessage` since the service already reads the business record, avoiding a duplicate DB read in the handler
-- `InviteGet` handler still reads the raw business record for the expiry check (`invite_sent_at`), since the service returns a structured `InviteInfo` that doesn't expose the raw timestamp. This is a read-only operation in the handler, consistent with the PEP's "reads for validation are OK" guideline
+- `InviteInfo.SentAt` exposes the invite timestamp so the handler can check expiry without a second DB read
 - `simulateTyping` and `storeOutgoingMessage` moved to service as `SimulateTyping` and `StoreOutgoingMessage` (exported, for use by WhatsApp handler in PEP-023)
+- `SimulateTyping` respects context cancellation via `select` on `ctx.Done()`
+- Sentinel errors (`ErrNotFound`, `ErrConflict`, `ErrNoPhone`) preserve HTTP status code semantics in handlers
 - `helpers.go` now contains only `formFileData` (pure HTTP utility)
+
+### Wave 1.5: Migrate tests to service layer
+
+Handler tests currently test business logic through HTTP round-trips. Now that logic lives in the service layer, tests should follow: service tests verify business behavior directly, handler tests verify only HTTP concerns (status codes, request parsing, response format).
+
+**Tests to migrate to `internal/service/`:**
+
+| Handler test | Service test | What moves |
+|---|---|---|
+| `generate_test.go: TestGenerateSuccess` | `service/content_test.go: TestGeneratePosts` | Verifies posts are persisted with correct fields (batch_id, role, hook) |
+| `operator_test.go: TestOperatorSuccess` | `service/content_test.go: TestGenerateFromMessage` | Verifies post saved with source="operator", message link |
+| `invite_test.go: TestInviteSendRequires*` (3 tests) | `service/invite_test.go: TestSendInvite*` | Validation: no phone, missing tier/commitment, already accepted/active |
+| `invite_test.go: TestInviteAcceptSuccess` | `service/invite_test.go: TestAcceptInvite` | State transition: invited→accepted, Asaas customer+authorization creation, DB fields |
+| `invite_test.go: TestInviteAcceptIdempotent` | `service/invite_test.go: TestAcceptInviteIdempotent` | Returns existing qr_payload when already accepted |
+| `invite_test.go: TestInviteAcceptActiveConflict` | `service/invite_test.go: TestAcceptInviteActiveConflict` | ErrConflict when already active |
+| `invite_test.go: TestInviteAcceptWrongStatus` | `service/invite_test.go: TestAcceptInviteWrongStatus` | Error when status is not "invited" |
+| `invite_test.go: TestInviteAcceptExpired` | `service/invite_test.go: TestAcceptInviteExpired` | Error when invite is older than 7 days |
+| `invite_test.go: TestAuthorizationCancelSuccess` | `service/invite_test.go: TestCancelAuthorization` | Asaas cancellation, status→cancelled |
+| `invite_test.go: TestInviteGetExpired` | `service/business_test.go: TestGetInviteInfoExpired` | SentAt field enables expiry check |
+
+**Tests that stay in handlers (HTTP concerns only):**
+
+| Test | Why it stays |
+|---|---|
+| `generate_test.go: TestGenerateNotFound` | Tests 404 status code for missing business |
+| `generate_test.go: TestGenerateError` | Tests 502 for LLM failure |
+| `operator_test.go: TestOperatorNotFound` | Tests 404 |
+| `operator_test.go: TestOperatorEmptyMessage` | Tests 400 for empty input |
+| `operator_test.go: TestOperatorGenerateError` | Tests 502 |
+| `invite_test.go: TestInviteGetNotFound` | Tests 404 |
+| `invite_test.go: TestInviteGetSuccess` | Tests response shape |
+| `invite_test.go: TestInviteGetAcceptedReturnsQrPayload` | Tests conditional response |
+| `invite_test.go: TestAuthorizationCancelNoActiveAuth` | Tests 400 |
+| All `webhooks_test.go` | Webhooks not extracted, stays as-is |
+| All `demo_test.go` | Demo not extracted, stays as-is |
+| All `whatsapp_test.go` | SSE endpoint not extracted, stays as-is |
+| All `extract_profile_test.go` | ExtractProfile not extracted, stays as-is |
+
+**New service test files:**
+
+| File | Tests |
+|---|---|
+| `internal/service/content_test.go` | `TestGeneratePosts`, `TestGenerateFromMessage`, `TestGenerateIdeas`, `TestSaveProactivePost` |
+| `internal/service/invite_test.go` | `TestSendInvite*`, `TestAcceptInvite*`, `TestCancelAuthorization` |
+| `internal/service/schedule_test.go` | `TestListScheduledMessages`, `TestApproveScheduledMessage`, `TestDismissScheduledMessage` |
+| `internal/service/business_test.go` | `TestGetInviteInfo` |
+
+**Approach:**
+- Service tests call service functions directly with a test `core.App` (from `pocketbase/tests`), no HTTP layer
+- Stub external dependencies (WhatsApp, Asaas, Generate) the same way handler tests already do
+- Handler tests that verified DB state should drop those assertions and only check HTTP status + response body shape
+- Reuse `newHandlerApp` pattern from `helpers_test.go` for service test setup (extract into a shared test helper if needed)
+
+**Gate:**
+- [ ] `cd api && go test ./...` passes
+- [ ] `cd api && go build ./...` compiles
+- [ ] Every service function that writes to the DB has at least one test verifying the write
+- [ ] No handler test reads DB state after a request (all DB assertions moved to service tests)
+- [ ] Handler tests only assert HTTP status codes and response body shape
 
 ### Wave 2: Restructure WhatsApp handler for group support
 
