@@ -7,19 +7,19 @@ import (
 	"testing"
 
 	"github.com/denisraison/rekan/api/internal/http/handlers"
-	"github.com/denisraison/rekan/eval"
+	content "github.com/denisraison/rekan/api/internal/content"
 	"github.com/pocketbase/pocketbase/core"
 	"github.com/pocketbase/pocketbase/tests"
 )
 
 // stubExtractFromAudio simulates extracting a business profile from audio.
 // Returns a fixed result regardless of input for testing.
-func stubExtractFromAudio(_ context.Context, _ []byte, _ string, _ string) (eval.PartialBusinessProfile, error) {
+func stubExtractFromAudio(_ context.Context, _ []byte, _ string, _ string) (content.PartialBusinessProfile, error) {
 	price80 := 80.0
 	price200 := 200.0
 	audience := "mulheres de 30 a 50 anos"
-	return eval.PartialBusinessProfile{
-		Services: []eval.PartialService{
+	return content.PartialBusinessProfile{
+		Services: []content.PartialService{
 			{Name: "Hidratação", PriceBRL: &price80},
 			{Name: "Progressiva", PriceBRL: &price200},
 		},

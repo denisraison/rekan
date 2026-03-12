@@ -10,7 +10,7 @@ import (
 	"strings"
 	"time"
 
-	"github.com/denisraison/rekan/eval"
+	content "github.com/denisraison/rekan/api/internal/content"
 )
 
 func main() {
@@ -27,24 +27,24 @@ func main() {
 	flag.Parse()
 
 	if *fast {
-		eval.JudgeClients = eval.JudgeClients[:1]
+		content.JudgeClients = content.JudgeClients[:1]
 		*judges = true
 	}
 
 	if *message != "" {
 		// Skip variedade judge (compares across posts, meaningless for single post)
-		filtered := make([]string, 0, len(eval.JudgeNames))
-		for _, n := range eval.JudgeNames {
+		filtered := make([]string, 0, len(content.JudgeNames))
+		for _, n := range content.JudgeNames {
 			if n != "variedade" {
 				filtered = append(filtered, n)
 			}
 		}
-		eval.JudgeNames = filtered
+		content.JudgeNames = filtered
 	}
 
-	gen := eval.GenerateFunc(eval.Generate)
+	gen := content.GenerateFunc(content.Generate)
 	if *rekan {
-		gen = eval.GenerateRekan
+		gen = content.GenerateRekan
 		if *profile == "" {
 			*profile = "Rekan"
 		}
@@ -134,12 +134,12 @@ func main() {
 	}
 }
 
-func parseRoles(names string) ([]eval.Role, error) {
-	pool := make(map[string]eval.Role, len(eval.RolePool))
-	for _, r := range eval.RolePool {
+func parseRoles(names string) ([]content.Role, error) {
+	pool := make(map[string]content.Role, len(content.RolePool))
+	for _, r := range content.RolePool {
 		pool[strings.ToLower(r.Name)] = r
 	}
-	var roles []eval.Role
+	var roles []content.Role
 	for _, name := range strings.Split(names, ",") {
 		name = strings.TrimSpace(name)
 		if name == "" {
@@ -154,14 +154,14 @@ func parseRoles(names string) ([]eval.Role, error) {
 	return roles, nil
 }
 
-func generateAndEvaluate(withJudges, verbose bool, profileFilter string, sample int, rolesFlag string, gen eval.GenerateFunc) ([]result, error) {
-	profiles, err := loadProfiles("testdata")
+func generateAndEvaluate(withJudges, verbose bool, profileFilter string, sample int, rolesFlag string, gen content.GenerateFunc) ([]result, error) {
+	profiles, err := loadProfiles("internal/content/testdata")
 	if err != nil {
 		return nil, err
 	}
 
 	if profileFilter != "" {
-		filtered := make([]eval.BusinessProfile, 0, 1)
+		filtered := make([]content.BusinessProfile, 0, 1)
 		for _, p := range profiles {
 			if strings.EqualFold(p.BusinessName, profileFilter) {
 				filtered = append(filtered, p)
@@ -173,14 +173,14 @@ func generateAndEvaluate(withJudges, verbose bool, profileFilter string, sample 
 		profiles = filtered
 	} else if sample > 0 && sample < len(profiles) {
 		step := len(profiles) / sample
-		sampled := make([]eval.BusinessProfile, 0, sample)
+		sampled := make([]content.BusinessProfile, 0, sample)
 		for i := 0; i < len(profiles) && len(sampled) < sample; i += step {
 			sampled = append(sampled, profiles[i])
 		}
 		profiles = sampled
 	}
 
-	var fixedRoles []eval.Role
+	var fixedRoles []content.Role
 	if rolesFlag != "" {
 		fixedRoles, err = parseRoles(rolesFlag)
 		if err != nil {
@@ -193,8 +193,8 @@ func generateAndEvaluate(withJudges, verbose bool, profileFilter string, sample 
 	// Generate content for all profiles in parallel.
 	type genOut struct {
 		idx     int
-		profile eval.BusinessProfile
-		posts   []eval.Post
+		profile content.BusinessProfile
+		posts   []content.Post
 		err     error
 	}
 
@@ -202,9 +202,9 @@ func generateAndEvaluate(withJudges, verbose bool, profileFilter string, sample 
 	for i, p := range profiles {
 		r := fixedRoles
 		if r == nil {
-			r = eval.PickRoles(3, nil)
+			r = content.PickRoles(3, nil)
 		}
-		go func(i int, p eval.BusinessProfile, roles []eval.Role) {
+		go func(i int, p content.BusinessProfile, roles []content.Role) {
 			fmt.Fprintf(os.Stderr, "Generating: %s...\n", p.BusinessName)
 			posts, err := gen(ctx, p, roles, nil)
 			genCh <- genOut{idx: i, profile: p, posts: posts, err: err}
@@ -229,12 +229,12 @@ func generateAndEvaluate(withJudges, verbose bool, profileFilter string, sample 
 	return evaluateResults(ctx, results, withJudges, verbose)
 }
 
-func chainGenerate(ctx context.Context, n int, profileName string, withJudges, verbose bool, rolesFlag string, gen eval.GenerateFunc) ([]result, error) {
-	profiles, err := loadProfiles("testdata")
+func chainGenerate(ctx context.Context, n int, profileName string, withJudges, verbose bool, rolesFlag string, gen content.GenerateFunc) ([]result, error) {
+	profiles, err := loadProfiles("internal/content/testdata")
 	if err != nil {
 		return nil, err
 	}
-	var prof eval.BusinessProfile
+	var prof content.BusinessProfile
 	found := false
 	for _, p := range profiles {
 		if strings.EqualFold(p.BusinessName, profileName) {
@@ -247,7 +247,7 @@ func chainGenerate(ctx context.Context, n int, profileName string, withJudges, v
 		return nil, fmt.Errorf("profile %q not found", profileName)
 	}
 
-	var fixedRoles []eval.Role
+	var fixedRoles []content.Role
 	if rolesFlag != "" {
 		fixedRoles, err = parseRoles(rolesFlag)
 		if err != nil {
@@ -261,7 +261,7 @@ func chainGenerate(ctx context.Context, n int, profileName string, withJudges, v
 	for i := 1; i <= n; i++ {
 		roles := fixedRoles
 		if roles == nil {
-			roles = eval.PickRoles(3, nil)
+			roles = content.PickRoles(3, nil)
 		}
 
 		roleNames := make([]string, len(roles))
@@ -275,7 +275,7 @@ func chainGenerate(ctx context.Context, n int, profileName string, withJudges, v
 			return nil, fmt.Errorf("batch %d: %w", i, err)
 		}
 
-		hooks := eval.ExtractHooks(posts)
+		hooks := content.ExtractHooks(posts)
 		allHooks = append(allHooks, hooks...)
 
 		results = append(results, result{name: fmt.Sprintf("%s [batch %d]", prof.BusinessName, i), posts: posts, profile: prof})
@@ -291,11 +291,11 @@ func chainGenerate(ctx context.Context, n int, profileName string, withJudges, v
 }
 
 func messageGenerate(ctx context.Context, profileName, message string, withJudges, verbose bool) ([]result, error) {
-	profiles, err := loadProfiles("testdata")
+	profiles, err := loadProfiles("internal/content/testdata")
 	if err != nil {
 		return nil, err
 	}
-	var prof eval.BusinessProfile
+	var prof content.BusinessProfile
 	found := false
 	for _, p := range profiles {
 		if strings.EqualFold(p.BusinessName, profileName) {
@@ -309,14 +309,14 @@ func messageGenerate(ctx context.Context, profileName, message string, withJudge
 	}
 
 	fmt.Fprintf(os.Stderr, "Generating from message: %s...\n", prof.BusinessName)
-	post, err := eval.GenerateFromMessage(ctx, prof, message, nil)
+	post, err := content.GenerateFromMessage(ctx, prof, message, nil)
 	if err != nil {
 		return nil, fmt.Errorf("generating from message for %s: %w", prof.BusinessName, err)
 	}
 
 	results := []result{{
 		name:    prof.BusinessName,
-		posts:   []eval.Post{post},
+		posts:   []content.Post{post},
 		profile: prof,
 	}}
 
@@ -325,11 +325,11 @@ func messageGenerate(ctx context.Context, profileName, message string, withJudge
 
 func evaluateContent(results []result, withJudges, verbose bool) ([]result, error) {
 	// Load profiles so we can match them for judges.
-	profiles, err := loadProfiles("testdata")
+	profiles, err := loadProfiles("internal/content/testdata")
 	if err != nil {
 		return nil, err
 	}
-	profileMap := make(map[string]eval.BusinessProfile, len(profiles))
+	profileMap := make(map[string]content.BusinessProfile, len(profiles))
 	for _, p := range profiles {
 		profileMap[strings.ToLower(p.BusinessName)] = p
 	}
@@ -348,13 +348,13 @@ func evaluateContent(results []result, withJudges, verbose bool) ([]result, erro
 func evaluateResults(ctx context.Context, results []result, withJudges, verbose bool) ([]result, error) {
 	if verbose {
 		for _, r := range results {
-			fmt.Printf("\n=== %s ===\n%s\n", r.name, eval.RenderPosts(r.posts))
+			fmt.Printf("\n=== %s ===\n%s\n", r.name, content.RenderPosts(r.posts))
 		}
 	}
 
 	// Run heuristics (instant, no need for goroutines).
 	for i := range results {
-		results[i].checks = eval.RunChecks(results[i].posts)
+		results[i].checks = content.RunChecks(results[i].posts)
 	}
 
 	if !withJudges {
@@ -364,7 +364,7 @@ func evaluateResults(ctx context.Context, results []result, withJudges, verbose 
 	// Run judges for all profiles in parallel.
 	type judgeOut struct {
 		idx     int
-		judges  []eval.JudgeResult
+		judges  []content.JudgeResult
 		err     error
 	}
 
@@ -372,8 +372,8 @@ func evaluateResults(ctx context.Context, results []result, withJudges, verbose 
 	for i, r := range results {
 		go func(i int, r result) {
 			fmt.Fprintf(os.Stderr, "Judging: %s...\n", r.name)
-			rendered := eval.RenderPosts(r.posts)
-			j, err := eval.RunAllJudges(ctx, r.profile, rendered)
+			rendered := content.RenderPosts(r.posts)
+			j, err := content.RunAllJudges(ctx, r.profile, rendered)
 			judgeCh <- judgeOut{idx: i, judges: j, err: err}
 		}(i, r)
 	}
@@ -424,7 +424,7 @@ type runRecord struct {
 type businessRecord struct {
 	Business string        `json:"business"`
 	Content  string        `json:"content"`
-	Posts    []eval.Post   `json:"posts,omitempty"`
+	Posts    []content.Post   `json:"posts,omitempty"`
 	Checks   []checkRecord `json:"checks"`
 	Judges   []judgeRecord `json:"judges,omitempty"`
 }
@@ -489,7 +489,7 @@ func saveRun(results []result, withJudges bool) error {
 
 		records = append(records, businessRecord{
 			Business: r.name,
-			Content:  eval.RenderPosts(r.posts),
+			Content:  content.RenderPosts(r.posts),
 			Posts:    r.posts,
 			Checks:   checks,
 			Judges:   judges,
@@ -537,7 +537,7 @@ func loadRun(path string) ([]result, error) {
 		posts := r.Posts
 		if len(posts) == 0 && r.Content != "" {
 			// Legacy run file without structured posts.
-			posts = []eval.Post{{Caption: r.Content}}
+			posts = []content.Post{{Caption: r.Content}}
 		}
 		results[i] = result{name: r.Business, posts: posts}
 	}
@@ -768,12 +768,12 @@ func printTable(results []result, showJudges bool) {
 
 		// Header
 		fmt.Printf("%-*s  Checks", nameWidth, "Business")
-		for _, jn := range eval.JudgeNames {
+		for _, jn := range content.JudgeNames {
 			fmt.Printf("  %s", judgeShorts[jn])
 		}
 		fmt.Println()
 		fmt.Printf("%s  ------", strings.Repeat("-", nameWidth))
-		for range eval.JudgeNames {
+		for range content.JudgeNames {
 			fmt.Print("  ---")
 		}
 		fmt.Println()
@@ -798,19 +798,19 @@ func printTable(results []result, showJudges bool) {
 			}
 
 			fmt.Printf("%-*s  %d/%d  ", nameWidth, r.name, passed, total)
-			for _, jn := range eval.JudgeNames {
+			for _, jn := range content.JudgeNames {
 				fmt.Printf("   %s ", verdict(judgeMap[jn]))
 			}
 			fmt.Println()
 		}
 
 		fmt.Printf("%s  ------", strings.Repeat("-", nameWidth))
-		for range eval.JudgeNames {
+		for range content.JudgeNames {
 			fmt.Print("  ---")
 		}
 		fmt.Println()
 		fmt.Printf("%-*s  %d/%-4d", nameWidth, "TOTAL", totalPassed, totalChecks)
-		for _, jn := range eval.JudgeNames {
+		for _, jn := range content.JudgeNames {
 			fmt.Printf("  %-3d", judgeTotals[jn])
 		}
 		fmt.Println()
@@ -852,7 +852,7 @@ func verdict(v bool) string {
 	return "-"
 }
 
-func loadProfiles(dir string) ([]eval.BusinessProfile, error) {
+func loadProfiles(dir string) ([]content.BusinessProfile, error) {
 	entries, err := filepath.Glob(filepath.Join(dir, "*.json"))
 	if err != nil {
 		return nil, err
@@ -861,13 +861,13 @@ func loadProfiles(dir string) ([]eval.BusinessProfile, error) {
 		return nil, fmt.Errorf("no profiles found in %s", dir)
 	}
 
-	profiles := make([]eval.BusinessProfile, 0, len(entries))
+	profiles := make([]content.BusinessProfile, 0, len(entries))
 	for _, path := range entries {
 		data, err := os.ReadFile(path)
 		if err != nil {
 			return nil, fmt.Errorf("reading %s: %w", path, err)
 		}
-		var p eval.BusinessProfile
+		var p content.BusinessProfile
 		if err := json.Unmarshal(data, &p); err != nil {
 			return nil, fmt.Errorf("parsing %s: %w", path, err)
 		}
@@ -878,8 +878,8 @@ func loadProfiles(dir string) ([]eval.BusinessProfile, error) {
 
 type result struct {
 	name    string
-	checks  []eval.CheckResult
-	judges  []eval.JudgeResult
-	posts   []eval.Post
-	profile eval.BusinessProfile
+	checks  []content.CheckResult
+	judges  []content.JudgeResult
+	posts   []content.Post
+	profile content.BusinessProfile
 }

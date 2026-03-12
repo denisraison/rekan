@@ -15,22 +15,22 @@ dev-mock:
 	cd web && pnpm dev:mock --host 0.0.0.0
 
 dev-api:
-	set -a && . ./.env && set +a && cd api && go run . serve --http=0.0.0.0:8090
+	set -a && . ./.env && set +a && cd api && go run ./cmd/rekan serve --http=0.0.0.0:8090
 
 dev-web:
 	cd web && pnpm dev --host 0.0.0.0
 
 eval:
-	set -a && . ./.env && set +a && cd eval && go run ./cmd/eval
+	set -a && . ./.env && set +a && cd api && go run ./cmd/eval
 
 eval-judges:
-	set -a && . ./.env && set +a && cd eval && go run ./cmd/eval --judges
+	set -a && . ./.env && set +a && cd api && go run ./cmd/eval --judges
 
 eval-fast:
-	set -a && . ./.env && set +a && cd eval && go run ./cmd/eval --fast
+	set -a && . ./.env && set +a && cd api && go run ./cmd/eval --fast
 
 test-judges:
-	set -a && . ./.env && set +a && cd eval && go test -tags integration -v -run TestJudge
+	set -a && . ./.env && set +a && cd api && go test -tags integration -v -run TestJudge
 
 lint:
 	cd api && golangci-lint run ./...

@@ -6,7 +6,7 @@ Everything user-facing is in pt-BR. No other locales.
 
 ```bash
 make dev                       # starts both backend and frontend
-cd api && go run .             # PocketBase only (:8090)
+cd api && go run ./cmd/rekan   # PocketBase only (:8090)
 cd web && pnpm dev             # SvelteKit only
 cd web && pnpm check           # typecheck
 cd web && pnpm build           # production build
@@ -27,7 +27,7 @@ Playwright browsers come from Nix, not npm. If updating `@playwright/test`, its 
 
 ## Prompt optimization
 
-See `eval/CLAUDE.md`.
+See `api/internal/content/CLAUDE.md`.
 
 ## Test credentials
 

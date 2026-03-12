@@ -10,7 +10,7 @@ import (
 
 	"github.com/denisraison/rekan/api/internal/domain"
 	"github.com/denisraison/rekan/api/internal/transcribe"
-	"github.com/denisraison/rekan/eval"
+	content "github.com/denisraison/rekan/api/internal/content"
 	"github.com/pocketbase/pocketbase/core"
 )
 
@@ -20,7 +20,7 @@ type HandlerDeps struct {
 	App           core.App
 	Logger        *slog.Logger
 	Transcribe    *transcribe.Client     // nil if GEMINI_API_KEY not set
-	ExtractSignal eval.ExtractSignalFunc // nil if GEMINI_API_KEY not set
+	ExtractSignal content.ExtractSignalFunc // nil if GEMINI_API_KEY not set
 }
 
 // RegisterMessageHandler wires incoming WhatsApp messages to PocketBase storage.

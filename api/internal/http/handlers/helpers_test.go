@@ -4,7 +4,7 @@ import (
 	"context"
 	"testing"
 
-	"github.com/denisraison/rekan/eval"
+	content "github.com/denisraison/rekan/api/internal/content"
 	"github.com/pocketbase/pocketbase/core"
 	"github.com/pocketbase/pocketbase/tests"
 
@@ -19,8 +19,8 @@ const (
 )
 
 // stubGenerate returns a fixed set of posts for testing.
-func stubGenerate(_ context.Context, _ eval.BusinessProfile, _ []eval.Role, _ []string) ([]eval.Post, error) {
-	return []eval.Post{
+func stubGenerate(_ context.Context, _ content.BusinessProfile, _ []content.Role, _ []string) ([]content.Post, error) {
+	return []content.Post{
 		{
 			Caption:        "Legenda de teste",
 			Hashtags:       []string{"#teste", "#rekan"},
@@ -30,8 +30,8 @@ func stubGenerate(_ context.Context, _ eval.BusinessProfile, _ []eval.Role, _ []
 }
 
 // stubGenerateFromMessage returns a fixed single post for testing.
-func stubGenerateFromMessage(_ context.Context, _ eval.BusinessProfile, _ string, _ []string) (eval.Post, error) {
-	return eval.Post{
+func stubGenerateFromMessage(_ context.Context, _ content.BusinessProfile, _ string, _ []string) (content.Post, error) {
+	return content.Post{
 		Caption:        "Legenda do operador",
 		Hashtags:       []string{"#operador"},
 		ProductionNote: "Nota operador",

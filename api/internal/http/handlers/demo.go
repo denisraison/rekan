@@ -7,7 +7,7 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/denisraison/rekan/eval"
+	content "github.com/denisraison/rekan/api/internal/content"
 	"github.com/pocketbase/pocketbase/core"
 )
 
@@ -29,7 +29,7 @@ func DemoGenerate(deps Deps) func(*core.RequestEvent) error {
 			return e.JSON(http.StatusBadRequest, map[string]string{"message": "nome do negócio e mensagem são obrigatórios"})
 		}
 
-		var services []eval.Service
+		var services []content.Service
 		for _, raw := range strings.Split(body.Services, ",") {
 			name := strings.TrimSpace(raw)
 			if name == "" {
@@ -41,10 +41,10 @@ func DemoGenerate(deps Deps) func(*core.RequestEvent) error {
 				p, _ := strconv.ParseFloat(strings.Replace(m[1], ",", ".", 1), 64)
 				price = p
 			}
-			services = append(services, eval.Service{Name: name, PriceBRL: price})
+			services = append(services, content.Service{Name: name, PriceBRL: price})
 		}
 
-		profile := eval.BusinessProfile{
+		profile := content.BusinessProfile{
 			BusinessName: strings.TrimSpace(body.BusinessName),
 			BusinessType: strings.TrimSpace(body.BusinessType),
 			City:         strings.TrimSpace(body.City),

@@ -3,7 +3,6 @@ module github.com/denisraison/rekan/api
 go 1.26.0
 
 require (
-	github.com/denisraison/rekan/eval v0.0.0
 	github.com/google/uuid v1.6.0
 	github.com/pocketbase/dbx v1.12.0
 	github.com/pocketbase/pocketbase v0.36.4
@@ -16,7 +15,7 @@ require (
 	filippo.io/edwards25519 v1.1.0 // indirect
 	github.com/asaskevich/govalidator v0.0.0-20230301143203-a9d515a09cc2 // indirect
 	github.com/beeper/argo-go v1.1.2 // indirect
-	github.com/boundaryml/baml v0.219.0 // indirect
+	github.com/boundaryml/baml v0.219.0
 	github.com/coder/websocket v1.8.14 // indirect
 	github.com/disintegration/imaging v1.6.2 // indirect
 	github.com/domodwyer/mailyak/v3 v3.6.2 // indirect
@@ -52,5 +51,3 @@ require (
 	modernc.org/memory v1.11.0 // indirect
 	modernc.org/sqlite v1.45.0 // indirect
 )
-
-replace github.com/denisraison/rekan/eval => ../eval

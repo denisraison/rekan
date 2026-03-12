@@ -8,12 +8,12 @@ import (
 	"testing"
 
 	"github.com/denisraison/rekan/api/internal/http/handlers"
-	"github.com/denisraison/rekan/eval"
+	content "github.com/denisraison/rekan/api/internal/content"
 	"github.com/pocketbase/pocketbase/core"
 	"github.com/pocketbase/pocketbase/tests"
 )
 
-func demoScenario(t *testing.T, body string, genFn eval.GenerateFromMessageFunc) (*tests.TestApp, *tests.ApiScenario) {
+func demoScenario(t *testing.T, body string, genFn content.GenerateFromMessageFunc) (*tests.TestApp, *tests.ApiScenario) {
 	t.Helper()
 	app, userID, _ := newHandlerApp(t)
 	if genFn == nil {
@@ -89,8 +89,8 @@ func TestDemoSuccess(t *testing.T) {
 }
 
 func TestDemoGenerateError(t *testing.T) {
-	failGenerate := func(_ context.Context, _ eval.BusinessProfile, _ string, _ []string) (eval.Post, error) {
-		return eval.Post{}, fmt.Errorf("LLM unavailable")
+	failGenerate := func(_ context.Context, _ content.BusinessProfile, _ string, _ []string) (content.Post, error) {
+		return content.Post{}, fmt.Errorf("LLM unavailable")
 	}
 	app, s := demoScenario(t, `{"business_name":"Doces","business_type":"Confeitaria","city":"SP","message":"Bolo"}`, failGenerate)
 	defer app.Cleanup()
@@ -100,10 +100,10 @@ func TestDemoGenerateError(t *testing.T) {
 }
 
 func TestDemoServicesWithoutPrices(t *testing.T) {
-	var capturedProfile eval.BusinessProfile
-	capture := func(_ context.Context, profile eval.BusinessProfile, _ string, _ []string) (eval.Post, error) {
+	var capturedProfile content.BusinessProfile
+	capture := func(_ context.Context, profile content.BusinessProfile, _ string, _ []string) (content.Post, error) {
 		capturedProfile = profile
-		return eval.Post{Caption: "ok", Hashtags: []string{}, ProductionNote: ""}, nil
+		return content.Post{Caption: "ok", Hashtags: []string{}, ProductionNote: ""}, nil
 	}
 	app, s := demoScenario(t, `{"business_name":"Salão","business_type":"Salão de Beleza","city":"SP","services":"Corte, Escova progressiva","message":"Cortei hoje"}`, capture)
 	defer app.Cleanup()
@@ -127,10 +127,10 @@ func TestDemoServicesWithoutPrices(t *testing.T) {
 }
 
 func TestDemoServicesPriceParsing(t *testing.T) {
-	var capturedProfile eval.BusinessProfile
-	capture := func(_ context.Context, profile eval.BusinessProfile, _ string, _ []string) (eval.Post, error) {
+	var capturedProfile content.BusinessProfile
+	capture := func(_ context.Context, profile content.BusinessProfile, _ string, _ []string) (content.Post, error) {
 		capturedProfile = profile
-		return eval.Post{Caption: "ok", Hashtags: []string{}, ProductionNote: ""}, nil
+		return content.Post{Caption: "ok", Hashtags: []string{}, ProductionNote: ""}, nil
 	}
 	app, s := demoScenario(t, `{"business_name":"Doces","business_type":"Confeitaria","city":"SP","services":"Bolo caseiro R$85, Brigadeiro R$35","message":"teste"}`, capture)
 	defer app.Cleanup()

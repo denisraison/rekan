@@ -5,7 +5,7 @@ Requires `CLAUDE_API_KEY` and `GEMINI_API_KEY` in `.env` at the project root.
 ## CLI flags
 
 ```bash
-cd eval
+cd api
 go run ./cmd/eval                                    # heuristics only
 go run ./cmd/eval --judges                           # + LLM judges
 go run ./cmd/eval --judges --verbose                 # + generated content and judge reasoning

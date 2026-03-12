@@ -6,7 +6,7 @@ import (
 	"net/http"
 	"testing"
 
-	"github.com/denisraison/rekan/eval"
+	content "github.com/denisraison/rekan/api/internal/content"
 	"github.com/denisraison/rekan/api/internal/http/handlers"
 	"github.com/pocketbase/pocketbase/core"
 	"github.com/pocketbase/pocketbase/tests"
@@ -63,7 +63,7 @@ func TestGenerateError(t *testing.T) {
 	app, userID, bizID := newHandlerApp(t)
 	defer app.Cleanup()
 
-	failGenerate := func(_ context.Context, _ eval.BusinessProfile, _ []eval.Role, _ []string) ([]eval.Post, error) {
+	failGenerate := func(_ context.Context, _ content.BusinessProfile, _ []content.Role, _ []string) ([]content.Post, error) {
 		return nil, fmt.Errorf("LLM unavailable")
 	}
 

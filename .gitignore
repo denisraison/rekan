@@ -6,6 +6,8 @@ result
 
 # Go
 api/api
+api/rekan
+api/eval
 api/pb_data/
 
 # Node
@@ -14,8 +16,7 @@ web/.svelte-kit/
 web/build/
 
 # Eval
-eval/eval
-eval/runs/
+api/runs/
 
 # Generated posts
 rekan-posts/

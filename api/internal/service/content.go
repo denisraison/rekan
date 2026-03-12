@@ -6,7 +6,7 @@ import (
 
 	"github.com/denisraison/rekan/api/internal/domain"
 	"github.com/denisraison/rekan/api/internal/operator"
-	"github.com/denisraison/rekan/eval"
+	content "github.com/denisraison/rekan/api/internal/content"
 	"github.com/google/uuid"
 	"github.com/pocketbase/pocketbase/core"
 )
@@ -25,7 +25,7 @@ type GenerateBatchResult struct {
 	Posts   []GeneratedPost
 }
 
-func GeneratePosts(ctx context.Context, app core.App, generate eval.GenerateFunc, businessID string) (*GenerateBatchResult, error) {
+func GeneratePosts(ctx context.Context, app core.App, generate content.GenerateFunc, businessID string) (*GenerateBatchResult, error) {
 	business, err := app.FindRecordById(domain.CollBusinesses, businessID)
 	if err != nil {
 		return nil, wrapNotFound(err, "negócio não encontrado")
@@ -36,7 +36,7 @@ func GeneratePosts(ctx context.Context, app core.App, generate eval.GenerateFunc
 		return nil, fmt.Errorf("business to profile: %w", err)
 	}
 
-	roles := eval.PickRoles(3, nil)
+	roles := content.PickRoles(3, nil)
 
 	previousHooks, err := operator.LoadPreviousHooks(app, businessID)
 	if err != nil {
@@ -48,7 +48,7 @@ func GeneratePosts(ctx context.Context, app core.App, generate eval.GenerateFunc
 		return nil, err
 	}
 
-	hooks := eval.ExtractHooks(posts)
+	hooks := content.ExtractHooks(posts)
 
 	batchID := uuid.New().String()
 	collection, err := app.FindCollectionByNameOrId(domain.CollPosts)
@@ -99,7 +99,7 @@ func GeneratePosts(ctx context.Context, app core.App, generate eval.GenerateFunc
 	return result, nil
 }
 
-func GenerateFromMessage(ctx context.Context, app core.App, genFn eval.GenerateFromMessageFunc, businessID, message, messageID string) (*GeneratedPost, error) {
+func GenerateFromMessage(ctx context.Context, app core.App, genFn content.GenerateFromMessageFunc, businessID, message, messageID string) (*GeneratedPost, error) {
 	business, err := app.FindRecordById(domain.CollBusinesses, businessID)
 	if err != nil {
 		return nil, wrapNotFound(err, "negócio não encontrado")
@@ -120,7 +120,7 @@ func GenerateFromMessage(ctx context.Context, app core.App, genFn eval.GenerateF
 		return nil, err
 	}
 
-	hook := eval.ExtractHooks([]eval.Post{post})
+	hook := content.ExtractHooks([]content.Post{post})
 	hookStr := ""
 	if len(hook) > 0 {
 		hookStr = hook[0]
@@ -156,7 +156,7 @@ func GenerateFromMessage(ctx context.Context, app core.App, genFn eval.GenerateF
 	}, nil
 }
 
-func GenerateIdeas(ctx context.Context, app core.App, generate eval.GenerateFunc, businessID string) ([]eval.Post, error) {
+func GenerateIdeas(ctx context.Context, app core.App, generate content.GenerateFunc, businessID string) ([]content.Post, error) {
 	business, err := app.FindRecordById(domain.CollBusinesses, businessID)
 	if err != nil {
 		return nil, wrapNotFound(err, "negócio não encontrado")
@@ -172,7 +172,7 @@ func GenerateIdeas(ctx context.Context, app core.App, generate eval.GenerateFunc
 		return nil, fmt.Errorf("load previous hooks: %w", err)
 	}
 
-	return generate(ctx, profile, eval.PickRoles(3, nil), previousHooks)
+	return generate(ctx, profile, content.PickRoles(3, nil), previousHooks)
 }
 
 type SaveProactiveParams struct {

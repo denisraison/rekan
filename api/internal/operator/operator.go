@@ -6,7 +6,7 @@ import (
 	"strings"
 
 	"github.com/denisraison/rekan/api/internal/domain"
-	"github.com/denisraison/rekan/eval"
+	content "github.com/denisraison/rekan/api/internal/content"
 	"github.com/pocketbase/pocketbase/core"
 )
 
@@ -15,7 +15,7 @@ type storedService struct {
 	PriceBRL float64 `json:"price_brl"`
 }
 
-func BusinessToProfile(record *core.Record) (eval.BusinessProfile, error) {
+func BusinessToProfile(record *core.Record) (content.BusinessProfile, error) {
 	var b []byte
 	if s, ok := record.Get("services").(string); ok {
 		b = []byte(s)
@@ -23,16 +23,16 @@ func BusinessToProfile(record *core.Record) (eval.BusinessProfile, error) {
 		var err error
 		b, err = json.Marshal(record.Get("services"))
 		if err != nil {
-			return eval.BusinessProfile{}, fmt.Errorf("marshal services: %w", err)
+			return content.BusinessProfile{}, fmt.Errorf("marshal services: %w", err)
 		}
 	}
 	var stored []storedService
 	if err := json.Unmarshal(b, &stored); err != nil {
-		return eval.BusinessProfile{}, fmt.Errorf("unmarshal services: %w", err)
+		return content.BusinessProfile{}, fmt.Errorf("unmarshal services: %w", err)
 	}
-	services := make([]eval.Service, len(stored))
+	services := make([]content.Service, len(stored))
 	for i, s := range stored {
-		services[i] = eval.Service{Name: s.Name, PriceBRL: s.PriceBRL}
+		services[i] = content.Service{Name: s.Name, PriceBRL: s.PriceBRL}
 	}
 
 	var quirks []string
@@ -42,7 +42,7 @@ func BusinessToProfile(record *core.Record) (eval.BusinessProfile, error) {
 		}
 	}
 
-	return eval.BusinessProfile{
+	return content.BusinessProfile{
 		BusinessName:   record.GetString("name"),
 		BusinessType:   record.GetString("type"),
 		City:           record.GetString("city"),

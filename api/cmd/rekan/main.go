@@ -18,7 +18,7 @@ import (
 	"github.com/denisraison/rekan/api/internal/transcribe"
 	"github.com/denisraison/rekan/api/internal/whatsapp"
 	_ "github.com/denisraison/rekan/api/migrations"
-	"github.com/denisraison/rekan/eval"
+	content "github.com/denisraison/rekan/api/internal/content"
 )
 
 func main() {
@@ -62,10 +62,10 @@ func run(ctx context.Context, getenv func(string) string) error {
 			app.Logger().Warn("whatsapp client failed to init", "error", err)
 		} else {
 			var whisperClient *transcribe.Client
-			var extractSignal eval.ExtractSignalFunc
+			var extractSignal content.ExtractSignalFunc
 			if key := getenv("GEMINI_API_KEY"); key != "" {
 				whisperClient = transcribe.NewClient(key)
-				extractSignal = eval.ExtractProfileSignal
+				extractSignal = content.ExtractProfileSignal
 			}
 			whatsapp.RegisterMessageHandler(whatsapp.HandlerDeps{
 				Client:        wac,
@@ -89,15 +89,15 @@ func run(ctx context.Context, getenv func(string) string) error {
 			operator.QueueSeasonalMessages(app)
 		})
 
-		var extractFromAudio eval.ExtractFromAudioFunc
+		var extractFromAudio content.ExtractFromAudioFunc
 		if key := getenv("GEMINI_API_KEY"); key != "" {
 			tc := transcribe.NewClient(key)
-			extractFromAudio = func(ctx context.Context, audioBytes []byte, mimeType string, businessType string) (eval.PartialBusinessProfile, error) {
+			extractFromAudio = func(ctx context.Context, audioBytes []byte, mimeType string, businessType string) (content.PartialBusinessProfile, error) {
 				transcript, err := tc.Transcribe(ctx, audioBytes, mimeType)
 				if err != nil {
-					return eval.PartialBusinessProfile{}, err
+					return content.PartialBusinessProfile{}, err
 				}
-				return eval.ExtractBusinessProfile(ctx, transcript, businessType)
+				return content.ExtractBusinessProfile(ctx, transcript, businessType)
 			}
 		}
 
@@ -113,8 +113,8 @@ func run(ctx context.Context, getenv func(string) string) error {
 			Transcribe:          transcribeClient,
 			WebhookToken:        getenv("ASAAS_WEBHOOK_TOKEN"),
 			AppURL:              getenv("APP_URL"),
-			Generate:            eval.Generate,
-			GenerateFromMessage: eval.GenerateFromMessage,
+			Generate:            content.Generate,
+			GenerateFromMessage: content.GenerateFromMessage,
 			ExtractFromAudio:    extractFromAudio,
 		})
 		return se.Next()

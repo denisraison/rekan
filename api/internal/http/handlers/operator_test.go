@@ -7,7 +7,7 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/denisraison/rekan/eval"
+	content "github.com/denisraison/rekan/api/internal/content"
 	"github.com/denisraison/rekan/api/internal/http/handlers"
 	"github.com/pocketbase/pocketbase/core"
 	"github.com/pocketbase/pocketbase/tests"
@@ -93,8 +93,8 @@ func TestOperatorGenerateError(t *testing.T) {
 	app, userID, bizID := newHandlerApp(t)
 	defer app.Cleanup()
 
-	failGenerate := func(_ context.Context, _ eval.BusinessProfile, _ string, _ []string) (eval.Post, error) {
-		return eval.Post{}, fmt.Errorf("LLM unavailable")
+	failGenerate := func(_ context.Context, _ content.BusinessProfile, _ string, _ []string) (content.Post, error) {
+		return content.Post{}, fmt.Errorf("LLM unavailable")
 	}
 
 	s := &tests.ApiScenario{

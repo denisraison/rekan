@@ -1,6 +1,6 @@
 # PEP-024: Merge eval into api module
 
-**Status:** In Progress
+**Status:** Done
 **Date:** 2026-03-12
 
 ## Context
@@ -74,32 +74,39 @@ Notes:
 - [x] `cd api && go test ./internal/content/...` passes
 - [x] `ls api/internal/content/baml_src/*.baml` shows BAML files present
 
-### Wave 2: Rewire imports, move eval CLI, delete old module
+### Wave 2: Rewire imports, move eval CLI, delete old module [DONE]
 
 Update all `api/` files that import the eval module to import `internal/content` instead. Move `eval/cmd/eval/main.go` to `api/cmd/eval/main.go` and update its imports. Remove the `replace` directive from `api/go.mod`. Delete `eval/go.mod`, `eval/go.sum`, and the now-empty `eval/` directory. Update Makefile targets: `make dev` uses `go run ./cmd/rekan`, eval commands use `go run ./cmd/eval`.
 
 Import changes are mechanical. Every `import "github.com/denisraison/rekan/eval"` becomes an import of the `internal/content` package path. Type references change from `eval.Post` to `content.Post` (or whatever alias is clearest). Check for named imports like `import eval "..."` and update them.
 
 Files changed:
-- `api/go.mod` (remove replace directive and eval dependency)
-- `api/cmd/rekan/main.go` (update imports)
-- `api/internal/service/content.go` (update imports)
-- `api/internal/http/handlers/deps.go` (update imports)
-- `api/internal/http/handlers/generate.go` (update imports)
-- `api/internal/whatsapp/handler.go` (update imports)
-- `api/internal/operator/operator.go` (update imports)
-- All test files referencing eval types
-- `api/cmd/eval/main.go` (from `eval/cmd/eval/main.go`, update imports)
-- `Makefile` (update dev, eval, eval-judges, test-judges targets)
-- Delete `eval/` directory entirely
+- [x] `api/go.mod` (remove replace directive and eval dependency)
+- [x] `api/cmd/rekan/main.go` (update imports)
+- [x] `api/internal/service/content.go` (update imports)
+- [x] `api/internal/http/handlers/deps.go` (update imports)
+- [x] `api/internal/http/handlers/demo.go` (update imports)
+- [x] `api/internal/whatsapp/handler.go` (update imports)
+- [x] `api/internal/operator/operator.go` (update imports)
+- [x] All test files referencing eval types
+- [x] `api/cmd/eval/main.go` (from `eval/cmd/eval/main.go`, update imports)
+- [x] `Makefile` (update dev, eval, eval-judges, test-judges targets)
+- [x] Delete `eval/` directory entirely
+
+Notes:
+- Used named import `content "github.com/denisraison/rekan/api/internal/content"` so all `eval.X` references become `content.X` with minimal diff.
+- `api/main.go` deleted (superseded by `api/cmd/rekan/main.go`). `api/backup_test.go` moved to `api/cmd/rekan/` to stay in the same package as `configureBackups`.
+- `eval/CLAUDE.md` content moved to `api/internal/content/CLAUDE.md` with updated paths.
+- `.gitignore` updated: `eval/eval` and `eval/runs/` replaced with `api/runs/`.
+- `eval/cmd/eval/main.go` testdata path updated from `"testdata"` to `"internal/content/testdata"` since the CLI now runs from `api/`.
 
 **Gate:**
-- `cd api && go build ./...` exits 0 (all packages compile)
-- `cd api && go test ./...` passes (all tests pass)
-- `make eval` runs successfully (eval CLI works from new location)
-- `grep -r 'replace.*../eval' api/go.mod` returns nothing (replace directive gone)
-- `test ! -d eval` confirms old module deleted
-- Update `CLAUDE.md` commands section and `eval/CLAUDE.md` (move relevant content to `api/internal/content/CLAUDE.md` or merge into root)
+- [x] `cd api && go build ./...` exits 0 (all packages compile)
+- [x] `cd api && go test ./...` passes (all tests pass)
+- [x] `make eval` runs successfully (eval CLI works from new location)
+- [x] `grep -r 'replace.*../eval' api/go.mod` returns nothing (replace directive gone)
+- [x] `test ! -d eval` confirms old module deleted
+- [x] Update `CLAUDE.md` commands section and `eval/CLAUDE.md` (move relevant content to `api/internal/content/CLAUDE.md` or merge into root)
 
 ## Consequences
 

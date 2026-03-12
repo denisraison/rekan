@@ -4,7 +4,7 @@ import (
 	"github.com/denisraison/rekan/api/internal/asaas"
 	"github.com/denisraison/rekan/api/internal/transcribe"
 	"github.com/denisraison/rekan/api/internal/whatsapp"
-	"github.com/denisraison/rekan/eval"
+	content "github.com/denisraison/rekan/api/internal/content"
 	"github.com/pocketbase/pocketbase/core"
 )
 
@@ -15,7 +15,7 @@ type Deps struct {
 	Transcribe          *transcribe.Client   // nil when GEMINI_API_KEY is not set
 	WebhookToken        string
 	AppURL              string
-	Generate            eval.GenerateFunc
-	GenerateFromMessage eval.GenerateFromMessageFunc
-	ExtractFromAudio    eval.ExtractFromAudioFunc // nil when GEMINI_API_KEY is not set
+	Generate            content.GenerateFunc
+	GenerateFromMessage content.GenerateFromMessageFunc
+	ExtractFromAudio    content.ExtractFromAudioFunc // nil when GEMINI_API_KEY is not set
 }
