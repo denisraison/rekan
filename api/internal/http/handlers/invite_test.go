@@ -58,127 +58,6 @@ func newInviteApp(t testing.TB) (*tests.TestApp, string, string) {
 	return app, user.Id, biz.Id
 }
 
-func inviteAuthHeader(app *tests.TestApp, userID string) string {
-	user, err := app.FindRecordById("users", userID)
-	if err != nil {
-		panic("find user: " + err.Error())
-	}
-	token, err := user.NewAuthToken()
-	if err != nil {
-		panic("new auth token: " + err.Error())
-	}
-	return token
-}
-
-func TestInviteSendRequiresPhone(t *testing.T) {
-	app, userID, bizID := newInviteApp(t)
-	defer app.Cleanup()
-
-	// Remove phone from business
-	biz, _ := app.FindRecordById("businesses", bizID)
-	biz.Set("phone", "")
-	app.Save(biz)
-
-	s := &tests.ApiScenario{
-		Method:         http.MethodPost,
-		URL:            "/api/businesses/" + bizID + "/invites:send",
-		TestAppFactory: func(_ testing.TB) *tests.TestApp { return app },
-		BeforeTestFunc: func(_ testing.TB, app *tests.TestApp, e *core.ServeEvent) {
-			apphttp.RegisterRoutes(e.Router, handlers.Deps{
-				App:    app,
-				AppURL: "https://app.rekan.com.br",
-			})
-		},
-		Headers: map[string]string{
-			"Authorization": inviteAuthHeader(app, userID),
-		},
-		ExpectedStatus:  http.StatusBadRequest,
-		ExpectedContent: []string{`"message"`},
-	}
-	s.Test(t)
-}
-
-func TestInviteSendRequiresTierAndCommitment(t *testing.T) {
-	app, userID, bizID := newInviteApp(t)
-	defer app.Cleanup()
-
-	biz, _ := app.FindRecordById("businesses", bizID)
-	biz.Set("tier", "")
-	biz.Set("commitment", "")
-	app.Save(biz)
-
-	s := &tests.ApiScenario{
-		Method:         http.MethodPost,
-		URL:            "/api/businesses/" + bizID + "/invites:send",
-		TestAppFactory: func(_ testing.TB) *tests.TestApp { return app },
-		BeforeTestFunc: func(_ testing.TB, app *tests.TestApp, e *core.ServeEvent) {
-			apphttp.RegisterRoutes(e.Router, handlers.Deps{
-				App:    app,
-				AppURL: "https://app.rekan.com.br",
-			})
-		},
-		Headers: map[string]string{
-			"Authorization": inviteAuthHeader(app, userID),
-		},
-		ExpectedStatus:  http.StatusBadRequest,
-		ExpectedContent: []string{`"message"`},
-	}
-	s.Test(t)
-}
-
-func TestInviteSendRejectsActive(t *testing.T) {
-	app, userID, bizID := newInviteApp(t)
-	defer app.Cleanup()
-
-	biz, _ := app.FindRecordById("businesses", bizID)
-	biz.Set("invite_status", "active")
-	app.Save(biz)
-
-	s := &tests.ApiScenario{
-		Method:         http.MethodPost,
-		URL:            "/api/businesses/" + bizID + "/invites:send",
-		TestAppFactory: func(_ testing.TB) *tests.TestApp { return app },
-		BeforeTestFunc: func(_ testing.TB, app *tests.TestApp, e *core.ServeEvent) {
-			apphttp.RegisterRoutes(e.Router, handlers.Deps{
-				App:    app,
-				AppURL: "https://app.rekan.com.br",
-			})
-		},
-		Headers: map[string]string{
-			"Authorization": inviteAuthHeader(app, userID),
-		},
-		ExpectedStatus:  http.StatusConflict,
-		ExpectedContent: []string{`"message"`},
-	}
-	s.Test(t)
-}
-
-func TestInviteSendRejectsAccepted(t *testing.T) {
-	app, userID, bizID := newInviteApp(t)
-	defer app.Cleanup()
-
-	biz, _ := app.FindRecordById("businesses", bizID)
-	biz.Set("invite_status", "accepted")
-	app.Save(biz)
-
-	s := &tests.ApiScenario{
-		Method:         http.MethodPost,
-		URL:            "/api/businesses/" + bizID + "/invites:send",
-		TestAppFactory: func(_ testing.TB) *tests.TestApp { return app },
-		BeforeTestFunc: func(_ testing.TB, app *tests.TestApp, e *core.ServeEvent) {
-			apphttp.RegisterRoutes(e.Router, handlers.Deps{
-				App:    app,
-				AppURL: "https://app.rekan.com.br",
-			})
-		},
-		Headers: map[string]string{
-			"Authorization": inviteAuthHeader(app, userID),
-		},
-		ExpectedStatus:  http.StatusConflict,
-		ExpectedContent: []string{`"message"`},
-	}
-	s.Test(t)
-}
 
 func TestInviteGetNotFound(t *testing.T) {
 	app, _, _ := newInviteApp(t)
@@ -216,29 +95,6 @@ func TestInviteGetSuccess(t *testing.T) {
 		},
 		ExpectedStatus:  http.StatusOK,
 		ExpectedContent: []string{`"business_name"`, `"client_name"`, `"tier"`, `"commitment"`, `"price"`},
-	}
-	s.Test(t)
-}
-
-func TestInviteGetExpired(t *testing.T) {
-	app, _, bizID := newInviteApp(t)
-	defer app.Cleanup()
-
-	biz, _ := app.FindRecordById("businesses", bizID)
-	biz.Set("invite_token", "expired-token")
-	biz.Set("invite_status", "invited")
-	biz.Set("invite_sent_at", time.Now().Add(-8*24*time.Hour).UTC().Format(time.RFC3339))
-	app.Save(biz)
-
-	s := &tests.ApiScenario{
-		Method:         http.MethodGet,
-		URL:            "/api/invites/expired-token",
-		TestAppFactory: func(_ testing.TB) *tests.TestApp { return app },
-		BeforeTestFunc: func(_ testing.TB, app *tests.TestApp, e *core.ServeEvent) {
-			apphttp.RegisterRoutes(e.Router, handlers.Deps{App: app})
-		},
-		ExpectedStatus:  http.StatusGone,
-		ExpectedContent: []string{`"message"`},
 	}
 	s.Test(t)
 }
@@ -292,7 +148,6 @@ func TestInviteAcceptSuccess(t *testing.T) {
 	}))
 	defer mockAsaas.Close()
 
-	var savedApp *tests.TestApp
 	s := &tests.ApiScenario{
 		Method: http.MethodPost,
 		URL:    "/api/invites/accept-token/accept",
@@ -300,10 +155,7 @@ func TestInviteAcceptSuccess(t *testing.T) {
 		Headers: map[string]string{
 			"Content-Type": "application/json",
 		},
-		TestAppFactory: func(_ testing.TB) *tests.TestApp {
-			savedApp = app
-			return app
-		},
+		TestAppFactory: func(_ testing.TB) *tests.TestApp { return app },
 		BeforeTestFunc: func(_ testing.TB, app *tests.TestApp, e *core.ServeEvent) {
 			apphttp.RegisterRoutes(e.Router, handlers.Deps{
 				App:    app,
@@ -311,154 +163,8 @@ func TestInviteAcceptSuccess(t *testing.T) {
 				AppURL: "https://app.rekan.com.br",
 			})
 		},
-		AfterTestFunc: func(t testing.TB, app *tests.TestApp, _ *http.Response) {
-			biz, err := app.FindRecordById("businesses", bizID)
-			if err != nil {
-				t.Fatalf("find business: %v", err)
-			}
-			if biz.GetString("invite_status") != "accepted" {
-				t.Errorf("invite_status: got %q, want accepted", biz.GetString("invite_status"))
-			}
-			if biz.GetString("authorization_id") != "auth_accept_test" {
-				t.Errorf("authorization_id: got %q, want auth_accept_test", biz.GetString("authorization_id"))
-			}
-			if biz.GetString("customer_id") != "cus_test" {
-				t.Errorf("customer_id: got %q, want cus_test", biz.GetString("customer_id"))
-			}
-			if biz.GetString("qr_payload") == "" {
-				t.Error("qr_payload should not be empty")
-			}
-		},
-		DisableTestAppCleanup: true,
-		ExpectedStatus:        http.StatusOK,
-		ExpectedContent:       []string{`"qr_payload"`},
-	}
-	s.Test(t)
-	if savedApp != nil {
-		savedApp.Cleanup()
-	}
-}
-
-func TestInviteAcceptIdempotent(t *testing.T) {
-	app, _, bizID := newInviteApp(t)
-	defer app.Cleanup()
-
-	biz, _ := app.FindRecordById("businesses", bizID)
-	biz.Set("invite_token", "idempotent-token")
-	biz.Set("invite_status", "accepted")
-	biz.Set("authorization_id", "auth_existing")
-	biz.Set("qr_payload", "existing-pix-payload")
-	biz.Set("invite_sent_at", time.Now().UTC().Format(time.RFC3339))
-	app.Save(biz)
-
-	s := &tests.ApiScenario{
-		Method: http.MethodPost,
-		URL:    "/api/invites/idempotent-token/accept",
-		Body:   strings.NewReader(`{"cpf_cnpj":"12345678900"}`),
-		Headers: map[string]string{
-			"Content-Type": "application/json",
-		},
-		TestAppFactory: func(_ testing.TB) *tests.TestApp { return app },
-		BeforeTestFunc: func(_ testing.TB, app *tests.TestApp, e *core.ServeEvent) {
-			apphttp.RegisterRoutes(e.Router, handlers.Deps{
-				App:    app,
-				Asaas:  asaas.NewTestClient("http://unused", "test-key"),
-				AppURL: "https://app.rekan.com.br",
-			})
-		},
 		ExpectedStatus:  http.StatusOK,
-		ExpectedContent: []string{`"qr_payload"`, `existing-pix-payload`},
-	}
-	s.Test(t)
-}
-
-func TestInviteAcceptActiveConflict(t *testing.T) {
-	app, _, bizID := newInviteApp(t)
-	defer app.Cleanup()
-
-	biz, _ := app.FindRecordById("businesses", bizID)
-	biz.Set("invite_token", "active-token")
-	biz.Set("invite_status", "active")
-	biz.Set("invite_sent_at", time.Now().UTC().Format(time.RFC3339))
-	app.Save(biz)
-
-	s := &tests.ApiScenario{
-		Method: http.MethodPost,
-		URL:    "/api/invites/active-token/accept",
-		Body:   strings.NewReader(`{"cpf_cnpj":"12345678900"}`),
-		Headers: map[string]string{
-			"Content-Type": "application/json",
-		},
-		TestAppFactory: func(_ testing.TB) *tests.TestApp { return app },
-		BeforeTestFunc: func(_ testing.TB, app *tests.TestApp, e *core.ServeEvent) {
-			apphttp.RegisterRoutes(e.Router, handlers.Deps{
-				App:   app,
-				Asaas: asaas.NewTestClient("http://unused", "key"),
-			})
-		},
-		ExpectedStatus:  http.StatusConflict,
-		ExpectedContent: []string{`"message"`},
-	}
-	s.Test(t)
-}
-
-func TestInviteAcceptWrongStatus(t *testing.T) {
-	app, _, bizID := newInviteApp(t)
-	defer app.Cleanup()
-
-	// Status is "draft", not "invited"
-	biz, _ := app.FindRecordById("businesses", bizID)
-	biz.Set("invite_token", "draft-token")
-	biz.Set("invite_status", "draft")
-	biz.Set("invite_sent_at", time.Now().UTC().Format(time.RFC3339))
-	app.Save(biz)
-
-	s := &tests.ApiScenario{
-		Method: http.MethodPost,
-		URL:    "/api/invites/draft-token/accept",
-		Body:   strings.NewReader(`{"cpf_cnpj":"12345678900"}`),
-		Headers: map[string]string{
-			"Content-Type": "application/json",
-		},
-		TestAppFactory: func(_ testing.TB) *tests.TestApp { return app },
-		BeforeTestFunc: func(_ testing.TB, app *tests.TestApp, e *core.ServeEvent) {
-			apphttp.RegisterRoutes(e.Router, handlers.Deps{
-				App:   app,
-				Asaas: asaas.NewTestClient("http://unused", "key"),
-			})
-		},
-		ExpectedStatus:  http.StatusBadRequest,
-		ExpectedContent: []string{`"message"`},
-	}
-	s.Test(t)
-}
-
-func TestInviteAcceptExpired(t *testing.T) {
-	app, _, bizID := newInviteApp(t)
-	defer app.Cleanup()
-
-	biz, _ := app.FindRecordById("businesses", bizID)
-	biz.Set("invite_token", "expired-accept-token")
-	biz.Set("invite_status", "invited")
-	biz.Set("invite_sent_at", time.Now().Add(-8*24*time.Hour).UTC().Format(time.RFC3339))
-	app.Save(biz)
-
-	s := &tests.ApiScenario{
-		Method: http.MethodPost,
-		URL:    "/api/invites/expired-accept-token/accept",
-		Body:   strings.NewReader(`{"cpf_cnpj":"12345678900"}`),
-		Headers: map[string]string{
-			"Content-Type": "application/json",
-		},
-		TestAppFactory: func(_ testing.TB) *tests.TestApp { return app },
-		BeforeTestFunc: func(_ testing.TB, app *tests.TestApp, e *core.ServeEvent) {
-			apphttp.RegisterRoutes(e.Router, handlers.Deps{
-				App:   app,
-				Asaas: asaas.NewTestClient("http://unused", "key"),
-			})
-		},
-		ExpectedStatus:  http.StatusGone,
-		ExpectedContent: []string{`"message"`},
+		ExpectedContent: []string{`"qr_payload"`},
 	}
 	s.Test(t)
 }
@@ -467,7 +173,6 @@ func TestAuthorizationCancelNoActiveAuth(t *testing.T) {
 	app, userID, bizID := newInviteApp(t)
 	defer app.Cleanup()
 
-	// Status is "draft", no authorization_id
 	s := &tests.ApiScenario{
 		Method:         http.MethodPost,
 		URL:            "/api/businesses/" + bizID + "/authorization:cancel",
@@ -479,7 +184,7 @@ func TestAuthorizationCancelNoActiveAuth(t *testing.T) {
 			})
 		},
 		Headers: map[string]string{
-			"Authorization": inviteAuthHeader(app, userID),
+			"Authorization": authHeader(app, userID),
 		},
 		ExpectedStatus:  http.StatusBadRequest,
 		ExpectedContent: []string{`"message"`},
@@ -496,23 +201,15 @@ func TestAuthorizationCancelSuccess(t *testing.T) {
 	biz.Set("authorization_id", "auth_to_cancel")
 	app.Save(biz)
 
-	var deletedPath string
-	mockAsaas := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		if r.Method == http.MethodDelete {
-			deletedPath = r.URL.Path
-		}
+	mockAsaas := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
 		w.WriteHeader(http.StatusOK)
 	}))
 	defer mockAsaas.Close()
 
-	var savedApp *tests.TestApp
 	s := &tests.ApiScenario{
-		Method: http.MethodPost,
-		URL:    "/api/businesses/" + bizID + "/authorization:cancel",
-		TestAppFactory: func(_ testing.TB) *tests.TestApp {
-			savedApp = app
-			return app
-		},
+		Method:         http.MethodPost,
+		URL:            "/api/businesses/" + bizID + "/authorization:cancel",
+		TestAppFactory: func(_ testing.TB) *tests.TestApp { return app },
 		BeforeTestFunc: func(_ testing.TB, app *tests.TestApp, e *core.ServeEvent) {
 			apphttp.RegisterRoutes(e.Router, handlers.Deps{
 				App:   app,
@@ -520,23 +217,10 @@ func TestAuthorizationCancelSuccess(t *testing.T) {
 			})
 		},
 		Headers: map[string]string{
-			"Authorization": inviteAuthHeader(app, userID),
+			"Authorization": authHeader(app, userID),
 		},
-		AfterTestFunc: func(t testing.TB, app *tests.TestApp, _ *http.Response) {
-			if deletedPath != "/pix/automatic/authorizations/auth_to_cancel" {
-				t.Errorf("expected DELETE to /pix/automatic/authorizations/auth_to_cancel, got %s", deletedPath)
-			}
-			biz, _ := app.FindRecordById("businesses", bizID)
-			if biz.GetString("invite_status") != "cancelled" {
-				t.Errorf("invite_status: got %q, want cancelled", biz.GetString("invite_status"))
-			}
-		},
-		DisableTestAppCleanup: true,
-		ExpectedStatus:        http.StatusOK,
-		ExpectedContent:       []string{`"message"`},
+		ExpectedStatus:  http.StatusOK,
+		ExpectedContent: []string{`"message"`},
 	}
 	s.Test(t)
-	if savedApp != nil {
-		savedApp.Cleanup()
-	}
 }

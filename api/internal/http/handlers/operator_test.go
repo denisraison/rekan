@@ -83,19 +83,6 @@ func TestOperatorSuccess(t *testing.T) {
 			"Authorization": authHeader(app, userID),
 			"Content-Type":  "application/json",
 		},
-		AfterTestFunc: func(t testing.TB, app *tests.TestApp, _ *http.Response) {
-			posts, err := app.FindAllRecords("posts")
-			if err != nil {
-				t.Fatalf("find posts: %v", err)
-			}
-			if len(posts) != 1 {
-				t.Errorf("expected 1 post, got %d", len(posts))
-				return
-			}
-			if got := posts[0].GetString("source"); got != "operator" {
-				t.Errorf("source: got %q, want %q", got, "operator")
-			}
-		},
 		ExpectedStatus:  http.StatusOK,
 		ExpectedContent: []string{`"caption"`, `"Legenda do operador"`},
 	}

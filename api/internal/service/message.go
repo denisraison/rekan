@@ -2,7 +2,9 @@ package service
 
 import (
 	"context"
+	"database/sql"
 	"errors"
+	"fmt"
 	"math/rand/v2"
 	"strings"
 	"time"
@@ -24,6 +26,15 @@ var (
 	ErrNotFound = errors.New("não encontrado")
 	ErrConflict = errors.New("conflito")
 )
+
+// wrapNotFound returns ErrNotFound if err is sql.ErrNoRows (PocketBase's
+// not-found signal), otherwise returns the original error unchanged.
+func wrapNotFound(err error, msg string) error {
+	if errors.Is(err, sql.ErrNoRows) {
+		return fmt.Errorf("%w: %s", ErrNotFound, msg)
+	}
+	return err
+}
 
 // SimulateTyping shows a typing indicator, waits 1-3s, runs fn, then clears
 // the indicator. The typing indicator is best-effort (errors are ignored).

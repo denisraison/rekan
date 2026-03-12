@@ -80,3 +80,16 @@ func newHandlerApp(t testing.TB) (*tests.TestApp, string, string) {
 func registerHandlerRoutes(_ *tests.TestApp, e *core.ServeEvent, deps handlers.Deps) {
 	apphttp.RegisterRoutes(e.Router, deps)
 }
+
+// authHeader builds a direct auth token for the given user ID.
+func authHeader(app *tests.TestApp, userID string) string {
+	user, err := app.FindRecordById("users", userID)
+	if err != nil {
+		panic("find user for auth: " + err.Error())
+	}
+	token, err := user.NewAuthToken()
+	if err != nil {
+		panic("new auth token: " + err.Error())
+	}
+	return token
+}

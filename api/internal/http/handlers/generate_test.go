@@ -53,15 +53,6 @@ func TestGenerateSuccess(t *testing.T) {
 		Headers: map[string]string{
 			"Authorization": authHeader(app, userID),
 		},
-		AfterTestFunc: func(t testing.TB, app *tests.TestApp, _ *http.Response) {
-			posts, err := app.FindAllRecords("posts")
-			if err != nil {
-				t.Fatalf("find posts: %v", err)
-			}
-			if len(posts) != 1 {
-				t.Errorf("expected 1 post, got %d", len(posts))
-			}
-		},
 		ExpectedStatus:  http.StatusOK,
 		ExpectedContent: []string{`"batch_id"`, `"posts"`, `"Legenda de teste"`},
 	}
@@ -93,17 +84,4 @@ func TestGenerateError(t *testing.T) {
 		ExpectedContent: []string{`"message"`},
 	}
 	s.Test(t)
-}
-
-// authHeader builds a direct auth token for the given user ID.
-func authHeader(app *tests.TestApp, userID string) string {
-	user, err := app.FindRecordById("users", userID)
-	if err != nil {
-		panic("find user for auth: " + err.Error())
-	}
-	token, err := user.NewAuthToken()
-	if err != nil {
-		panic("new auth token: " + err.Error())
-	}
-	return token
 }

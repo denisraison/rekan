@@ -1,6 +1,7 @@
 package handlers
 
 import (
+	"errors"
 	"net/http"
 
 	"github.com/denisraison/rekan/api/internal/service"
@@ -13,6 +14,9 @@ func GeneratePosts(deps Deps) func(*core.RequestEvent) error {
 
 		result, err := service.GeneratePosts(e.Request.Context(), e.App, deps.Generate, businessID)
 		if err != nil {
+			if errors.Is(err, service.ErrNotFound) {
+				return e.JSON(http.StatusNotFound, map[string]string{"message": "negócio não encontrado"})
+			}
 			e.App.Logger().Error("generate posts failed", "business", businessID, "error", err)
 			return e.JSON(http.StatusBadGateway, map[string]string{"message": "erro ao gerar conteúdo. Tente novamente."})
 		}

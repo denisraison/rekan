@@ -20,6 +20,8 @@ func init() {
 			&core.DateField{Name: "scheduled_for"},
 			&core.BoolField{Name: "approved"},
 			&core.BoolField{Name: "dismissed"},
+			&core.AutodateField{Name: "created", OnCreate: true, System: true},
+			&core.AutodateField{Name: "updated", OnCreate: true, OnUpdate: true, System: true},
 		)
 
 		authed := `@request.auth.id != ""`

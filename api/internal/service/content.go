@@ -28,7 +28,7 @@ type GenerateBatchResult struct {
 func GeneratePosts(ctx context.Context, app core.App, generate eval.GenerateFunc, businessID string) (*GenerateBatchResult, error) {
 	business, err := app.FindRecordById(domain.CollBusinesses, businessID)
 	if err != nil {
-		return nil, err
+		return nil, wrapNotFound(err, "negócio não encontrado")
 	}
 
 	profile, err := operator.BusinessToProfile(business)
@@ -102,7 +102,7 @@ func GeneratePosts(ctx context.Context, app core.App, generate eval.GenerateFunc
 func GenerateFromMessage(ctx context.Context, app core.App, genFn eval.GenerateFromMessageFunc, businessID, message, messageID string) (*GeneratedPost, error) {
 	business, err := app.FindRecordById(domain.CollBusinesses, businessID)
 	if err != nil {
-		return nil, err
+		return nil, wrapNotFound(err, "negócio não encontrado")
 	}
 
 	profile, err := operator.BusinessToProfile(business)
@@ -159,7 +159,7 @@ func GenerateFromMessage(ctx context.Context, app core.App, genFn eval.GenerateF
 func GenerateIdeas(ctx context.Context, app core.App, generate eval.GenerateFunc, businessID string) ([]eval.Post, error) {
 	business, err := app.FindRecordById(domain.CollBusinesses, businessID)
 	if err != nil {
-		return nil, err
+		return nil, wrapNotFound(err, "negócio não encontrado")
 	}
 
 	profile, err := operator.BusinessToProfile(business)

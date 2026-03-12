@@ -2,6 +2,7 @@ package handlers
 
 import (
 	"encoding/json"
+	"errors"
 	"net/http"
 	"strings"
 
@@ -23,6 +24,9 @@ func OperatorGenerate(deps Deps) func(*core.RequestEvent) error {
 
 		post, err := service.GenerateFromMessage(e.Request.Context(), e.App, deps.GenerateFromMessage, businessID, body.Message, body.MessageID)
 		if err != nil {
+			if errors.Is(err, service.ErrNotFound) {
+				return e.JSON(http.StatusNotFound, map[string]string{"message": "negócio não encontrado"})
+			}
 			return e.JSON(http.StatusBadGateway, map[string]string{
 				"message": "Erro ao gerar conteúdo. Tente novamente.",
 			})

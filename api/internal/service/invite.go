@@ -27,7 +27,7 @@ type SendInviteResult struct {
 func SendInvite(ctx context.Context, app core.App, wa *whatsapp.Client, asaas *asaasclient.Client, businessID, appURL string) (*SendInviteResult, error) {
 	business, err := app.FindRecordById(domain.CollBusinesses, businessID)
 	if err != nil {
-		return nil, fmt.Errorf("%w: negócio não encontrado", ErrNotFound)
+		return nil, wrapNotFound(err, "negócio não encontrado")
 	}
 	phone := business.GetString("phone")
 	if phone == "" {
@@ -80,7 +80,7 @@ func SendInvite(ctx context.Context, app core.App, wa *whatsapp.Client, asaas *a
 func AcceptInvite(ctx context.Context, app core.App, asaas *asaasclient.Client, token, cpfCnpj string) (string, error) {
 	business, err := app.FindFirstRecordByFilter(domain.CollBusinesses, "invite_token = {:token}", map[string]any{"token": token})
 	if err != nil {
-		return "", fmt.Errorf("%w: convite não encontrado", ErrNotFound)
+		return "", wrapNotFound(err, "convite não encontrado")
 	}
 
 	sentAt := business.GetDateTime("invite_sent_at").Time()

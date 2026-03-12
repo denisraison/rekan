@@ -10,6 +10,7 @@ const (
 
 // InviteStatus values for the invite_status field on businesses.
 const (
+	InviteStatusDraft         = "draft"
 	InviteStatusInvited       = "invited"
 	InviteStatusAccepted      = "accepted"
 	InviteStatusActive        = "active"
