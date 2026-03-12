@@ -2,14 +2,12 @@ package handlers
 
 import (
 	"encoding/json"
-	"fmt"
 	"net/http"
 
-	"github.com/denisraison/rekan/api/internal/domain"
+	"github.com/denisraison/rekan/api/internal/service"
 	"github.com/pocketbase/pocketbase/core"
 )
 
-// SaveProactivePost saves a proactively generated post to the posts collection.
 func SaveProactivePost() func(*core.RequestEvent) error {
 	return func(e *core.RequestEvent) error {
 		businessID := e.Request.PathValue("id")
@@ -23,25 +21,18 @@ func SaveProactivePost() func(*core.RequestEvent) error {
 			return e.JSON(http.StatusBadRequest, map[string]string{"message": "corpo inválido"})
 		}
 
-		collection, err := e.App.FindCollectionByNameOrId(domain.CollPosts)
+		id, err := service.SaveProactivePost(e.App, service.SaveProactiveParams{
+			BusinessID:     businessID,
+			Caption:        body.Caption,
+			Hashtags:       body.Hashtags,
+			ProductionNote: body.ProductionNote,
+		})
 		if err != nil {
-			return fmt.Errorf("find posts collection: %w", err)
-		}
-
-		record := core.NewRecord(collection)
-		record.Set("business", businessID)
-		record.Set("caption", body.Caption)
-		record.Set("hashtags", body.Hashtags)
-		record.Set("production_note", body.ProductionNote)
-		record.Set("source", domain.PostSourceProactive)
-		record.Set("edited", false)
-
-		if err := e.App.Save(record); err != nil {
-			return fmt.Errorf("save proactive post: %w", err)
+			return e.JSON(http.StatusInternalServerError, map[string]string{"message": "erro ao salvar"})
 		}
 
 		return e.JSON(http.StatusOK, map[string]any{
-			"id":              record.Id,
+			"id":              id,
 			"caption":         body.Caption,
 			"hashtags":        body.Hashtags,
 			"production_note": body.ProductionNote,
