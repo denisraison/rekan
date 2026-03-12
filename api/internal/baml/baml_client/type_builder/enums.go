@@ -15,6 +15,42 @@ package type_builder
 
 import baml "github.com/boundaryml/baml/engine/language_client_go/pkg"
 
+type AgentActionStatusEnumView struct {
+	inner baml.EnumBuilder
+}
+
+func (t *AgentActionStatusEnumView) ListValues() ([]EnumValueView, error) {
+	result, err := t.inner.ListValues()
+	if err != nil {
+		return nil, err
+	}
+	builders := make([]EnumValueView, len(result))
+	for i, p := range result {
+		builders[i] = p
+	}
+	return builders, nil
+}
+
+func (t *AgentActionStatusEnumView) ValueEXECUTE() (EnumValueView, error) {
+	return t.inner.Value("EXECUTE")
+}
+
+func (t *AgentActionStatusEnumView) ValueNEEDS_CONFIRMATION() (EnumValueView, error) {
+	return t.inner.Value("NEEDS_CONFIRMATION")
+}
+
+func (t *TypeBuilder) AgentActionStatus() (*AgentActionStatusEnumView, error) {
+	bld, err := t.inner.Enum("AgentActionStatus")
+	if err != nil {
+		return nil, err
+	}
+	return &AgentActionStatusEnumView{inner: bld}, nil
+}
+
+func (t *AgentActionStatusEnumView) Type() (baml.Type, error) {
+	return t.inner.Type()
+}
+
 type AgentActionTypeEnumView struct {
 	inner baml.EnumBuilder
 }
@@ -37,6 +73,22 @@ func (t *AgentActionTypeEnumView) ValueSTATUS_OVERVIEW() (EnumValueView, error) 
 
 func (t *AgentActionTypeEnumView) ValueCUSTOMER_LIST() (EnumValueView, error) {
 	return t.inner.Value("CUSTOMER_LIST")
+}
+
+func (t *AgentActionTypeEnumView) ValueCUSTOMER_CREATE() (EnumValueView, error) {
+	return t.inner.Value("CUSTOMER_CREATE")
+}
+
+func (t *AgentActionTypeEnumView) ValueCUSTOMER_UPDATE() (EnumValueView, error) {
+	return t.inner.Value("CUSTOMER_UPDATE")
+}
+
+func (t *AgentActionTypeEnumView) ValueCUSTOMER_PAUSE() (EnumValueView, error) {
+	return t.inner.Value("CUSTOMER_PAUSE")
+}
+
+func (t *AgentActionTypeEnumView) ValueCUSTOMER_INFO() (EnumValueView, error) {
+	return t.inner.Value("CUSTOMER_INFO")
 }
 
 func (t *TypeBuilder) AgentActionType() (*AgentActionTypeEnumView, error) {

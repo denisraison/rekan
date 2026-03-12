@@ -21,11 +21,80 @@ import (
 	"github.com/boundaryml/baml/engine/language_client_go/pkg/cffi"
 )
 
+type AgentActionStatus string
+
+const (
+	AgentActionStatusEXECUTE            AgentActionStatus = "EXECUTE"
+	AgentActionStatusNEEDS_CONFIRMATION AgentActionStatus = "NEEDS_CONFIRMATION"
+)
+
+// Values returns all allowed values for the AgentActionStatus type.
+func (AgentActionStatus) Values() []AgentActionStatus {
+	return []AgentActionStatus{
+		AgentActionStatusEXECUTE,
+		AgentActionStatusNEEDS_CONFIRMATION,
+	}
+}
+
+// IsValid checks whether the given AgentActionStatus value is valid.
+func (e AgentActionStatus) IsValid() bool {
+
+	for _, v := range e.Values() {
+		if e == v {
+			return true
+		}
+	}
+	return false
+
+}
+
+// MarshalJSON customizes JSON marshaling for AgentActionStatus.
+func (e AgentActionStatus) MarshalJSON() ([]byte, error) {
+	if !e.IsValid() {
+		return nil, fmt.Errorf("invalid AgentActionStatus: %q", e)
+	}
+	return json.Marshal(string(e))
+}
+
+// UnmarshalJSON customizes JSON unmarshaling for AgentActionStatus.
+func (e *AgentActionStatus) UnmarshalJSON(data []byte) error {
+	var s string
+	if err := json.Unmarshal(data, &s); err != nil {
+		return err
+	}
+	*e = AgentActionStatus(s)
+	if !e.IsValid() {
+		return fmt.Errorf("invalid AgentActionStatus: %q", s)
+	}
+	return nil
+}
+
+func (e *AgentActionStatus) Decode(holder *cffi.CFFIValueEnum, typeMap baml.TypeMap) {
+	name := holder.Name
+	if name.Name != "AgentActionStatus" && name.Namespace != cffi.CFFITypeNamespace_TYPES {
+		panic(fmt.Sprintf("expected types.AgentActionStatus, got %s.%s", string(name.Namespace.String()), string(name.Name)))
+	}
+	value := holder.Value
+	*e = AgentActionStatus(value)
+}
+
+func (e AgentActionStatus) Encode() (*cffi.HostValue, error) {
+	return baml.EncodeEnum("AgentActionStatus", string(e), false)
+}
+
+func (e AgentActionStatus) BamlTypeName() string {
+	return "AgentActionStatus"
+}
+
 type AgentActionType string
 
 const (
 	AgentActionTypeSTATUS_OVERVIEW AgentActionType = "STATUS_OVERVIEW"
 	AgentActionTypeCUSTOMER_LIST   AgentActionType = "CUSTOMER_LIST"
+	AgentActionTypeCUSTOMER_CREATE AgentActionType = "CUSTOMER_CREATE"
+	AgentActionTypeCUSTOMER_UPDATE AgentActionType = "CUSTOMER_UPDATE"
+	AgentActionTypeCUSTOMER_PAUSE  AgentActionType = "CUSTOMER_PAUSE"
+	AgentActionTypeCUSTOMER_INFO   AgentActionType = "CUSTOMER_INFO"
 )
 
 // Values returns all allowed values for the AgentActionType type.
@@ -33,6 +102,10 @@ func (AgentActionType) Values() []AgentActionType {
 	return []AgentActionType{
 		AgentActionTypeSTATUS_OVERVIEW,
 		AgentActionTypeCUSTOMER_LIST,
+		AgentActionTypeCUSTOMER_CREATE,
+		AgentActionTypeCUSTOMER_UPDATE,
+		AgentActionTypeCUSTOMER_PAUSE,
+		AgentActionTypeCUSTOMER_INFO,
 	}
 }
 

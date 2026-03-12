@@ -44,5 +44,6 @@ var typeMap = map[string]reflect.Type{
 	"TYPES.Service":                       reflect.TypeOf(types.Service{}),
 	"STREAM_TYPES.Service":                reflect.TypeOf(stream_types.Service{}),
 
-	"TYPES.AgentActionType": reflect.TypeOf(types.AgentActionType("")),
+	"TYPES.AgentActionStatus": reflect.TypeOf(types.AgentActionStatus("")),
+	"TYPES.AgentActionType":   reflect.TypeOf(types.AgentActionType("")),
 }

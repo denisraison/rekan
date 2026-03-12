@@ -22,6 +22,7 @@ import (
 
 type AgentAction struct {
 	ActionType   AgentActionType   `json:"actionType"`
+	ActionStatus AgentActionStatus `json:"actionStatus"`
 	ActionParams map[string]string `json:"actionParams"`
 }
 
@@ -42,6 +43,9 @@ func (c *AgentAction) Decode(holder *cffi.CFFIValueClass, typeMap baml.TypeMap) 
 		case "actionType":
 			c.ActionType = baml.Decode(valueHolder).Interface().(AgentActionType)
 
+		case "actionStatus":
+			c.ActionStatus = baml.Decode(valueHolder).Interface().(AgentActionStatus)
+
 		case "actionParams":
 			c.ActionParams = baml.Decode(valueHolder).Interface().(map[string]string)
 
@@ -58,6 +62,8 @@ func (c AgentAction) Encode() (*cffi.HostValue, error) {
 	fields := map[string]any{}
 
 	fields["actionType"] = c.ActionType
+
+	fields["actionStatus"] = c.ActionStatus
 
 	fields["actionParams"] = c.ActionParams
 

@@ -95,8 +95,8 @@ func main() {
 	}
 	fmt.Printf("Pass rate: %.0f%%\n", passRate)
 
-	if passRate < 90 {
-		fmt.Fprintf(os.Stderr, "FAIL: pass rate %.0f%% < 90%%\n", passRate)
+	if passRate < 95 {
+		fmt.Fprintf(os.Stderr, "FAIL: pass rate %.0f%% < 95%%\n", passRate)
 		os.Exit(1)
 	}
 }

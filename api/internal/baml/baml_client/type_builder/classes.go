@@ -35,6 +35,10 @@ func (t *AgentActionClassView) PropertyActionType() (ClassPropertyView, error) {
 	return t.inner.Property("actionType")
 }
 
+func (t *AgentActionClassView) PropertyActionStatus() (ClassPropertyView, error) {
+	return t.inner.Property("actionStatus")
+}
+
 func (t *AgentActionClassView) PropertyActionParams() (ClassPropertyView, error) {
 	return t.inner.Property("actionParams")
 }
