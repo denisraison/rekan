@@ -41,7 +41,12 @@ seed:
 INFRA_DIR    := ../infra
 SERVER       := root@46.225.161.186
 
-deploy: ## Tag, cross-build locally, push to server, activate (usage: make deploy TAG=v0.4.3)
+deploy: ## Tag, cross-build locally, push to server, activate (usage: make deploy [TAG=v0.4.3])
+ifndef TAG
+	$(eval TAG := $(shell git tag --sort=-v:refname | head -1 | awk -F. '{$$NF=$$NF+1; print}' OFS=.))
+endif
+	@test -n "$(TAG)" || { echo "ERROR: could not determine tag"; exit 1; }
+	@echo "Deploying $(TAG)"
 	git tag $(TAG) && git push origin $(TAG)
 	cd $(INFRA_DIR) && nix flake lock --override-input rekan github:denisraison/rekan/$(TAG)
 	cd $(INFRA_DIR) && nix build .#nixosConfigurations.prod.config.services.rekan.instances.prod.package -o result-api & \
