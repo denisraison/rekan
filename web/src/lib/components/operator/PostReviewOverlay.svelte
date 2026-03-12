@@ -28,8 +28,8 @@
   }
 </script>
 
-<div class="absolute inset-0 flex flex-col z-10 bg-[--bg]">
-  <div class="flex items-center gap-3 px-4 shrink-0 min-h-15 bg-[--surface] border-b border-border">
+<div class="absolute inset-0 flex flex-col z-10 bg-[var(--bg)]">
+  <div class="flex items-center gap-3 px-4 shrink-0 min-h-15 bg-[var(--surface)] border-b border-border">
     <Button onclick={onback} variant="ghost" size="sm" class="text-coral shrink-0 gap-1 pr-3">
       <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 18 9 12 15 6"/></svg>
       Voltar
@@ -47,7 +47,7 @@
       </div>
       <Textarea
         bind:value={editingCaption}
-        class="w-full rounded-xl p-3 text-base leading-relaxed bg-[--surface] border border-border text-foreground min-h-[120px]"
+        class="w-full rounded-xl p-3 text-base leading-relaxed bg-[var(--surface)] border border-border text-foreground min-h-[120px]"
         style="field-sizing: content"
       />
     </div>
@@ -70,12 +70,12 @@
             {copied.note ? "Copiado!" : "Copiar"}
           </Button>
         </div>
-        <p class="text-sm italic mt-1 text-text-secondary border-l-2 border-[--border-strong] pl-3">{result.production_note}</p>
+        <p class="text-sm italic mt-1 text-text-secondary border-l-2 border-[var(--border-strong)] pl-3">{result.production_note}</p>
       </div>
     {/if}
   </div>
 
-  <div class="shrink-0 px-4 py-3 flex flex-col gap-2 bg-[--surface] border-t border-border">
+  <div class="shrink-0 px-4 py-3 flex flex-col gap-2 bg-[var(--surface)] border-t border-border">
     {#if blockReason}
       <span class="text-sm text-muted-foreground">{blockReason} — não é possível enviar agora.</span>
     {:else}

@@ -304,9 +304,9 @@
   }
 </script>
 
-<div class="h-dvh flex flex-col bg-[--bg]">
-  <header class="border-b border-border px-5 py-4 flex items-center gap-3 shrink-0 bg-[--surface] {mobileView !== 'list' ? 'hidden md:flex' : ''}">
-    <span class="font-semibold text-lg md:text-base text-foreground font-[--font-primary]">Rekan</span>
+<div class="h-dvh flex flex-col bg-[var(--bg)]">
+  <header class="border-b border-border px-5 py-4 flex items-center gap-3 shrink-0 bg-[var(--surface)] {mobileView !== 'list' ? 'hidden md:flex' : ''}">
+    <span class="font-semibold text-lg md:text-base text-foreground font-[var(--font-primary)]">Rekan</span>
     <Button onclick={openNewForm} class="ml-auto font-semibold">+ Novo Cliente</Button>
   </header>
   {#if !waConnected && !waChecking}
@@ -319,7 +319,7 @@
     <p class="text-base p-6 text-muted-foreground">Já vou...</p>
   {:else}
     <main class="flex-1 flex flex-col md:flex-row overflow-hidden">
-      <div class="w-full md:w-[480px] md:border-r border-border flex flex-col flex-1 min-h-0 md:flex-none bg-[--surface] {mobileView === 'list' ? '' : 'hidden md:flex'}">
+      <div class="w-full md:w-[480px] md:border-r border-border flex flex-col flex-1 min-h-0 md:flex-none bg-[var(--surface)] {mobileView === 'list' ? '' : 'hidden md:flex'}">
         {#if showApprovalPanel}
           <ApprovalPanel {scheduledMessages} {clients} {waConnected} {approvingId} {dismissingId}
             onback={() => { showApprovalPanel = false; }} onapprove={approveScheduled} ondismiss={dismissScheduled} />
@@ -383,7 +383,7 @@
     </main>
     {#if !waConnected && waQR}
       <div class="fixed inset-0 z-50 flex items-center justify-center bg-black/50">
-        <div class="rounded-2xl p-8 text-center max-w-sm bg-[--surface] border border-border shadow-sm">
+        <div class="rounded-2xl p-8 text-center max-w-sm bg-[var(--surface)] border border-border shadow-sm">
           <h2 class="text-lg font-semibold mb-2 text-foreground">Conectar WhatsApp</h2>
           <p class="text-sm mb-6 text-text-secondary">Escaneie o QR code com o WhatsApp Business do Rekan.</p>
           <div class="bg-white p-4 rounded-xl inline-block">
@@ -397,5 +397,5 @@
   {/if}
 </div>
 {#if toastMessage}
-  <div class="fixed bottom-6 left-1/2 -translate-x-1/2 z-50 px-4 py-3 rounded-xl text-sm font-medium shadow-lg bg-[--surface] text-foreground border border-[--border-strong]">{toastMessage}</div>
+  <div class="fixed bottom-6 left-1/2 -translate-x-1/2 z-50 px-4 py-3 rounded-xl text-sm font-medium shadow-lg bg-[var(--surface)] text-foreground border border-[var(--border-strong)]">{toastMessage}</div>
 {/if}

@@ -13,7 +13,7 @@
   let pic = $derived(profilePictureUrl(client));
 </script>
 
-<div class="px-5 py-4 border-b border-border shrink-0 bg-[--surface]">
+<div class="px-5 py-4 border-b border-border shrink-0 bg-[var(--surface)]">
   <div class="flex items-center gap-2">
     <Button
       onclick={onback}

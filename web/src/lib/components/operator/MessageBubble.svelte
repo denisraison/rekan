@@ -15,7 +15,7 @@
 <div class="flex {msg.direction === 'outgoing' ? 'justify-end' : 'justify-start'}">
   <!-- svelte-ignore a11y_click_events_have_key_events a11y_no_static_element_interactions -->
   <div
-    class="rounded-2xl px-4 py-3 text-base max-w-[280px] leading-relaxed border text-[--text] {selected || msg.direction === 'outgoing' ? 'bg-coral-pale' : 'bg-[--surface]'} {msg.direction === 'outgoing' ? 'border-coral-light' : 'border-border'} {selectable ? 'cursor-pointer' : ''} {selected ? 'border-l-[3px] border-l-coral' : ''}"
+    class="rounded-2xl px-4 py-3 text-base max-w-[280px] leading-relaxed border text-[var(--text)] {selected || msg.direction === 'outgoing' ? 'bg-coral-pale' : 'bg-[var(--surface)]'} {msg.direction === 'outgoing' ? 'border-coral-light' : 'border-border'} {selectable ? 'cursor-pointer' : ''} {selected ? 'border-l-[3px] border-l-coral' : ''}"
     role={selectable ? 'button' : undefined}
     onclick={() => { if (selectable) ontoggle(); }}
     onkeydown={(e) => { if (selectable && (e.key === 'Enter' || e.key === ' ')) { e.preventDefault(); ontoggle(); } }}

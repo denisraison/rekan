@@ -108,7 +108,7 @@
   async function saveAndInvite() { const e = validateForm(true); if (e) { formError = e; return; } formError = ""; formSaving = true; try { const id = await saveBiz(); inviteUrl = await api.sendInvite(id!); const r = await api.refreshBusiness(id!); onclientschange(clients.map(c => c.id === id ? r : c)); } catch { formError = "Erro ao enviar convite. Tente novamente."; } finally { formSaving = false; } }
   async function copyInviteUrl() { if (navigator.clipboard?.writeText) await navigator.clipboard.writeText(inviteUrl); inviteCopied = true; setTimeout(() => { inviteCopied = false; }, 2000); }
 
-  const inputCls = "px-3 py-3 rounded-xl text-base outline-none border border-[--border-strong] bg-[--surface] text-foreground";
+  const inputCls = "px-3 py-3 rounded-xl text-base outline-none border border-[var(--border-strong)] bg-[var(--surface)] text-foreground";
   const labelCls = "text-base font-medium text-foreground";
 </script>
 
@@ -119,10 +119,10 @@
     <div class="flex flex-col gap-2 {voiceMode === 'done' ? 'mt-1.5' : ''}">
       {#each formServices as service, i}
         <div class="flex gap-2 items-center">
-          <Input bind:value={service.name} placeholder="Nome do serviço" class={`flex-1 ${highlight && aiFilledFields.has('services') ? 'border-sage bg-sage-pale' : 'border-[--border-strong] bg-[--surface]'}`} />
+          <Input bind:value={service.name} placeholder="Nome do serviço" class={`flex-1 ${highlight && aiFilledFields.has('services') ? 'border-sage bg-sage-pale' : 'border-[var(--border-strong)] bg-[var(--surface)]'}`} />
           <div class="relative w-28">
             <span class="absolute left-3 top-1/2 -translate-y-1/2 text-base text-muted-foreground">R$</span>
-            <Input type="number" bind:value={service.price_brl} min="0" class={`w-full pl-9 ${highlight && aiFilledFields.has('services') ? 'border-sage bg-sage-pale' : 'border-[--border-strong] bg-[--surface]'}`} />
+            <Input type="number" bind:value={service.price_brl} min="0" class={`w-full pl-9 ${highlight && aiFilledFields.has('services') ? 'border-sage bg-sage-pale' : 'border-[var(--border-strong)] bg-[var(--surface)]'}`} />
           </div>
           {#if formServices.length > 1 || voiceMode === 'done'}
             <Button onclick={() => removeService(i)} variant="ghost" size="icon" class="shrink-0 w-10 h-13 text-muted-foreground text-[22px]">×</Button>
@@ -138,17 +138,17 @@
   <label class="flex flex-col gap-1.5">
     <span class={labelCls}>Quem são os clientes?</span>
     <span class="text-sm text-muted-foreground">ex: mulheres de 25 a 50 anos que moram no bairro</span>
-    <Textarea bind:value={formTargetAudience} placeholder="Descreve quem costuma ir lá..." rows={2} class={highlight && aiFilledFields.has('target_audience') ? 'border-sage bg-sage-pale' : 'border-[--border-strong] bg-[--surface]'} />
+    <Textarea bind:value={formTargetAudience} placeholder="Descreve quem costuma ir lá..." rows={2} class={highlight && aiFilledFields.has('target_audience') ? 'border-sage bg-sage-pale' : 'border-[var(--border-strong)] bg-[var(--surface)]'} />
   </label>
   <label class="flex flex-col gap-1.5">
     <span class={labelCls}>Como é o ambiente?</span>
     <span class="text-sm text-muted-foreground">ex: acolhedor, descontraído, serve cafezinho</span>
-    <Textarea bind:value={formBrandVibe} placeholder="Conta um pouco sobre o clima do lugar..." rows={2} class={highlight && aiFilledFields.has('brand_vibe') ? 'border-sage bg-sage-pale' : 'border-[--border-strong] bg-[--surface]'} />
+    <Textarea bind:value={formBrandVibe} placeholder="Conta um pouco sobre o clima do lugar..." rows={2} class={highlight && aiFilledFields.has('brand_vibe') ? 'border-sage bg-sage-pale' : 'border-[var(--border-strong)] bg-[var(--surface)]'} />
   </label>
   <label class="flex flex-col gap-1.5">
     <span class={labelCls}>O que faz diferente?</span>
     <span class="text-sm text-muted-foreground">ex: agenda lotada às quintas</span>
-    <Textarea bind:value={formQuirks} placeholder="Detalhes que fazem a cliente escolher esse lugar..." rows={2} class={highlight && aiFilledFields.has('quirks') ? 'border-sage bg-sage-pale' : 'border-[--border-strong] bg-[--surface]'} />
+    <Textarea bind:value={formQuirks} placeholder="Detalhes que fazem a cliente escolher esse lugar..." rows={2} class={highlight && aiFilledFields.has('quirks') ? 'border-sage bg-sage-pale' : 'border-[var(--border-strong)] bg-[var(--surface)]'} />
   </label>
 {/snippet}
 
@@ -163,12 +163,12 @@
 {/snippet}
 
 <div class="flex-1 overflow-y-auto p-5 md:p-6 flex flex-col {voiceMode === 'idle' ? 'justify-center' : ''}">
-  <div class="max-w-xl rounded-2xl p-5 md:p-6 {voiceMode === 'idle' ? 'mx-auto w-full' : ''} bg-[--surface] border border-border shadow-sm">
+  <div class="max-w-xl rounded-2xl p-5 md:p-6 {voiceMode === 'idle' ? 'mx-auto w-full' : ''} bg-[var(--surface)] border border-border shadow-sm">
     <h2 class="text-lg font-semibold mb-4 text-foreground">{editingId ? "Editar cliente" : "Novo cliente"}</h2>
     {#if formError}<p class="text-base mb-4 p-3 rounded-lg text-[#DC2626] bg-[#FEF2F2]">{formError}</p>{/if}
 
     {#if voiceMode === 'done'}
-      <div class="flex items-center gap-3 mb-4 p-3 rounded-xl bg-[--bg] border border-border">
+      <div class="flex items-center gap-3 mb-4 p-3 rounded-xl bg-[var(--bg)] border border-border">
         <div class="text-sm flex-1 min-w-0">
           <span class="font-semibold text-foreground">{formName || 'Novo cliente'}</span>
           {#if formType || formCity}<span class="text-muted-foreground"> · {[formType, formCity].filter(Boolean).join(', ')}</span>{/if}
@@ -216,8 +216,8 @@
             <Button onclick={() => voiceMode = 'manual'} variant="link" size="sm" class="text-muted-foreground underline underline-offset-[3px]">Preencher manualmente</Button>
           </div>
         {:else if voiceMode === 'recording'}
-          <div class="rec-bar flex items-stretch rounded-2xl overflow-hidden border-[1.5px] border-[--border-strong]">
-            <button onclick={cancelRecording} aria-label="Cancelar gravação" class="rec-side-btn flex items-center justify-center bg-[#FEF2F2] border-r border-r-[--border-strong]">
+          <div class="rec-bar flex items-stretch rounded-2xl overflow-hidden border-[1.5px] border-[var(--border-strong)]">
+            <button onclick={cancelRecording} aria-label="Cancelar gravação" class="rec-side-btn flex items-center justify-center bg-[#FEF2F2] border-r border-r-[var(--border-strong)]">
               <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#EF4444" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
             </button>
             <div class="flex-1 flex items-center justify-center gap-3">
@@ -230,7 +230,7 @@
             </button>
           </div>
         {:else if voiceMode === 'analyzing'}
-          <div class="rounded-2xl flex items-center justify-center gap-3 rec-bar border-[1.5px] border-[--border-strong]">
+          <div class="rounded-2xl flex items-center justify-center gap-3 rec-bar border-[1.5px] border-[var(--border-strong)]">
             <div class="w-5.5 h-5.5 rounded-full border-[2.5px] border-coral border-t-transparent animate-spin shrink-0"></div>
             <span class="text-base font-medium text-text-secondary">Lendo o que você falou...</span>
           </div>

@@ -14,7 +14,7 @@ export function inviteBadgeClass(status: InviteStatus): string {
 		case 'cancelled':
 			return 'bg-[#FEE2E2] text-[#991B1B] line-through';
 		default:
-			return 'bg-[--border] text-muted-foreground';
+			return 'bg-[var(--border)] text-muted-foreground';
 	}
 }
 

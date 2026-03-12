@@ -57,7 +57,7 @@
 
 <div
   data-testid="input-bar"
-  class="shrink-0 border-t px-3 md:px-4 py-3 flex flex-col gap-2 {inputMode === 'generate' ? 'border-coral bg-coral-pale border-t-2' : 'border-border bg-[--surface]'}"
+  class="shrink-0 border-t px-3 md:px-4 py-3 flex flex-col gap-2 {inputMode === 'generate' ? 'border-coral bg-coral-pale border-t-2' : 'border-border bg-[var(--surface)]'}"
 >
   <!-- Idea drafts (desktop only) -->
   {#if ideaDrafts !== null}
@@ -70,7 +70,7 @@
         <Button
           onclick={() => ontoggleidea(i)}
           variant="ghost"
-          class="rounded-xl p-4 text-left h-auto min-h-0 whitespace-normal bg-[--bg] border-2 {selectedIdeas.has(i) ? 'border-coral' : 'border-border'}"
+          class="rounded-xl p-4 text-left h-auto min-h-0 whitespace-normal bg-[var(--bg)] border-2 {selectedIdeas.has(i) ? 'border-coral' : 'border-border'}"
         >
           <div class="flex items-start gap-3 w-full">
             <div class="shrink-0 w-5 h-5 rounded-full flex items-center justify-center mt-0.5 border-2 {selectedIdeas.has(i) ? 'border-coral bg-coral' : 'border-border bg-transparent'}">
@@ -161,7 +161,7 @@
         onclick={() => onmodechange(inputMode === 'chat' ? 'generate' : 'chat')}
         variant="outline"
         size="sm"
-        class="ml-auto min-h-11 gap-1.5 transition-colors {inputMode === 'generate' ? 'text-[#25D366] border-[#25D366] bg-[--surface]' : 'text-coral border-coral-light bg-[--bg]'}"
+        class="ml-auto min-h-11 gap-1.5 transition-colors {inputMode === 'generate' ? 'text-[#25D366] border-[#25D366] bg-[var(--surface)]' : 'text-coral border-coral-light bg-[var(--bg)]'}"
       >
         {#if inputMode === 'generate'}
           <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
@@ -175,7 +175,7 @@
     {#if attachedPreview}
       <div class="flex items-center gap-2 px-1">
         <div class="relative">
-          <img src={attachedPreview} alt="Anexo" class="w-16 h-16 rounded-lg object-cover border border-[--border-strong]" />
+          <img src={attachedPreview} alt="Anexo" class="w-16 h-16 rounded-lg object-cover border border-[var(--border-strong)]" />
           <Button
             onclick={onremoveattachment}
             variant="destructive"
@@ -204,7 +204,7 @@
       </Button>
       {#if showAttachMenu}
         <Button class="fixed inset-0 z-10 w-full h-full rounded-none opacity-0" onclick={() => { showAttachMenu = false; }} aria-label="Fechar menu">{""}</Button>
-        <div class="absolute bottom-12 left-0 z-20 rounded-xl shadow-lg border border-[--border-strong] p-2 flex flex-col gap-1 bg-[--bg] min-w-[180px]">
+        <div class="absolute bottom-12 left-0 z-20 rounded-xl shadow-lg border border-[var(--border-strong)] p-2 flex flex-col gap-1 bg-[var(--bg)] min-w-[180px]">
           <Button
             onclick={() => { onattachfile("image/*"); showAttachMenu = false; }}
             variant="ghost"
@@ -229,7 +229,7 @@
         value={message}
         oninput={(e) => onmessagechange(e.currentTarget.value)}
         placeholder={inputMode === 'generate' ? 'Sobre o que é o post?' : 'Escreve aqui...'}
-        class="flex-1 min-w-0 md:px-4 border-[--border-strong] bg-[--bg] text-foreground min-h-12"
+        class="flex-1 min-w-0 md:px-4 border-[var(--border-strong)] bg-[var(--bg)] text-foreground min-h-12"
         onkeydown={(e) => {
           if (e.key === 'Enter' && !e.shiftKey) {
             e.preventDefault();

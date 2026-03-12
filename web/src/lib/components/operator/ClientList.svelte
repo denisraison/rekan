@@ -34,7 +34,7 @@
 
 <!-- Morning summary bar -->
 {#if unreadClientsCount > 0 || inactiveCount > 0 || globalNearestSeasonal || pendingPaymentCount > 0 || scheduledMessageCount > 0}
-  <div class="border-b-2 border-border bg-[--bg] pb-1">
+  <div class="border-b-2 border-border bg-[var(--bg)] pb-1">
     {#if unreadClientsCount > 0}
       <Button
         onclick={() => onselectfilter("com_mensagens")}
@@ -94,7 +94,7 @@
 {/if}
 
 <!-- Color legend -->
-<div class="flex gap-4 items-center px-5 py-2 bg-[--bg] border-b border-border">
+<div class="flex gap-4 items-center px-5 py-2 bg-[var(--bg)] border-b border-border">
   <span class="text-[13px] text-muted-foreground">Estado:</span>
   <span class="flex items-center gap-1.5 text-[13px] text-muted-foreground">
     <span class="w-2 h-2 rounded-full inline-block bg-[#10B981]"></span>Ativo

@@ -1,5 +1,5 @@
 import { expect, test } from '@playwright/test';
-import { loginAsOperador, selectFirstClient, openInfoScreen, openNewClientForm, switchToGenerateMode } from './helpers';
+import { loginAsOperador, selectFirstClient, selectClientByName, openInfoScreen, openNewClientForm, switchToGenerateMode } from './helpers';
 
 // Moto G viewport
 test.use({ viewport: { width: 360, height: 740 } });
@@ -32,7 +32,7 @@ test.describe('UX warmth (PEP-019 Wave 1)', () => {
 
 	test('section headers are at least 13px', async ({ page }) => {
 		await loginAsOperador(page);
-		await selectFirstClient(page);
+		await selectClientByName(page, 'Confeitaria da Elenice');
 		await openInfoScreen(page);
 
 		const header = page.locator('span').filter({ hasText: /^Serviços$/ }).last();
@@ -75,7 +75,7 @@ test.describe('UX warmth (PEP-019 Wave 2)', () => {
 
 	test('generate mode shows instruction banner', async ({ page }) => {
 		await loginAsOperador(page);
-		await selectFirstClient(page);
+		await selectClientByName(page, 'Hamburgueria do Léo');
 		await switchToGenerateMode(page);
 
 		await expect(page.getByText('Toque nas mensagens que quer usar no post')).toBeVisible();

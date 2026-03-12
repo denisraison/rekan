@@ -17,8 +17,8 @@
   let { ideaDrafts, generatingIdeas, selectedIdeas, sendingIdeas, ontoggle, onreview, onsend, onclear, onback }: Props = $props();
 </script>
 
-<div class="md:hidden absolute inset-0 flex flex-col z-10 bg-[--bg]">
-  <div class="flex items-center gap-3 px-4 shrink-0 min-h-15 bg-[--surface] border-b border-border">
+<div class="md:hidden absolute inset-0 flex flex-col z-10 bg-[var(--bg)]">
+  <div class="flex items-center gap-3 px-4 shrink-0 min-h-15 bg-[var(--surface)] border-b border-border">
     {#if !generatingIdeas}
       <Button
         onclick={onback}
@@ -45,7 +45,7 @@
         <Button
           onclick={() => ontoggle(i)}
           variant="ghost"
-          class="rounded-2xl p-5 text-left h-auto min-h-0 transition-colors bg-[--surface] border-2 whitespace-normal {selectedIdeas.has(i) ? 'border-coral' : 'border-border'}"
+          class="rounded-2xl p-5 text-left h-auto min-h-0 transition-colors bg-[var(--surface)] border-2 whitespace-normal {selectedIdeas.has(i) ? 'border-coral' : 'border-border'}"
         >
           <div class="flex items-start gap-3 w-full">
             <div class="shrink-0 w-6 h-6 rounded-full flex items-center justify-center mt-0.5 border-2 {selectedIdeas.has(i) ? 'border-coral bg-coral' : 'border-border bg-transparent'}">
@@ -64,7 +64,7 @@
       {/each}
     </div>
     {#if selectedIdeas.size > 0}
-      <div class="shrink-0 p-4 flex gap-2 bg-[--surface] border-t border-border">
+      <div class="shrink-0 p-4 flex gap-2 bg-[var(--surface)] border-t border-border">
         {#if selectedIdeas.size === 1}
           <Button
             onclick={() => onreview([...selectedIdeas][0])}

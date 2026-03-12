@@ -48,7 +48,7 @@
 
 <div class="flex-1 flex flex-col overflow-hidden">
   <!-- Header -->
-  <div class="bg-[--surface] border-b border-border flex items-center min-h-15 px-4 gap-1 shrink-0">
+  <div class="bg-[var(--surface)] border-b border-border flex items-center min-h-15 px-4 gap-1 shrink-0">
     <Button
       onclick={onback}
       variant="ghost"
@@ -79,9 +79,9 @@
 
   <div class="flex-1 overflow-y-auto">
     <!-- Status strip -->
-    <div class="bg-[--surface] px-5 py-3.5 border-b border-border flex items-center gap-2.5 flex-wrap">
+    <div class="bg-[var(--surface)] px-5 py-3.5 border-b border-border flex items-center gap-2.5 flex-wrap">
       {#if client.tier}
-        <span class="text-sm px-3 py-1 rounded-full bg-[--bg] text-text-secondary border border-[--border-strong] font-medium">{client.tier}</span>
+        <span class="text-sm px-3 py-1 rounded-full bg-[var(--bg)] text-text-secondary border border-[var(--border-strong)] font-medium">{client.tier}</span>
       {/if}
       {#if client.invite_status && client.invite_status !== 'draft'}
         <span
@@ -103,8 +103,8 @@
 
     <!-- Services -->
     {#if client.services?.length > 0}
-      <span class="text-[13px] font-bold tracking-wider uppercase text-muted-foreground px-5 pt-3.5 pb-2 bg-[--bg] border-t border-border block">Serviços</span>
-      <div class="bg-[--surface] py-1 pb-3">
+      <span class="text-[13px] font-bold tracking-wider uppercase text-muted-foreground px-5 pt-3.5 pb-2 bg-[var(--bg)] border-t border-border block">Serviços</span>
+      <div class="bg-[var(--surface)] py-1 pb-3">
         {#each client.services as svc}
           <div class="flex items-baseline gap-3 px-5 py-1.5">
             <span class="text-[13px] font-semibold text-muted-foreground whitespace-nowrap shrink-0 w-[100px] overflow-hidden text-ellipsis">{svc.name}</span>
@@ -116,8 +116,8 @@
 
     <!-- Profile -->
     {#if client.target_audience || client.brand_vibe || client.quirks}
-      <span class="text-[13px] font-bold tracking-wider uppercase text-muted-foreground px-5 pt-3.5 pb-2 bg-[--bg] border-t border-border block">Perfil</span>
-      <div class="bg-[--surface] py-1 pb-3">
+      <span class="text-[13px] font-bold tracking-wider uppercase text-muted-foreground px-5 pt-3.5 pb-2 bg-[var(--bg)] border-t border-border block">Perfil</span>
+      <div class="bg-[var(--surface)] py-1 pb-3">
         {#if client.target_audience}
           <div class="flex items-baseline gap-3 px-5 py-1.5">
             <span class="text-[13px] font-semibold text-muted-foreground whitespace-nowrap shrink-0 w-16">Público</span>
@@ -144,7 +144,7 @@
       <Button
         onclick={ontogglesuggestions}
         variant="ghost"
-        class="w-full flex items-center justify-between px-5 pt-3.5 pb-2 bg-[--bg] border-t border-border rounded-none min-h-0 h-auto"
+        class="w-full flex items-center justify-between px-5 pt-3.5 pb-2 bg-[var(--bg)] border-t border-border rounded-none min-h-0 h-auto"
       >
         <div class="flex items-center gap-2">
           <span class="text-[13px] font-bold tracking-wider uppercase text-sage-dark">Sugestões de perfil</span>
@@ -153,7 +153,7 @@
         <span class="text-[13px] text-muted-foreground">{suggestionsOpen ? '▴' : '▾'}</span>
       </Button>
       {#if suggestionsOpen}
-        <div class="bg-[--surface]">
+        <div class="bg-[var(--surface)]">
           {#each suggestions as sug (sug.id)}
             <div class="px-5 py-3 border-b border-border">
               <span class="text-[13px] font-bold uppercase tracking-wide text-muted-foreground">
@@ -182,8 +182,8 @@
 
     <!-- Recent posts -->
     {#if clientPosts.length > 0}
-      <span class="text-[13px] font-bold tracking-wider uppercase text-muted-foreground px-5 pt-3.5 pb-2 bg-[--bg] border-t border-border block">Posts recentes</span>
-      <div class="bg-[--surface]">
+      <span class="text-[13px] font-bold tracking-wider uppercase text-muted-foreground px-5 pt-3.5 pb-2 bg-[var(--bg)] border-t border-border block">Posts recentes</span>
+      <div class="bg-[var(--surface)]">
         {#each clientPosts.slice(0, historyLimit) as post (post.id)}
           {@const postExpanded = expandedPosts.has(post.id)}
           <div class="px-5 py-3 border-b border-border flex gap-3 items-start">
@@ -229,16 +229,16 @@
     <!-- Nudge / reminder -->
     {#if nudgeTier || nudgeText}
       <span
-        class="text-[13px] font-bold tracking-wider uppercase px-5 pt-3.5 pb-2 block border-t {nudgeTier ? 'bg-[#FFF7ED] border-[#FDE68A] text-[#92400E]' : 'bg-[--bg] border-border text-muted-foreground'}"
+        class="text-[13px] font-bold tracking-wider uppercase px-5 pt-3.5 pb-2 block border-t {nudgeTier ? 'bg-[#FFF7ED] border-[#FDE68A] text-[#92400E]' : 'bg-[var(--bg)] border-border text-muted-foreground'}"
       >
         {nudgeTier ? `⚠ Lembrete — ${health?.daysSinceMsg} dias sem mensagem` : 'Mensagem'}
       </span>
-      <div class="px-5 py-3 pb-4 border-b border-border {nudgeTier ? 'bg-[#FFFBEB]' : 'bg-[--surface]'}">
+      <div class="px-5 py-3 pb-4 border-b border-border {nudgeTier ? 'bg-[#FFFBEB]' : 'bg-[var(--surface)]'}">
         <Textarea
           value={nudgeText}
           oninput={(e) => onnudgetextchange(e.currentTarget.value)}
           rows={2}
-          class="w-full rounded-xl text-base border border-[--border-strong] px-4 py-3 bg-[--surface] text-foreground"
+          class="w-full rounded-xl text-base border border-[var(--border-strong)] px-4 py-3 bg-[var(--surface)] text-foreground"
         />
         <div class="flex items-center gap-2 mt-2">
           <Button
@@ -262,8 +262,8 @@
 
     <!-- Upcoming dates -->
     {#if upcomingDates.length > 0}
-      <span class="text-[13px] font-bold tracking-wider uppercase text-muted-foreground px-5 pt-3.5 pb-2 bg-[--bg] border-t border-border block">Datas próximas</span>
-      <div class="bg-[--surface] px-5 py-2 pb-4 flex flex-wrap gap-2">
+      <span class="text-[13px] font-bold tracking-wider uppercase text-muted-foreground px-5 pt-3.5 pb-2 bg-[var(--bg)] border-t border-border block">Datas próximas</span>
+      <div class="bg-[var(--surface)] px-5 py-2 pb-4 flex flex-wrap gap-2">
         {#each upcomingDates as sd}
           <Button
             onclick={() => onprefillseasonal(sd.template)}

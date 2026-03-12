@@ -30,7 +30,7 @@
   {:else}
     {#each scheduledMessages as msg (msg.id)}
       {@const biz = clients.find(c => c.id === msg.business)}
-      <div class="rounded-xl p-4 bg-[--bg] border border-border">
+      <div class="rounded-xl p-4 bg-[var(--bg)] border border-border">
         <p class="text-sm font-medium mb-1.5 text-muted-foreground">
           {biz?.name ?? msg.business}
         </p>
