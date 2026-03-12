@@ -1,0 +1,163 @@
+package content
+
+import (
+	"fmt"
+	"regexp"
+	"strings"
+	"unicode"
+)
+
+type Service struct {
+	Name     string  `json:"name"`
+	PriceBRL float64 `json:"priceBRL"`
+}
+
+type BusinessProfile struct {
+	BusinessName   string    `json:"businessName"`
+	BusinessType   string    `json:"businessType"`
+	City           string    `json:"city"`
+	Neighbourhood  string    `json:"neighbourhood"`
+	Services       []Service `json:"services"`
+	TargetAudience string    `json:"targetAudience"`
+	BrandVibe      string    `json:"brandVibe"`
+	Quirks         []string  `json:"quirks"`
+}
+
+type CheckResult struct {
+	Name   string
+	Pass   bool
+	Reason string
+}
+
+func RunChecks(posts []Post) []CheckResult {
+	rendered := RenderPosts(posts)
+	return []CheckResult{
+		checkHashtags(posts),
+		checkBrazilianPortuguese(rendered),
+		checkCaptionLength(posts),
+		checkProductionNote(posts),
+	}
+}
+
+// stripAccents removes combining diacritical marks via NFD decomposition.
+func stripAccents(s string) string {
+	var b strings.Builder
+	b.Grow(len(s))
+	for _, r := range s {
+		// Skip combining marks (accents, tildes, cedillas, etc.)
+		if unicode.Is(unicode.Mn, r) {
+			continue
+		}
+		b.WriteRune(r)
+	}
+	return b.String()
+}
+
+// Manual NFD for Portuguese chars, avoids pulling in golang.org/x/text.
+var nfdReplacer = strings.NewReplacer(
+	"á", "a\u0301", "à", "a\u0300", "ã", "a\u0303", "â", "a\u0302",
+	"é", "e\u0301", "è", "e\u0300", "ê", "e\u0302",
+	"í", "i\u0301", "ì", "i\u0300",
+	"ó", "o\u0301", "ò", "o\u0300", "õ", "o\u0303", "ô", "o\u0302",
+	"ú", "u\u0301", "ù", "u\u0300",
+	"ç", "c\u0327",
+	"Á", "A\u0301", "À", "A\u0300", "Ã", "A\u0303", "Â", "A\u0302",
+	"É", "E\u0301", "È", "E\u0300", "Ê", "E\u0302",
+	"Í", "I\u0301", "Ì", "I\u0300",
+	"Ó", "O\u0301", "Ò", "O\u0300", "Õ", "O\u0303", "Ô", "O\u0302",
+	"Ú", "U\u0301", "Ù", "U\u0300",
+	"Ç", "C\u0327",
+)
+
+// normalize decomposes to NFD so accented chars become base + combining mark,
+// then stripAccents removes the combining marks.
+func normalize(s string) string {
+	return stripAccents(nfdReplacer.Replace(s))
+}
+
+
+func checkHashtags(posts []Post) CheckResult {
+	total := 0
+	for _, p := range posts {
+		total += len(p.Hashtags)
+	}
+	if total >= 3 {
+		return CheckResult{Name: "hashtags", Pass: true}
+	}
+	return CheckResult{
+		Name:   "hashtags",
+		Reason: fmt.Sprintf("only %d hashtags found (need at least 3)", total),
+	}
+}
+
+
+func checkBrazilianPortuguese(content string) CheckResult {
+	lower := strings.ToLower(content)
+
+	ptBRMarkers := []string{"bora", "gente", "pra", "né", "tá"}
+	hasBR := false
+	for _, m := range ptBRMarkers {
+		if containsWord(lower, m) {
+			hasBR = true
+			break
+		}
+	}
+	if !hasBR {
+		return CheckResult{
+			Name:   "brazilian_portuguese",
+			Reason: "no pt-BR informal markers found",
+		}
+	}
+
+	ptPTMarkers := []string{"telemóvel", "telemovel", "autocarro"}
+	for _, m := range ptPTMarkers {
+		if containsWord(lower, m) {
+			return CheckResult{
+				Name:   "brazilian_portuguese",
+				Reason: "Portugal Portuguese marker found: " + m,
+			}
+		}
+	}
+
+	return CheckResult{Name: "brazilian_portuguese", Pass: true}
+}
+
+// containsWord checks if word appears as a standalone word in text.
+// Uses unicode letter class so accented words like "né" are matched whole.
+var wordRe = regexp.MustCompile(`[\p{L}\p{N}]+`)
+
+func containsWord(text, word string) bool {
+	nWord := normalize(word)
+	for _, w := range wordRe.FindAllString(text, -1) {
+		if normalize(w) == nWord {
+			return true
+		}
+	}
+	return false
+}
+
+const maxCaptionLength = 2200
+
+func checkCaptionLength(posts []Post) CheckResult {
+	for _, p := range posts {
+		if len([]rune(p.Caption)) > maxCaptionLength {
+			return CheckResult{
+				Name:   "caption_length",
+				Reason: "a post exceeds 2200 characters",
+			}
+		}
+	}
+	return CheckResult{Name: "caption_length", Pass: true}
+}
+
+func checkProductionNote(posts []Post) CheckResult {
+	for _, p := range posts {
+		if p.ProductionNote != "" {
+			return CheckResult{Name: "production_note", Pass: true}
+		}
+	}
+	return CheckResult{
+		Name:   "production_note",
+		Reason: "no production notes found",
+	}
+}

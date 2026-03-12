@@ -1,0 +1,18 @@
+{
+  "businessName": "Rekan",
+  "businessType": "app que gera conteúdo de Instagram pra microempreendedores",
+  "city": "São Paulo",
+  "neighbourhood": "",
+  "services": [
+    {"name": "Geração de legendas com IA", "priceBRL": 0},
+    {"name": "Sugestão de hashtags por nicho", "priceBRL": 0},
+    {"name": "Direção de foto e vídeo", "priceBRL": 0}
+  ],
+  "targetAudience": "microempreendedores brasileiros (MEI) que não conseguem manter constância no Instagram",
+  "brandVibe": "founder-voice, direto, empático",
+  "quirks": [
+    "feito por quem convive com MEIs e entende a dor",
+    "IA que escreve no tom do dono do negócio, não de agência",
+    "sem designer, sem copywriter, sem agência"
+  ]
+}

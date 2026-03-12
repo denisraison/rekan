@@ -1,0 +1,14 @@
+{
+  "businessName": "CT do Rodrigo Fitness",
+  "businessType": "personal trainer",
+  "city": "Salvador",
+  "neighbourhood": "Pituba",
+  "services": [
+    {"name": "Treino personalizado", "priceBRL": 200},
+    {"name": "Acompanhamento online", "priceBRL": 150},
+    {"name": "Avaliação física", "priceBRL": 80}
+  ],
+  "targetAudience": "homens e mulheres 25-45 que querem resultado",
+  "brandVibe": "casual",
+  "quirks": ["treina na praia aos sábados", "monta dieta junto com nutricionista parceira"]
+}

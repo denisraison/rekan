@@ -1,0 +1,14 @@
+{
+  "businessName": "PetFeliz Banho & Tosa",
+  "businessType": "petshop",
+  "city": "Belém",
+  "neighbourhood": "Umarizal",
+  "services": [
+    {"name": "Banho pequeno porte", "priceBRL": 50},
+    {"name": "Banho e tosa", "priceBRL": 80},
+    {"name": "Hospedagem diária", "priceBRL": 70}
+  ],
+  "targetAudience": "donos de pets em Belém",
+  "brandVibe": "family",
+  "quirks": ["taxi dog grátis no bairro", "fotos do pet no banho mandadas por WhatsApp"]
+}

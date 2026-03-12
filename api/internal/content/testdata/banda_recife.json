@@ -1,0 +1,14 @@
+{
+  "businessName": "Os Desafinados",
+  "businessType": "banda de forró",
+  "city": "Recife",
+  "neighbourhood": "Recife Antigo",
+  "services": [
+    {"name": "Show privado", "priceBRL": 2500},
+    {"name": "Roda de forró", "priceBRL": 800},
+    {"name": "Aula de sanfona", "priceBRL": 120}
+  ],
+  "targetAudience": "jovens 18-35 que curtem forró e vida noturna",
+  "brandVibe": "festeiro",
+  "quirks": ["só toca forró pé de serra", "sanfona de 120 baixos", "10 anos de estrada"]
+}

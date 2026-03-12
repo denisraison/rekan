@@ -1,0 +1,14 @@
+{
+  "businessName": "Lu Nails",
+  "businessType": "esmalteria e nail design",
+  "city": "São Paulo",
+  "neighbourhood": "Santo André",
+  "services": [
+    {"name": "Esmaltação simples", "priceBRL": 25},
+    {"name": "Francesinha", "priceBRL": 45},
+    {"name": "Nail art completa", "priceBRL": 55}
+  ],
+  "targetAudience": "mulheres 18-45, clientes do bairro e por indicação",
+  "brandVibe": "descolado e próximo",
+  "quirks": ["agenda sempre lotada às quintas-feiras", "referência em francesinha na região", "Lu é formada em nail design e adora fazer arte difícil"]
+}
