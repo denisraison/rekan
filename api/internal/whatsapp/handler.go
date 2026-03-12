@@ -8,19 +8,24 @@ import (
 	"go.mau.fi/whatsmeow/types"
 	"go.mau.fi/whatsmeow/types/events"
 
+	content "github.com/denisraison/rekan/api/internal/content"
 	"github.com/denisraison/rekan/api/internal/domain"
 	"github.com/denisraison/rekan/api/internal/transcribe"
-	content "github.com/denisraison/rekan/api/internal/content"
 	"github.com/pocketbase/pocketbase/core"
 )
 
+// GroupMessageHandler is called for each incoming group message.
+// Set by the agent package to break the import cycle.
+type GroupMessageHandler func(evt *events.Message)
+
 // HandlerDeps holds dependencies for the message event handler.
 type HandlerDeps struct {
-	Client        *Client
-	App           core.App
-	Logger        *slog.Logger
-	Transcribe    *transcribe.Client     // nil if GEMINI_API_KEY not set
-	ExtractSignal content.ExtractSignalFunc // nil if GEMINI_API_KEY not set
+	Client            *Client
+	App               core.App
+	Logger            *slog.Logger
+	Transcribe        *transcribe.Client         // nil if GEMINI_API_KEY not set
+	ExtractSignal     content.ExtractSignalFunc   // nil if GEMINI_API_KEY not set
+	HandleGroupMsg    GroupMessageHandler         // nil if agent not configured
 }
 
 // RegisterMessageHandler wires incoming WhatsApp messages to PocketBase storage.

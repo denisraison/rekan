@@ -20,6 +20,102 @@ import (
 	"github.com/boundaryml/baml/engine/language_client_go/pkg/cffi"
 )
 
+type AgentAction struct {
+	ActionType   AgentActionType   `json:"actionType"`
+	ActionParams map[string]string `json:"actionParams"`
+}
+
+func (c *AgentAction) Decode(holder *cffi.CFFIValueClass, typeMap baml.TypeMap) {
+	typeName := holder.Name
+	if typeName.Namespace != cffi.CFFITypeNamespace_TYPES {
+		panic(fmt.Sprintf("expected cffi.CFFITypeNamespace_TYPES, got %s", string(typeName.Namespace.String())))
+	}
+	if typeName.Name != "AgentAction" {
+		panic(fmt.Sprintf("expected AgentAction, got %s", typeName.Name))
+	}
+
+	for _, field := range holder.Fields {
+		key := field.Key
+		valueHolder := field.Value
+		switch key {
+
+		case "actionType":
+			c.ActionType = baml.Decode(valueHolder).Interface().(AgentActionType)
+
+		case "actionParams":
+			c.ActionParams = baml.Decode(valueHolder).Interface().(map[string]string)
+
+		default:
+
+			panic(fmt.Sprintf("unexpected field: %s in class AgentAction", key))
+
+		}
+	}
+
+}
+
+func (c AgentAction) Encode() (*cffi.HostValue, error) {
+	fields := map[string]any{}
+
+	fields["actionType"] = c.ActionType
+
+	fields["actionParams"] = c.ActionParams
+
+	return baml.EncodeClass("AgentAction", fields, nil)
+}
+
+func (c AgentAction) BamlTypeName() string {
+	return "AgentAction"
+}
+
+type AgentResponse struct {
+	Reply  *string      `json:"reply"`
+	Action *AgentAction `json:"action"`
+}
+
+func (c *AgentResponse) Decode(holder *cffi.CFFIValueClass, typeMap baml.TypeMap) {
+	typeName := holder.Name
+	if typeName.Namespace != cffi.CFFITypeNamespace_TYPES {
+		panic(fmt.Sprintf("expected cffi.CFFITypeNamespace_TYPES, got %s", string(typeName.Namespace.String())))
+	}
+	if typeName.Name != "AgentResponse" {
+		panic(fmt.Sprintf("expected AgentResponse, got %s", typeName.Name))
+	}
+
+	for _, field := range holder.Fields {
+		key := field.Key
+		valueHolder := field.Value
+		switch key {
+
+		case "reply":
+			c.Reply = baml.Decode(valueHolder).Interface().(*string)
+
+		case "action":
+			c.Action = baml.Decode(valueHolder).Interface().(*AgentAction)
+
+		default:
+
+			panic(fmt.Sprintf("unexpected field: %s in class AgentResponse", key))
+
+		}
+	}
+
+}
+
+func (c AgentResponse) Encode() (*cffi.HostValue, error) {
+	fields := map[string]any{}
+
+	fields["reply"] = c.Reply
+
+	fields["action"] = c.Action
+
+	return baml.EncodeClass("AgentResponse", fields, nil)
+}
+
+func (c AgentResponse) BamlTypeName() string {
+	return "AgentResponse"
+}
+
 type BusinessProfile struct {
 	BusinessName   string    `json:"businessName"`
 	BusinessType   string    `json:"businessType"`

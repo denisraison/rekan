@@ -10,15 +10,16 @@ import (
 	"github.com/pocketbase/pocketbase/core"
 	"github.com/pocketbase/pocketbase/plugins/migratecmd"
 
+	"github.com/denisraison/rekan/api/internal/agent"
 	"github.com/denisraison/rekan/api/internal/asaas"
 	"github.com/denisraison/rekan/api/internal/billing"
+	content "github.com/denisraison/rekan/api/internal/content"
 	apphttp "github.com/denisraison/rekan/api/internal/http"
 	"github.com/denisraison/rekan/api/internal/http/handlers"
 	"github.com/denisraison/rekan/api/internal/operator"
 	"github.com/denisraison/rekan/api/internal/transcribe"
 	"github.com/denisraison/rekan/api/internal/whatsapp"
 	_ "github.com/denisraison/rekan/api/migrations"
-	content "github.com/denisraison/rekan/api/internal/content"
 )
 
 func main() {
@@ -67,12 +68,21 @@ func run(ctx context.Context, getenv func(string) string) error {
 				whisperClient = transcribe.NewClient(key)
 				extractSignal = content.ExtractProfileSignal
 			}
+
+			// Create group agent if CLAUDE_API_KEY is set
+			var handleGroupMsg whatsapp.GroupMessageHandler
+			if getenv("CLAUDE_API_KEY") != "" {
+				groupAgent := agent.New(app, wac, app.Logger())
+				handleGroupMsg = groupAgent.HandleGroupMessage
+			}
+
 			whatsapp.RegisterMessageHandler(whatsapp.HandlerDeps{
-				Client:        wac,
-				App:           app,
-				Logger:        app.Logger(),
-				Transcribe:    whisperClient,
-				ExtractSignal: extractSignal,
+				Client:         wac,
+				App:            app,
+				Logger:         app.Logger(),
+				Transcribe:     whisperClient,
+				ExtractSignal:  extractSignal,
+				HandleGroupMsg: handleGroupMsg,
 			})
 			if err := wac.Connect(ctx); err != nil {
 				app.Logger().Warn("whatsapp connect failed", "error", err)

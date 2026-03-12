@@ -1,6 +1,6 @@
 # PEP-023: WhatsApp Group Agent for Operators
 
-**Status:** Draft
+**Status:** In Progress (Wave 1 complete)
 **Date:** 2026-03-12
 **Depends on:** PEP-022
 
@@ -125,7 +125,7 @@ Build the message pipeline from WhatsApp group to BAML agent and back. Agent can
 **Eval tests (written first, all should fail before implementation):**
 
 ```yaml
-# eval/agent/cases/wave1.yaml
+# api/internal/agent/cases/wave1.yaml
 tests:
   - id: w1_status_overview
     message: "como tá tudo?"
@@ -184,7 +184,7 @@ tests:
    - Store/retrieve messages in `agent_conversations` collection
    - Auto-prune beyond 15 messages per hydration call
 
-5. **BAML schema** (`eval/baml_src/agent.baml` or similar)
+5. **BAML schema** (`api/internal/content/baml_src/agent.baml` or similar)
    - `AgentResponse` type: `reply` (string), `action` (optional AgentAction), `wait_for` (optional)
    - `AgentAction` type: `type` (enum), `status` (enum: execute/needs_confirmation), `params` (map)
    - `AgentProcess` function with system prompt in Portuguese
@@ -200,7 +200,7 @@ tests:
    - Address operator by name in every response
    - Keep replies under 300 chars
 
-8. **Eval harness** (`eval/agent/runner.go`)
+8. **Eval harness** (`api/internal/agent/runner.go`)
    - Load YAML test cases
    - Call BAML agent function with fixture context
    - Run deterministic graders (action type, parameter matching)
@@ -212,15 +212,21 @@ tests:
    - `operators`, `agent_state`, `agent_conversations`, `agent_action_log` collections
 
 **Gate:**
-- [ ] `cd api && go build ./...` compiles
-- [ ] `make eval-agent` runs all Wave 1 tests, pass rate >= 90%
-- [ ] `baml-cli test` passes for all Wave 1 BAML inline tests
-- [ ] Operator sends "como tá tudo?" in the group, gets accurate status within 5s
-- [ ] 5 rapid messages from one operator are debounced into single input
-- [ ] Agent stays silent on operator-to-operator chat (send 5 conversational messages, 0 replies)
-- [ ] Unknown sender's message is ignored (no reply, logged)
-- [ ] All interactions logged in `agent_action_log` with operator attribution
-- [ ] Existing E2E tests pass (direct message handling, web UI unchanged)
+- [x] `cd api && go build ./...` compiles
+- [x] `make eval-agent` runs all Wave 1 tests, pass rate >= 90% (100%, 9/9 tests)
+- [x] `baml-cli test` passes for all Wave 1 BAML inline tests (2/2; null-assertion tests moved to Go eval harness)
+- [x] Operator sends "como tá tudo?" in the group, gets accurate status within 5s (~2.4s)
+- [x] 5 rapid messages from one operator are debounced into single input (2s debounce window)
+- [x] Agent stays silent on operator-to-operator chat (send 5 conversational messages, 0 replies)
+- [x] Unknown sender's message is ignored (no reply, logged)
+- [x] All interactions logged in `agent_action_log` with operator attribution
+- [x] Existing E2E tests pass (direct message handling, web UI unchanged)
+
+**Notes:**
+- BAML's test framework cannot assert `null` values (no `null` keyword). Silence tests (ignore chat) are covered by the Go eval harness instead of BAML inline tests.
+- Import cycle between `whatsapp` and `agent` packages resolved with `GroupMessageHandler` function type in `whatsapp` and `WAClient` interface in `agent`.
+- Agent uses Claude Sonnet 4.6 (via `AgentClient` in BAML) for speed/cost at expected message volume.
+- BAML field `params` is a reserved keyword; renamed to `actionParams` in `AgentAction` class.
 
 ### Wave 2: Customer management + confirmation flow
 

@@ -21,6 +21,10 @@ import (
 )
 
 var typeMap = map[string]reflect.Type{
+	"TYPES.AgentAction":                   reflect.TypeOf(types.AgentAction{}),
+	"STREAM_TYPES.AgentAction":            reflect.TypeOf(stream_types.AgentAction{}),
+	"TYPES.AgentResponse":                 reflect.TypeOf(types.AgentResponse{}),
+	"STREAM_TYPES.AgentResponse":          reflect.TypeOf(stream_types.AgentResponse{}),
 	"TYPES.BusinessProfile":               reflect.TypeOf(types.BusinessProfile{}),
 	"STREAM_TYPES.BusinessProfile":        reflect.TypeOf(stream_types.BusinessProfile{}),
 	"TYPES.ContentRole":                   reflect.TypeOf(types.ContentRole{}),
@@ -39,4 +43,6 @@ var typeMap = map[string]reflect.Type{
 	"STREAM_TYPES.ProfileSignal":          reflect.TypeOf(stream_types.ProfileSignal{}),
 	"TYPES.Service":                       reflect.TypeOf(types.Service{}),
 	"STREAM_TYPES.Service":                reflect.TypeOf(stream_types.Service{}),
+
+	"TYPES.AgentActionType": reflect.TypeOf(types.AgentActionType("")),
 }

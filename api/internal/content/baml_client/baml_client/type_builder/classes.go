@@ -15,6 +15,78 @@ package type_builder
 
 import baml "github.com/boundaryml/baml/engine/language_client_go/pkg"
 
+type AgentActionClassView struct {
+	inner baml.ClassBuilder
+}
+
+func (t *AgentActionClassView) ListProperties() ([]ClassPropertyView, error) {
+	result, err := t.inner.ListProperties()
+	if err != nil {
+		return nil, err
+	}
+	builders := make([]ClassPropertyView, len(result))
+	for i, p := range result {
+		builders[i] = p
+	}
+	return builders, nil
+}
+
+func (t *AgentActionClassView) PropertyActionType() (ClassPropertyView, error) {
+	return t.inner.Property("actionType")
+}
+
+func (t *AgentActionClassView) PropertyActionParams() (ClassPropertyView, error) {
+	return t.inner.Property("actionParams")
+}
+
+func (t *TypeBuilder) AgentAction() (*AgentActionClassView, error) {
+	bld, err := t.inner.Class("AgentAction")
+	if err != nil {
+		return nil, err
+	}
+	return &AgentActionClassView{inner: bld}, nil
+}
+
+func (t *AgentActionClassView) Type() (baml.Type, error) {
+	return t.inner.Type()
+}
+
+type AgentResponseClassView struct {
+	inner baml.ClassBuilder
+}
+
+func (t *AgentResponseClassView) ListProperties() ([]ClassPropertyView, error) {
+	result, err := t.inner.ListProperties()
+	if err != nil {
+		return nil, err
+	}
+	builders := make([]ClassPropertyView, len(result))
+	for i, p := range result {
+		builders[i] = p
+	}
+	return builders, nil
+}
+
+func (t *AgentResponseClassView) PropertyReply() (ClassPropertyView, error) {
+	return t.inner.Property("reply")
+}
+
+func (t *AgentResponseClassView) PropertyAction() (ClassPropertyView, error) {
+	return t.inner.Property("action")
+}
+
+func (t *TypeBuilder) AgentResponse() (*AgentResponseClassView, error) {
+	bld, err := t.inner.Class("AgentResponse")
+	if err != nil {
+		return nil, err
+	}
+	return &AgentResponseClassView{inner: bld}, nil
+}
+
+func (t *AgentResponseClassView) Type() (baml.Type, error) {
+	return t.inner.Type()
+}
+
 type BusinessProfileClassView struct {
 	inner baml.ClassBuilder
 }

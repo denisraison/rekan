@@ -1,0 +1,139 @@
+tests:
+  - id: w1_status_overview
+    message: "como tá tudo?"
+    operator: { name: "Elenice", jid: "5511999990000" }
+    context: |
+      Operadora: Elenice
+
+      Clientes ativas: 8
+        - Patricia (Salão de Beleza, Belo Horizonte)
+        - Maria (Confeitaria, São Paulo)
+        - Joana (Loja de Roupas, Rio de Janeiro)
+        - Ana (Manicure, Goiânia)
+        - Fernanda (Hamburgueria, Curitiba)
+        - Cláudia (Pet Shop, Brasília)
+        - Renata (Studio de Pilates, Salvador)
+        - Luciana (Floricultura, Porto Alegre)
+
+      Posts gerados (total): 24
+
+      Últimas ações:
+        - Bruna: CUSTOMER_LIST (listou 8 clientes)
+    graders:
+      - type: deterministic
+        field: action_type
+        equals: STATUS_OVERVIEW
+      - type: llm_judge
+        judge: tone
+        criteria: "Resposta em português brasileiro, menos de 300 caracteres, chama Elenice pelo nome"
+
+  - id: w1_customer_list
+    message: "quais são as clientes?"
+    operator: { name: "Bruna", jid: "5511999991111" }
+    context: |
+      Operadora: Bruna
+
+      Clientes ativas: 8
+        - Patricia (Salão de Beleza, Belo Horizonte)
+        - Maria (Confeitaria, São Paulo)
+    graders:
+      - type: deterministic
+        field: action_type
+        equals: CUSTOMER_LIST
+      - type: llm_judge
+        judge: no_hallucination
+        criteria: "Só lista clientes que estão no contexto, não inventa nenhuma"
+
+  - id: w1_ignore_chat
+    message: "Bruna, vc viu o post da Maria?"
+    operator: { name: "Elenice", jid: "5511999990000" }
+    context: |
+      Clientes ativas: 8
+    graders:
+      - type: deterministic
+        field: action_type
+        equals: ""
+      - type: deterministic
+        field: reply
+        equals: ""
+
+  - id: w1_ignore_chat_2
+    message: "vi sim, ficou ótimo!"
+    operator: { name: "Bruna", jid: "5511999991111" }
+    context: |
+      Clientes ativas: 8
+    conversation_history: |
+      Elenice: Bruna, vc viu o post da Maria?
+    graders:
+      - type: deterministic
+        field: action_type
+        equals: ""
+      - type: deterministic
+        field: reply
+        equals: ""
+
+  - id: w1_ignore_chat_3
+    message: "bom dia!"
+    operator: { name: "Elenice", jid: "5511999990000" }
+    context: |
+      Clientes ativas: 8
+    graders:
+      - type: deterministic
+        field: action_type
+        equals: ""
+      - type: deterministic
+        field: reply
+        equals: ""
+
+  - id: w1_ignore_chat_4
+    message: "vou almoçar, volto já"
+    operator: { name: "Bruna", jid: "5511999991111" }
+    context: |
+      Clientes ativas: 8
+    graders:
+      - type: deterministic
+        field: action_type
+        equals: ""
+      - type: deterministic
+        field: reply
+        equals: ""
+
+  - id: w1_ignore_chat_5
+    message: "Elenice, me manda o número da Patricia?"
+    operator: { name: "Bruna", jid: "5511999991111" }
+    context: |
+      Clientes ativas: 8
+    graders:
+      - type: deterministic
+        field: action_type
+        equals: ""
+      - type: deterministic
+        field: reply
+        equals: ""
+
+  - id: w1_unknown_sender
+    message: "oi, tudo bem?"
+    operator: { name: "Unknown", jid: "5511888880000" }
+    unknown_sender: true
+    graders:
+      - type: deterministic
+        field: action_type
+        equals: ""
+      - type: deterministic
+        field: reply
+        equals: ""
+
+  - id: w1_status_question
+    message: "quantas clientes a gente tem?"
+    operator: { name: "Elenice", jid: "5511999990000" }
+    context: |
+      Operadora: Elenice
+
+      Clientes ativas: 8
+    graders:
+      - type: deterministic
+        field: has_reply
+        equals: "true"
+      - type: llm_judge
+        judge: tone
+        criteria: "Resposta em português brasileiro, menos de 300 caracteres, chama Elenice pelo nome, menciona o número 8"

@@ -1,4 +1,4 @@
-.PHONY: dev dev-mock dev-api dev-web eval eval-judges eval-fast test-judges lint seed deploy
+.PHONY: dev dev-mock dev-api dev-web eval eval-judges eval-fast eval-agent test-judges lint seed deploy
 
 dev:
 	$(MAKE) dev-api &
@@ -28,6 +28,9 @@ eval-judges:
 
 eval-fast:
 	set -a && . ./.env && set +a && cd api && go run ./cmd/eval --fast
+
+eval-agent:
+	set -a && . ./.env && set +a && cd api && go run ./cmd/eval-agent
 
 test-judges:
 	set -a && . ./.env && set +a && cd api && go test -tags integration -v -run TestJudge

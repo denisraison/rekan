@@ -12,3 +12,41 @@
 //  $ go install github.com/boundaryml/baml/baml-cli
 
 package type_builder
+
+import baml "github.com/boundaryml/baml/engine/language_client_go/pkg"
+
+type AgentActionTypeEnumView struct {
+	inner baml.EnumBuilder
+}
+
+func (t *AgentActionTypeEnumView) ListValues() ([]EnumValueView, error) {
+	result, err := t.inner.ListValues()
+	if err != nil {
+		return nil, err
+	}
+	builders := make([]EnumValueView, len(result))
+	for i, p := range result {
+		builders[i] = p
+	}
+	return builders, nil
+}
+
+func (t *AgentActionTypeEnumView) ValueSTATUS_OVERVIEW() (EnumValueView, error) {
+	return t.inner.Value("STATUS_OVERVIEW")
+}
+
+func (t *AgentActionTypeEnumView) ValueCUSTOMER_LIST() (EnumValueView, error) {
+	return t.inner.Value("CUSTOMER_LIST")
+}
+
+func (t *TypeBuilder) AgentActionType() (*AgentActionTypeEnumView, error) {
+	bld, err := t.inner.Enum("AgentActionType")
+	if err != nil {
+		return nil, err
+	}
+	return &AgentActionTypeEnumView{inner: bld}, nil
+}
+
+func (t *AgentActionTypeEnumView) Type() (baml.Type, error) {
+	return t.inner.Type()
+}
