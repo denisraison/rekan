@@ -150,6 +150,7 @@ internal/whatsapp/
   group.go          # handleGroupMessage (stub: logs and returns, PEP-023 fills this in)
   media.go          # transcribeAudio, processImage, processVideo
   contacts.go       # findOrCreateBusiness, refreshProfilePicture, extractAndSaveSignal
+  message.go        # resolveDirectSender, extractContent, isDuplicate, saveMessageRecord
 ```
 
 **The `group.go` stub:**
@@ -163,11 +164,18 @@ func handleGroupMessage(deps HandlerDeps, evt *events.Message) {
 The dispatcher in `handler.go` replaces the early `if evt.Info.IsGroup { return }` with a call to `handleGroupMessage`. This means PEP-023 only needs to fill in `group.go` instead of restructuring the handler.
 
 **Gate:**
-- [ ] `cd api && go build ./...` compiles
-- [ ] `cd api && go vet ./...` passes
-- [ ] Existing E2E tests pass (direct message handling unchanged)
-- [ ] `handler.go` is under 80 lines (dispatcher + direct message handler, media/contacts extracted)
-- [ ] Group messages are logged at debug level (verify with `DEV_MODE=true`, send a message in a test group, check logs)
+- [x] `cd api && go build ./...` compiles
+- [x] `cd api && go vet ./...` passes
+- [x] Existing E2E tests pass (direct message handling unchanged)
+- [x] `handler.go` is under 80 lines (dispatcher + direct message handler, media/contacts extracted)
+- [x] Group messages are logged at debug level (verify with `DEV_MODE=true`, send a message in a test group, check logs)
+
+**Notes:**
+- Added `message.go` for shared helpers (`resolveDirectSender`, `extractContent`, `isDuplicate`, `saveMessageRecord`) that the PEP asked to extract (LID resolution, deduplication). These are reusable by the group handler in PEP-023.
+- `handler.go` is 79 lines (dispatcher + handleDirectMessage using the shared helpers)
+- Renamed test `TestHandleMessageGroupIsIgnored` to `TestHandleGroupMessageIsIgnored` to call `handleGroupMessage` directly (matches the new dispatch structure)
+- Moved dedup check before LID resolution and content extraction. The original code ran dedup after downloading media and transcribing audio, wasting network calls for duplicate deliveries. Now `isDuplicate` (a cheap DB query) runs first.
+- `saveMessageRecord` overlaps with `service.StoreOutgoingMessage` (both build and save a message record). They differ in `wa_message_id` handling and timestamp source. Worth unifying if more save sites appear, but contained for now.
 
 ## Consequences
 

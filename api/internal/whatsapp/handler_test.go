@@ -136,7 +136,7 @@ func TestHandleMessageUnknownSenderCreatesPlaceholder(t *testing.T) {
 	app := newHandlerTestApp(t)
 	deps := makeDeps(t, app)
 
-	handleMessage(deps, incomingTextEvt("msg1", "5511999990001"))
+	handleDirectMessage(deps, incomingTextEvt("msg1", "5511999990001"))
 
 	if got := countBusinesses(t, app); got != 1 {
 		t.Fatalf("want 1 placeholder business, got %d", got)
@@ -180,7 +180,7 @@ func TestHandleMessageKnownSenderLinksExistingBusiness(t *testing.T) {
 		t.Fatalf("save business: %v", err)
 	}
 
-	handleMessage(deps, incomingTextEvt("msg2", "5511888880001"))
+	handleDirectMessage(deps, incomingTextEvt("msg2", "5511888880001"))
 
 	if got := countBusinesses(t, app); got != 1 {
 		t.Errorf("want 1 business, got %d (should not create placeholder)", got)
@@ -198,7 +198,7 @@ func TestHandleMessageFromMeIsOutgoing(t *testing.T) {
 	app := newHandlerTestApp(t)
 	deps := makeDeps(t, app)
 
-	handleMessage(deps, outgoingTextEvt("msg3", "5511777770001"))
+	handleDirectMessage(deps, outgoingTextEvt("msg3", "5511777770001"))
 
 	msg, err := app.FindFirstRecordByFilter(domain.CollMessages, "wa_message_id = 'msg3'")
 	if err != nil {
@@ -212,15 +212,15 @@ func TestHandleMessageFromMeIsOutgoing(t *testing.T) {
 	}
 }
 
-// TestHandleMessageGroupIsIgnored verifies that group messages are silently dropped.
-func TestHandleMessageGroupIsIgnored(t *testing.T) {
+// TestHandleGroupMessageIsIgnored verifies that group messages are logged and dropped.
+func TestHandleGroupMessageIsIgnored(t *testing.T) {
 	app := newHandlerTestApp(t)
 	deps := makeDeps(t, app)
 
 	evt := incomingTextEvt("msg4", "5511666660001")
 	evt.Info.IsGroup = true
 
-	handleMessage(deps, evt)
+	handleGroupMessage(deps, evt)
 
 	if got := countMessages(t, app); got != 0 {
 		t.Errorf("want 0 messages for group, got %d", got)
@@ -233,8 +233,8 @@ func TestHandleMessageDeduplication(t *testing.T) {
 	app := newHandlerTestApp(t)
 	deps := makeDeps(t, app)
 
-	handleMessage(deps, incomingTextEvt("dup1", "5511555550001"))
-	handleMessage(deps, incomingTextEvt("dup1", "5511555550001"))
+	handleDirectMessage(deps, incomingTextEvt("dup1", "5511555550001"))
+	handleDirectMessage(deps, incomingTextEvt("dup1", "5511555550001"))
 
 	if got := countMessages(t, app); got != 1 {
 		t.Errorf("want 1 message after dedup, got %d", got)
@@ -247,8 +247,8 @@ func TestHandleMessageSecondMessageReusesPlaceholder(t *testing.T) {
 	app := newHandlerTestApp(t)
 	deps := makeDeps(t, app)
 
-	handleMessage(deps, incomingTextEvt("m1", "5511444440001"))
-	handleMessage(deps, incomingTextEvt("m2", "5511444440001"))
+	handleDirectMessage(deps, incomingTextEvt("m1", "5511444440001"))
+	handleDirectMessage(deps, incomingTextEvt("m2", "5511444440001"))
 
 	if got := countBusinesses(t, app); got != 1 {
 		t.Errorf("want 1 placeholder business, got %d", got)
@@ -264,7 +264,7 @@ func TestHandleMessagePushNameUsedAsPlaceholderName(t *testing.T) {
 	app := newHandlerTestApp(t)
 	deps := makeDeps(t, app)
 
-	handleMessage(deps, incomingTextEvtWithName("msg-name1", "5511999990002", "Maria Silva"))
+	handleDirectMessage(deps, incomingTextEvtWithName("msg-name1", "5511999990002", "Maria Silva"))
 
 	biz, err := app.FindFirstRecordByFilter(domain.CollBusinesses, "phone = '5511999990002'")
 	if err != nil {
@@ -284,8 +284,8 @@ func TestHandleMessagePushNameUpdatesExistingPlaceholder(t *testing.T) {
 	app := newHandlerTestApp(t)
 	deps := makeDeps(t, app)
 
-	handleMessage(deps, incomingTextEvt("msg-name2", "5511999990003"))
-	handleMessage(deps, incomingTextEvtWithName("msg-name3", "5511999990003", "João Costa"))
+	handleDirectMessage(deps, incomingTextEvt("msg-name2", "5511999990003"))
+	handleDirectMessage(deps, incomingTextEvtWithName("msg-name3", "5511999990003", "João Costa"))
 
 	biz, err := app.FindFirstRecordByFilter(domain.CollBusinesses, "phone = '5511999990003'")
 	if err != nil {
@@ -305,7 +305,7 @@ func TestHandleMessageLIDJIDIsIgnored(t *testing.T) {
 	app := newHandlerTestApp(t)
 	deps := makeDeps(t, app)
 
-	handleMessage(deps, lidEvt("msg-lid1"))
+	handleDirectMessage(deps, lidEvt("msg-lid1"))
 
 	if got := countMessages(t, app); got != 0 {
 		t.Errorf("want 0 messages for LID JID, got %d", got)
