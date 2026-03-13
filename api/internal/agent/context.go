@@ -27,9 +27,9 @@ func HydrateContext(app core.App, operatorName, operatorJID string) HydratedCont
 		OperatorJID:  operatorJID,
 	}
 
-	// Active businesses
+	// Active and draft businesses
 	if err := app.RecordQuery(domain.CollBusinesses).
-		AndWhere(dbx.NewExp("invite_status = 'active'")).
+		AndWhere(dbx.NewExp("invite_status IN ('active', 'draft')")).
 		OrderBy("name ASC").
 		All(&ctx.Businesses); err != nil {
 		return ctx
