@@ -42,11 +42,11 @@
               ];
             };
             modRoot = "api";
-            subPackages = [ "." ];
+            subPackages = [ "cmd/rekan" ];
             vendorHash = "sha256-mvDdijdVNkNMwcDGVSRV+Uhi96K6pAz4sb31zHA7+eQ=";
             proxyVendor = true;
             preCheck = "export BAML_LIBRARY_PATH=${bamlLibPath}";
-            meta.mainProgram = "api";
+            meta.mainProgram = "rekan";
           };
         in
         {

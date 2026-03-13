@@ -62,7 +62,7 @@ in
         environment.XDG_CACHE_HOME = "/var/cache/rekan-${name}";
 
         serviceConfig = {
-          ExecStart = "${icfg.package}/bin/api serve --http=127.0.0.1:${toString icfg.port} --dir=/var/lib/rekan-${name}";
+          ExecStart = "${icfg.package}/bin/rekan serve --http=127.0.0.1:${toString icfg.port} --dir=/var/lib/rekan-${name}";
           WorkingDirectory = "/var/lib/rekan-${name}";
           EnvironmentFile = icfg.envFile;
           DynamicUser = true;
