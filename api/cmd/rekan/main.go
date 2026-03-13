@@ -2,6 +2,7 @@ package main
 
 import (
 	"context"
+	"fmt"
 	"log"
 	"os"
 	"path/filepath"
@@ -9,6 +10,7 @@ import (
 	"github.com/pocketbase/pocketbase"
 	"github.com/pocketbase/pocketbase/core"
 	"github.com/pocketbase/pocketbase/plugins/migratecmd"
+	"github.com/spf13/cobra"
 
 	"github.com/denisraison/rekan/api/internal/agent"
 	"github.com/denisraison/rekan/api/internal/asaas"
@@ -137,6 +139,33 @@ func run(ctx context.Context, getenv func(string) string) error {
 			waClient.Disconnect()
 		}
 		return te.Next()
+	})
+
+	app.RootCmd.AddCommand(&cobra.Command{
+		Use:   "list-groups",
+		Short: "List WhatsApp groups and their JIDs",
+		RunE: func(cmd *cobra.Command, args []string) error {
+			dbPath := filepath.Join(app.DataDir(), "whatsapp.db")
+			wac, err := whatsapp.New(ctx, dbPath, "Rekan", app.Logger())
+			if err != nil {
+				return fmt.Errorf("whatsapp init: %w", err)
+			}
+			defer wac.Disconnect()
+
+			if err := wac.Connect(ctx); err != nil {
+				return fmt.Errorf("whatsapp connect: %w", err)
+			}
+
+			groups, err := wac.GetJoinedGroups(ctx)
+			if err != nil {
+				return fmt.Errorf("get groups: %w", err)
+			}
+
+			for _, g := range groups {
+				fmt.Printf("%s  %s\n", g.JID.User, g.Name)
+			}
+			return nil
+		},
 	})
 
 	return app.Start()

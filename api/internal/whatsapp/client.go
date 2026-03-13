@@ -232,6 +232,11 @@ func (c *Client) DownloadURL(ctx context.Context, url string) ([]byte, error) {
 	return io.ReadAll(resp.Body)
 }
 
+// GetJoinedGroups returns all WhatsApp groups the client is a member of.
+func (c *Client) GetJoinedGroups(ctx context.Context) ([]*types.GroupInfo, error) {
+	return c.wac.GetJoinedGroups(ctx)
+}
+
 // ResolveLID resolves a LID JID to its phone number JID, or returns the input unchanged
 // if it is not a LID or cannot be resolved.
 func (c *Client) ResolveLID(ctx context.Context, jid types.JID) types.JID {
