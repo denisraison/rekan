@@ -7,6 +7,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/anthropics/anthropic-sdk-go"
 	"go.mau.fi/whatsmeow/types"
 	"go.mau.fi/whatsmeow/types/events"
 
@@ -29,6 +30,7 @@ type Agent struct {
 	Transcribe *transcribe.Client   // nil if GEMINI_API_KEY not set
 	Generate   content.GenerateFunc // nil if not wired
 	BAML       BAMLFunc             // defaults to baml.AgentProcess
+	Claude     *ClaudeClient        // nil = fallback to BAML
 }
 
 // New creates a new Agent instance.
@@ -43,6 +45,7 @@ func New(app core.App, waClient WAClient, logger *slog.Logger, tc *transcribe.Cl
 		BAML: func(ctx context.Context, operatorName, message, systemContext, conversationHistory string) (bamltypes.AgentResponse, error) {
 			return baml.AgentProcess(ctx, operatorName, message, systemContext, conversationHistory)
 		},
+		Claude: NewClaudeClient(),
 	}
 }
 
@@ -192,7 +195,7 @@ func (a *Agent) callBAML(ctx context.Context, groupJID types.JID, hydrated Hydra
 }
 
 // ProcessMessage is the core message processing pipeline.
-// Stores the message, loads conversation history, calls BAML, routes actions, and sends the reply.
+// Stores the message, loads conversation history, uses tool-use loop, and sends the reply.
 // Used by HandleGroupMessage (via debouncer) and directly by tests.
 func (a *Agent) ProcessMessage(groupJID types.JID, messageID string, senderJID types.JID, message, operatorName, operatorJID string) {
 	start := time.Now()
@@ -214,18 +217,140 @@ func (a *Agent) ProcessMessage(groupJID types.JID, messageID string, senderJID t
 		return
 	}
 
-	hydrated := HydrateContext(a.App, operatorName, operatorJID)
-
 	if err := ReactThumbsUp(ctx, a.WAClient, groupJID, messageID, senderJID); err != nil {
 		a.Logger.Error("agent: react thumbs up", "error", err)
 	}
 
-	result, err := a.callBAML(ctx, groupJID, hydrated, state, operatorName, operatorJID, message, start)
+	result, err := a.processWithTools(ctx, groupJID, state, operatorName, operatorJID, message, start)
 	if err != nil {
+		a.Logger.Error("agent: tool-use loop failed", "error", err)
+		LogAction(a.App, operatorName, operatorJID, "ERROR", nil, err.Error(), false, start)
+		if sendErr := SendReply(ctx, a.WAClient, groupJID, operatorName+", algo deu errado. Tenta de novo?"); sendErr != nil {
+			a.Logger.Error("agent: failed to send error reply", "error", sendErr)
+		}
 		return
 	}
 
 	a.sendAndLog(ctx, groupJID, operatorName, operatorJID, result, start)
+}
+
+// processWithTools runs the Claude tool-use loop for a message.
+func (a *Agent) processWithTools(ctx context.Context, groupJID types.JID, state *OperatorState, operatorName, operatorJID, message string, start time.Time) (*bamlResult, error) {
+	history, err := LoadRecentAndPrune(a.App, 15)
+	if err != nil {
+		a.Logger.Error("agent: failed to load conversation history", "error", err)
+	}
+
+	// Build Claude messages from conversation history
+	messages := buildClaudeMessages(history, operatorName, message)
+
+	slowTimer := time.AfterFunc(5*time.Second, func() {
+		if err := SendReply(ctx, a.WAClient, groupJID, "Um momento..."); err != nil {
+			a.Logger.Error("agent: failed to send slow timer reply", "error", err)
+		}
+	})
+
+	systemPrompt := buildSystemPrompt(operatorName)
+	tuResult, err := a.Claude.RunToolLoop(ctx, a.App, state, operatorName, operatorJID, a.Generate, messages, systemPrompt)
+	slowTimer.Stop()
+
+	if err != nil {
+		return nil, err
+	}
+
+	actionType := "INFO"
+	if tuResult.WriteUsed && len(tuResult.ToolsCalled) > 0 {
+		// Use the last write tool name as the action type
+		for i := len(tuResult.ToolsCalled) - 1; i >= 0; i-- {
+			if at := toolNameToActionType(tuResult.ToolsCalled[i]); at != "" {
+				actionType = at
+				break
+			}
+		}
+	} else if len(tuResult.ToolsCalled) > 0 {
+		// Use the first tool called as a rough action type for logging
+		if at := toolNameToActionType(tuResult.ToolsCalled[0]); at != "" {
+			actionType = at
+		}
+	}
+
+	return &bamlResult{ReplyText: tuResult.Reply, ActionType: actionType}, nil
+}
+
+// buildClaudeMessages converts conversation history + current message into Claude API messages.
+func buildClaudeMessages(history []ConversationMessage, operatorName, currentMessage string) []anthropic.MessageParam {
+	var messages []anthropic.MessageParam
+
+	for _, msg := range history {
+		text := msg.Content
+		if msg.Role == "user" {
+			messages = append(messages, anthropic.NewUserMessage(anthropic.NewTextBlock(text)))
+		} else {
+			messages = append(messages, anthropic.MessageParam{
+				Role:    anthropic.MessageParamRoleAssistant,
+				Content: []anthropic.ContentBlockParamUnion{anthropic.NewTextBlock(text)},
+			})
+		}
+	}
+
+	// Ensure messages alternate roles (Claude API requirement)
+	messages = mergeConsecutiveRoles(messages)
+
+	// Add current message
+	messages = append(messages, anthropic.NewUserMessage(anthropic.NewTextBlock(currentMessage)))
+
+	return messages
+}
+
+// mergeConsecutiveRoles merges consecutive messages with the same role.
+func mergeConsecutiveRoles(messages []anthropic.MessageParam) []anthropic.MessageParam {
+	if len(messages) == 0 {
+		return messages
+	}
+
+	var merged []anthropic.MessageParam
+	for _, msg := range messages {
+		if len(merged) > 0 && merged[len(merged)-1].Role == msg.Role {
+			merged[len(merged)-1].Content = append(merged[len(merged)-1].Content, msg.Content...)
+		} else {
+			merged = append(merged, msg)
+		}
+	}
+
+	// Claude requires first message to be user role
+	if len(merged) > 0 && merged[0].Role != anthropic.MessageParamRoleUser {
+		merged = merged[1:]
+	}
+
+	return merged
+}
+
+// toolNameToActionType maps tool names to action type strings for logging.
+func toolNameToActionType(name string) string {
+	switch name {
+	case "find_customer":
+		return "CUSTOMER_INFO"
+	case "list_customers":
+		return "CUSTOMER_LIST"
+	case "find_post", "list_posts":
+		return "POST_LIST_PENDING"
+	case "recent_activity":
+		return "STATUS_OVERVIEW"
+	case "create_customer":
+		return "CUSTOMER_CREATE"
+	case "update_customer":
+		return "CUSTOMER_UPDATE"
+	case "pause_customer":
+		return "CUSTOMER_PAUSE"
+	case "generate_post":
+		return "POST_GENERATE"
+	case "approve_post":
+		return "POST_APPROVE"
+	case "reject_post":
+		return "POST_REJECT"
+	default:
+		return ""
+	}
 }
 
 func (a *Agent) handleStatefulMessage(ctx context.Context, groupJID types.JID, messageID string, senderJID types.JID, message, operatorName, operatorJID string, state *OperatorState, start time.Time) {
@@ -253,10 +378,10 @@ func (a *Agent) handleStatefulMessage(ctx context.Context, groupJID types.JID, m
 		replyText = operatorName + ", cancelado!"
 
 	default:
-		// Not confirmation or cancellation, pass to BAML
-		hydrated := HydrateContext(a.App, operatorName, operatorJID)
-		result, err := a.callBAML(ctx, groupJID, hydrated, state, operatorName, operatorJID, message, start)
+		// Not confirmation or cancellation, process normally via tool-use
+		result, err := a.processWithTools(ctx, groupJID, state, operatorName, operatorJID, message, start)
 		if err != nil {
+			a.Logger.Error("agent: tool-use in stateful context failed", "error", err)
 			return
 		}
 		replyText = result.ReplyText

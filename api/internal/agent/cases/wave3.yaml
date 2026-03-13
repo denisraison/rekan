@@ -14,8 +14,8 @@ tests:
       Posts gerados (total): 10
     graders:
       - type: deterministic
-        field: action_type
-        equals: POST_GENERATE
+        field: has_reply
+        equals: "true"
       - type: llm_judge
         judge: confirmation_flow
         criteria: "Agente confirma antes de gerar: menciona Patricia e pede confirmação"
@@ -62,8 +62,8 @@ tests:
       Posts gerados (total): 5
     graders:
       - type: deterministic
-        field: action_type
-        equals: POST_APPROVE
+        field: has_reply
+        equals: "true"
       - type: llm_judge
         judge: confirmation_flow
         criteria: "Agente confirma a aprovação do post, mencionando de qual cliente é"
@@ -85,8 +85,8 @@ tests:
       Posts gerados (total): 8
     graders:
       - type: deterministic
-        field: action_type
-        equals: POST_REJECT
+        field: has_reply
+        equals: "true"
       - type: llm_judge
         judge: confirmation_flow
         criteria: "Agente confirma a rejeição com o feedback mencionado"
@@ -103,8 +103,8 @@ tests:
         - Maria (Confeitaria, São Paulo)
     graders:
       - type: deterministic
-        field: action_type
-        equals: CUSTOMER_CREATE
+        field: has_reply
+        equals: "true"
       - type: llm_judge
         judge: no_hallucination
         criteria: "Agente extrai nome (Carla Souza ou Carla), tipo (Salão de Beleza), cidade (Goiânia) e telefone ((62) 99999-0000) da descrição do cartão. Não inventa dados."

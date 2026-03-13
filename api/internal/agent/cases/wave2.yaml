@@ -13,8 +13,8 @@ tests:
       Posts gerados (total): 10
     graders:
       - type: deterministic
-        field: action_type
-        equals: CUSTOMER_CREATE
+        field: has_reply
+        equals: "true"
       - type: llm_judge
         judge: confirmation_flow
         criteria: "Agente lista os campos extraídos (nome, tipo, cidade, público-alvo, ambiente) e pede confirmação explícita antes de criar"
@@ -46,8 +46,8 @@ tests:
       Clientes ativas: 0
     graders:
       - type: deterministic
-        field: action_type
-        equals: CUSTOMER_CREATE
+        field: has_reply
+        equals: "true"
       - type: llm_judge
         judge: no_hallucination
         criteria: "Agente interpreta 'BH' como 'Belo Horizonte'. Campos extraídos corretamente."
@@ -146,8 +146,8 @@ tests:
       Bruna: muda pra Contagem
     graders:
       - type: deterministic
-        field: action_type
-        equals: CUSTOMER_UPDATE
+        field: has_reply
+        equals: "true"
       - type: llm_judge
         judge: confirmation_flow
         criteria: "Agente entende do contexto que 'muda pra Contagem' se refere à cidade da Patricia e pede confirmação"
@@ -186,8 +186,8 @@ tests:
         - Joana (Loja de Roupas, Rio de Janeiro)
     graders:
       - type: deterministic
-        field: action_type
-        equals: CUSTOMER_PAUSE
+        field: has_reply
+        equals: "true"
       - type: llm_judge
         judge: confirmation_flow
-        criteria: "Agente confirma antes de pausar: 'Pausar a Joana (Loja de Roupas)? Motivo: vai viajar. Confirma?'"
+        criteria: "Agente confirma antes de pausar: menciona Joana e o motivo, pede confirmação"

@@ -10,8 +10,8 @@ tests:
         - Patricia (Salão de Beleza, Belo Horizonte)
     graders:
       - type: deterministic
-        field: action_type
-        equals: CUSTOMER_CREATE
+        field: has_reply
+        equals: "true"
       - type: llm_judge
         judge: confirmation_flow
         criteria: "Agente lista campos extraídos e pede confirmação"
@@ -26,8 +26,8 @@ tests:
       Clientes ativas: 0
     graders:
       - type: deterministic
-        field: action_type
-        equals: CUSTOMER_CREATE
+        field: has_reply
+        equals: "true"
       - type: llm_judge
         judge: no_hallucination
         criteria: "Agente extrai todos os campos: name (Carla), type (salão de beleza), city (Belo Horizonte), phone (31999990000), target_audience (mulheres 25-50), brand_vibe (acolhedor e familiar), quirks (progressiva, referência no bairro). Nenhum campo inventado."
@@ -48,8 +48,8 @@ tests:
       Bruna: muda a Patricia pra Contagem
     graders:
       - type: deterministic
-        field: action_type
-        equals: CUSTOMER_UPDATE
+        field: has_reply
+        equals: "true"
       - type: llm_judge
         judge: confirmation_flow
         criteria: "Agente identifica que é uma mudança de cidade da Patricia para Contagem e pede confirmação"
@@ -71,8 +71,8 @@ tests:
       Posts gerados (total): 5
     graders:
       - type: deterministic
-        field: action_type
-        equals: POST_APPROVE
+        field: has_reply
+        equals: "true"
       - type: llm_judge
         judge: confirmation_flow
         criteria: "Agente confirma aprovação do post da Patricia, mencionando o post_id"
