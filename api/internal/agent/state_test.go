@@ -1,6 +1,7 @@
 package agent
 
 import (
+	"strings"
 	"testing"
 	"time"
 
@@ -48,8 +49,8 @@ func TestSetConfirming_And_ClearState(t *testing.T) {
 	if state.ActionType != "CUSTOMER_CREATE" {
 		t.Errorf("expected CUSTOMER_CREATE, got %s", state.ActionType)
 	}
-	if state.CollectedFields["name"] != "Patricia" {
-		t.Errorf("expected Patricia, got %s", state.CollectedFields["name"])
+	if !strings.Contains(string(state.CollectedFields), `"name":"Patricia"`) {
+		t.Errorf("expected CollectedFields to contain Patricia, got %s", string(state.CollectedFields))
 	}
 
 	if err := ClearState(app, state, jid); err != nil {
@@ -88,10 +89,10 @@ func TestPerOperatorIsolation(t *testing.T) {
 	jid2 := "5511999991111"
 
 	state1, _ := LoadState(app, jid1)
-	SetConfirming(app, state1, jid1, "CUSTOMER_CREATE", map[string]string{"name": "Patricia"})
+	_ = SetConfirming(app, state1, jid1, "CUSTOMER_CREATE", map[string]string{"name": "Patricia"})
 
 	state2, _ := LoadState(app, jid2)
-	SetConfirming(app, state2, jid2, "CUSTOMER_PAUSE", map[string]string{"name": "Maria"})
+	_ = SetConfirming(app, state2, jid2, "CUSTOMER_PAUSE", map[string]string{"name": "Maria"})
 
 	state1, _ = LoadState(app, jid1)
 	state2, _ = LoadState(app, jid2)
@@ -103,7 +104,7 @@ func TestPerOperatorIsolation(t *testing.T) {
 		t.Errorf("operator 2 expected CUSTOMER_PAUSE, got %s", state2.ActionType)
 	}
 
-	ClearState(app, state1, jid1)
+	_ = ClearState(app, state1, jid1)
 	state1, _ = LoadState(app, jid1)
 	state2, _ = LoadState(app, jid2)
 
@@ -121,7 +122,7 @@ func TestHasPendingAction_Conflict(t *testing.T) {
 	jid2 := "5511999991111"
 
 	state, _ := LoadState(app, jid1)
-	SetConfirming(app, state, jid1, "CUSTOMER_CREATE", map[string]string{"name": "Patricia"})
+	_ = SetConfirming(app, state, jid1, "CUSTOMER_CREATE", map[string]string{"name": "Patricia"})
 
 	_, conflict := HasPendingAction(app, jid2, "Patricia")
 	if !conflict {

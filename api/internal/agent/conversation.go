@@ -42,7 +42,9 @@ func LoadRecentAndPrune(app core.App, n int) ([]ConversationMessage, error) {
 	// Delete overflow (records are newest-first from SQL)
 	if n > 0 && len(records) > n {
 		for _, r := range records[n:] {
-			_ = app.Delete(r)
+			if err := app.Delete(r); err != nil {
+				app.Logger().Error("agent: delete overflow message", "error", err)
+			}
 		}
 		records = records[:n]
 	}

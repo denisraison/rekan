@@ -39,7 +39,7 @@
       <div class="min-w-0">
         <h2 class="text-base font-semibold truncate text-foreground">{client.name}</h2>
         <p class="text-sm text-text-secondary">
-          {client.type} — {client.city}/{client.state}
+          {client.type} — {client.city}
           <span class="ml-1 text-xs text-muted-foreground">›</span>
         </p>
       </div>

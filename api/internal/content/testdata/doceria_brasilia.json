@@ -2,13 +2,24 @@
   "businessName": "Brigadeiros da Dani",
   "businessType": "doceria",
   "city": "Brasília",
-  "neighbourhood": "Asa Sul",
   "services": [
-    {"name": "Caixa 25 brigadeiros", "priceBRL": 60},
-    {"name": "Caixa 50 brigadeiros", "priceBRL": 110},
-    {"name": "Mesa de doces evento", "priceBRL": 500}
+    {
+      "name": "Caixa 25 brigadeiros",
+      "priceBRL": 60
+    },
+    {
+      "name": "Caixa 50 brigadeiros",
+      "priceBRL": 110
+    },
+    {
+      "name": "Mesa de doces evento",
+      "priceBRL": 500
+    }
   ],
   "targetAudience": "mulheres 20-40 que organizam eventos",
   "brandVibe": "artesanal",
-  "quirks": ["sabores exóticos todo mês", "embalagem artesanal com laço"]
+  "quirks": [
+    "sabores exóticos todo mês",
+    "embalagem artesanal com laço"
+  ]
 }

@@ -13,7 +13,7 @@ func formFileData(r *http.Request, field string) ([]byte, string, *multipart.Fil
 	if err != nil {
 		return nil, "", nil, err
 	}
-	defer file.Close()
+	defer func() { _ = file.Close() }()
 
 	data, err := io.ReadAll(file)
 	if err != nil {

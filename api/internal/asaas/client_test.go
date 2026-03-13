@@ -29,7 +29,7 @@ func TestCreateCustomer(t *testing.T) {
 		}
 
 		w.Header().Set("Content-Type", "application/json")
-		json.NewEncoder(w).Encode(map[string]string{"id": "cus_test123"})
+		_ = json.NewEncoder(w).Encode(map[string]string{"id": "cus_test123"})
 	}))
 	defer srv.Close()
 
@@ -53,7 +53,7 @@ func TestCreateCustomerWithCPF(t *testing.T) {
 			t.Errorf("expected cpfCnpj 12345678900, got %s", body["cpfCnpj"])
 		}
 		w.Header().Set("Content-Type", "application/json")
-		json.NewEncoder(w).Encode(map[string]string{"id": "cus_cpf123"})
+		_ = json.NewEncoder(w).Encode(map[string]string{"id": "cus_cpf123"})
 	}))
 	defer srv.Close()
 
@@ -94,7 +94,7 @@ func TestCreateAuthorization(t *testing.T) {
 		}
 
 		w.Header().Set("Content-Type", "application/json")
-		json.NewEncoder(w).Encode(map[string]any{
+		_ = json.NewEncoder(w).Encode(map[string]any{
 			"id":      "auth_test456",
 			"status":  "CREATED",
 			"payload": "00020126580014br.gov.bcb.pix0136test-payload-string",
@@ -170,7 +170,7 @@ func TestCreateCharge(t *testing.T) {
 		}
 
 		w.Header().Set("Content-Type", "application/json")
-		json.NewEncoder(w).Encode(map[string]string{
+		_ = json.NewEncoder(w).Encode(map[string]string{
 			"id":     "pay_test789",
 			"status": "PENDING",
 		})
@@ -199,7 +199,7 @@ func TestErrorWithDescription(t *testing.T) {
 	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
 		w.Header().Set("Content-Type", "application/json")
 		w.WriteHeader(http.StatusBadRequest)
-		json.NewEncoder(w).Encode(map[string]any{
+		_ = json.NewEncoder(w).Encode(map[string]any{
 			"errors": []map[string]string{
 				{"description": "CPF/CNPJ inválido"},
 			},

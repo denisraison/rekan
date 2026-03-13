@@ -3,7 +3,7 @@
   import { Input } from "$lib/components/ui/input";
   import { Textarea } from "$lib/components/ui/textarea";
   import * as api from "$lib/operator/api";
-  import { businessTypes, states } from "$lib/operator/constants";
+  import { businessTypes } from "$lib/operator/constants";
   import { fmtTime } from "$lib/operator/format";
   import { pb } from "$lib/pb";
   import type { Business, Service } from "$lib/types";
@@ -18,7 +18,7 @@
   };
   let { editingId, editingBusiness, clients, onclose, onclientschange, onselect }: Props = $props();
 
-  let formName = $state(""), formType = $state(""), formCity = $state(""), formState = $state("");
+  let formName = $state(""), formType = $state(""), formCity = $state("");
   let formPhone = $state(""), formClientName = $state(""), formClientEmail = $state("");
   let formServices: Service[] = $state([{ name: "", price_brl: 0 }]);
   let formTargetAudience = $state(""), formBrandVibe = $state(""), formQuirks = $state("");
@@ -33,7 +33,7 @@
     if (editingId && editingBusiness) {
       const b = editingBusiness;
       formName = b.name; formType = b.type === "Desconhecido" ? "" : b.type;
-      formCity = b.city === "-" ? "" : b.city; formState = b.state === "-" ? "" : b.state;
+      formCity = b.city === "-" ? "" : b.city;
       formPhone = b.phone || ""; formClientName = b.client_name || ""; formClientEmail = b.client_email || "";
       formServices = b.services?.length > 0 ? [...b.services] : [{ name: "", price_brl: 0 }];
       formTargetAudience = b.target_audience || ""; formBrandVibe = b.brand_vibe || ""; formQuirks = b.quirks || "";
@@ -42,7 +42,7 @@
   });
 
   function resetForm() {
-    formName = ""; formType = ""; formCity = ""; formState = ""; formPhone = "";
+    formName = ""; formType = ""; formCity = ""; formPhone = "";
     formClientName = ""; formClientEmail = ""; formServices = [{ name: "", price_brl: 0 }];
     formTargetAudience = ""; formBrandVibe = ""; formQuirks = ""; formError = ""; inviteUrl = ""; resetVoice();
   }
@@ -91,14 +91,14 @@
   }
 
   function validateForm(invite: boolean): string | null {
-    if (!formName.trim() || !formType || !formCity.trim() || !formState) return "Preencha nome, tipo, cidade e estado.";
+    if (!formName.trim() || !formType || !formCity.trim()) return "Preencha nome, tipo e cidade.";
     if (invite) { if (!formClientName.trim()) return "Preencha o nome do cliente para enviar convite."; if (!formClientEmail.trim() || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(formClientEmail.trim())) return "Preencha um email válido para enviar convite."; }
     else { if (formClientName.trim() && !formClientEmail.trim()) return "Preencha o email do cliente."; if (formClientEmail.trim() && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(formClientEmail.trim())) return "Email inválido."; }
     return null;
   }
 
   async function saveBiz(): Promise<string | null> {
-    const d = { user: pb.authStore.record!.id, name: formName.trim(), type: formType, city: formCity.trim(), state: formState, phone: formPhone.trim(), client_name: formClientName.trim(), client_email: formClientEmail.trim(), services: formServices.filter((s: Service) => s.name.trim()), target_audience: formTargetAudience.trim(), brand_vibe: formBrandVibe.trim(), quirks: formQuirks.trim() };
+    const d = { user: pb.authStore.record!.id, name: formName.trim(), type: formType, city: formCity.trim(), phone: formPhone.trim(), client_name: formClientName.trim(), client_email: formClientEmail.trim(), services: formServices.filter((s: Service) => s.name.trim()), target_audience: formTargetAudience.trim(), brand_vibe: formBrandVibe.trim(), quirks: formQuirks.trim() };
     if (editingId) { const { user: _, ...u } = d; const up = await api.updateBusiness(editingId, u); onclientschange(clients.map(c => c.id === editingId ? up : c)); return editingId; }
     const created = await api.createBusiness(d); onclientschange([...clients, created].sort((a, b) => a.name.localeCompare(b.name))); onselect(created.id); return created.id;
   }
@@ -249,10 +249,7 @@
           <label class="flex flex-col gap-1.5"><span class={labelCls}>Tipo de negócio</span>
             <select bind:value={formType} class={inputCls}><option value="">Selecione...</option>{#each businessTypes as t}<option value={t}>{t}</option>{/each}</select>
           </label>
-          <div class="flex gap-3">
-            <label class="flex flex-col gap-1.5 flex-1"><span class={labelCls}>Cidade</span><Input bind:value={formCity} placeholder="Ex: São Paulo" class={inputCls} /></label>
-            <label class="flex flex-col gap-1.5 w-28"><span class={labelCls}>Estado</span><select bind:value={formState} class={inputCls}><option value="">UF</option>{#each states as s}<option value={s}>{s}</option>{/each}</select></label>
-          </div>
+          <label class="flex flex-col gap-1.5"><span class={labelCls}>Cidade</span><Input bind:value={formCity} placeholder="Ex: São Paulo" class={inputCls} /></label>
           <label class="flex flex-col gap-1.5"><span class={labelCls}>Telefone WhatsApp</span><Input bind:value={formPhone} placeholder="5511999998888" class={inputCls} /></label>
           <div class="h-px bg-border my-1"></div>
           {@render serviceEditor(false)}

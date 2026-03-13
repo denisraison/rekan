@@ -89,7 +89,6 @@ func seedBusiness(t *testing.T, app core.App, name, bizType, city string) *core.
 	record.Set("name", name)
 	record.Set("type", bizType)
 	record.Set("city", city)
-	record.Set("state", "MG")
 	record.Set("invite_status", domain.InviteStatusActive)
 	if err := app.Save(record); err != nil {
 		t.Fatal(err)
@@ -138,9 +137,9 @@ func TestConversationHistory_PassedToBAML(t *testing.T) {
 	a := newAgent(t, app, wa, fakeBAML)
 
 	// Pre-seed conversation history
-	agent.StoreMessage(app, "Elenice", "5511999990000", "user", "oi, como tá tudo?", "")
-	agent.StoreMessage(app, "Rekan", "", "assistant", "Elenice, temos 1 cliente ativa.", "")
-	agent.StoreMessage(app, "Elenice", "5511999990000", "user", "quais são as clientes?", "")
+	_ = agent.StoreMessage(app, "Elenice", "5511999990000", "user", "oi, como tá tudo?", "")
+	_ = agent.StoreMessage(app, "Rekan", "", "assistant", "Elenice, temos 1 cliente ativa.", "")
+	_ = agent.StoreMessage(app, "Elenice", "5511999990000", "user", "quais são as clientes?", "")
 
 	// Process a new message through the full pipeline
 	send(a, "e a Patricia, como tá?", "Elenice", "5511999990000")
@@ -193,11 +192,10 @@ func TestConfirmationFlow_EndToEnd(t *testing.T) {
 			Action: &bamltypes.AgentAction{
 				ActionType:   bamltypes.AgentActionTypeCUSTOMER_CREATE,
 				ActionStatus: bamltypes.AgentActionStatusNEEDS_CONFIRMATION,
-				ActionParams: map[string]string{
-					"name":  "Ana",
-					"type":  "Manicure",
-					"city":  "Goiânia",
-					"state": "GO",
+				CustomerCreate: &bamltypes.CustomerCreateParams{
+					Name: "Ana",
+					Type: "Manicure",
+					City: "Goiânia",
 				},
 			},
 		}, nil
@@ -272,7 +270,7 @@ func TestCancellationFlow(t *testing.T) {
 			Action: &bamltypes.AgentAction{
 				ActionType:   bamltypes.AgentActionTypeCUSTOMER_CREATE,
 				ActionStatus: bamltypes.AgentActionStatusNEEDS_CONFIRMATION,
-				ActionParams: map[string]string{"name": "Ana", "type": "Manicure", "city": "Goiânia"},
+				CustomerCreate: &bamltypes.CustomerCreateParams{Name: "Ana", Type: "Manicure", City: "Goiânia"},
 			},
 		}, nil
 	}

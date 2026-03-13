@@ -163,10 +163,10 @@ func (c *Client) call(ctx context.Context, reqBody any) (string, error) {
 	if err != nil {
 		return "", fmt.Errorf("gemini request: %w", err)
 	}
-	defer resp.Body.Close()
+	defer func() { _ = resp.Body.Close() }()
 
 	if resp.StatusCode != http.StatusOK {
-		respBody, _ := io.ReadAll(resp.Body)
+		respBody, _ := io.ReadAll(resp.Body) //nolint:errcheck // best-effort read for error message
 		return "", fmt.Errorf("gemini API error %d: %s", resp.StatusCode, respBody)
 	}
 

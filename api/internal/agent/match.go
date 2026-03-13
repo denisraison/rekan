@@ -15,6 +15,9 @@ var accentStripper = transform.Chain(norm.NFD, runes.Remove(runes.In(unicode.Mn)
 // Safe for sequential use (agent processes messages one at a time via debouncer).
 func normalizeForMatch(s string) string {
 	accentStripper.Reset()
-	result, _, _ := transform.String(accentStripper, s)
+	result, _, err := transform.String(accentStripper, s)
+	if err != nil {
+		return strings.ToLower(strings.TrimSpace(s))
+	}
 	return strings.ToLower(strings.TrimSpace(result))
 }

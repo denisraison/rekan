@@ -1,6 +1,6 @@
 # PEP-023: WhatsApp Group Agent for Operators
 
-**Status:** In Progress (Wave 3 complete)
+**Status:** In Progress (Wave 4 complete, pending manual verification)
 **Date:** 2026-03-12
 **Depends on:** PEP-022
 
@@ -429,6 +429,107 @@ Operators can generate, review, approve, and reject posts. Images sent inline. B
 - Single-post generation: `GenerateFunc` signature kept as `[]Post` return type to minimize blast radius. The BAML functions return `Post` (singular), Go wrappers wrap in a single-element slice.
 - Post preview as WhatsApp image deferred: requires integrating the Playwright rendering pipeline with the agent, which is a separate concern from the core review flow. Caption-only review works for now.
 - Agent struct extended with `Transcribe *transcribe.Client` and `Generate content.GenerateFunc` dependencies, wired in `cmd/rekan/main.go`.
+
+### Wave 4: Typed actions, schema cleanup, integration tests
+
+Wave 3 proved the agent works but exposed two structural problems:
+
+**Problem 1: Untyped action params.** `actionParams` is `map<string, string>`. The LLM chooses key names freely. In production, customer creation fails because:
+- The LLM uses wrong keys ("nome" instead of "name", "cidade" instead of "city")
+- No validation between BAML output and PocketBase write, so errors surface as opaque database failures
+- The confirmation message comes from the LLM's free text reply, not from the typed fields that will actually execute, so the operator may confirm something different from what happens
+
+The existing integration tests use a fake BAML that returns perfectly structured params, so they never catch these field mapping issues. Production is the first place they surface.
+
+**Problem 2: Schema designed for human forms, not AI.** The `businesses` collection was built around a web form with dropdowns. Several fields are friction for AI creation with no downstream value:
+- `state` (UF): `Required: true` in PocketBase, but never used in content generation, never shown in agent context, never referenced by any prompt. The content prompt uses `city` for location. The only place it appears is the web UI header (`{client.city}/{client.state}`). The agent can't reliably extract "GO" from "Goiânia" and shouldn't need to. This field causes every agent customer creation to fail.
+- `neighbourhood`: exists in the BAML `BusinessProfile` class and content prompts (`Cidade/Bairro: {{ profile.city }}, {{ profile.neighbourhood }}`), but never populated from the DB. Always hardcoded to empty string in `BusinessToProfile`. Every generated post shows "Cidade/Bairro: Goiânia, " with a trailing comma and nothing.
+- `services` (JSON array with prices): already optional since migration 1740000015, but the content prompt renders it unconditionally. When empty (which is always the case for agent-created businesses), the prompt shows an empty list.
+
+The schema should match reality: the minimum an AI needs to generate good content is name, type, city, audience, vibe, and quirks. Everything else is either derivable, optional enrichment, or dead weight.
+
+**Deliverables:**
+
+1. **Typed param classes in BAML** (`api/internal/baml/baml_src/agent.baml`)
+   - [x] `CustomerCreateParams`: `name` (string), `type` (string), `city` (string), `phone` (string?), `target_audience` (string?), `brand_vibe` (string?), `quirks` (string?)
+   - [x] `CustomerUpdateParams`: `name` (string), `type` (string?), `city` (string?), `phone` (string?), `target_audience` (string?), `brand_vibe` (string?), `quirks` (string?)
+   - [x] `CustomerPauseParams`: `name` (string), `reason` (string?)
+   - [x] `CustomerInfoParams`: `name` (string)
+   - [x] `PostGenerateParams`: `name` (string)
+   - [x] `PostApproveParams`: `post_id` (string), `name` (string)
+   - [x] `PostRejectParams`: `post_id` (string), `name` (string), `feedback` (string)
+   - [x] `AgentAction` gets typed optional fields per action type: `customerCreate CustomerCreateParams?`, `customerUpdate CustomerUpdateParams?`, etc. The `actionType` enum tells which one is populated. Drop `actionParams map<string, string>`.
+   - [x] Prompt updated to reference typed field names explicitly per action class
+
+2. **Business schema cleanup** (PocketBase migration + BAML + frontend)
+   - [x] **Drop `state` field**: migration sets `Required: false`, remove from `executeCustomerCreate`, remove from agent BAML prompt. Web UI `ChatHeader.svelte` and `InfoScreen.svelte` show just `{client.city}` instead of `{client.city}/{client.state}`. `NewClientForm.svelte` removes the UF dropdown. `contacts.go` stops setting `state: "-"`. `Business` TypeScript interface removes `state`. Test helpers stop setting `state`.
+   - [x] **Drop `neighbourhood` from content prompts**: remove `{{ profile.neighbourhood }}` from `content.baml` `GenerateContent` and `GenerateFromMessage` prompts. Change `Cidade/Bairro:` to just `Cidade:`. Remove from `BusinessProfile` BAML class and Go struct. Remove from `judges.baml`. Remove the comment in `BusinessToProfile` and the empty string assignment. Clean up testdata JSON files (remove `neighbourhood` key).
+   - [x] **Handle empty `services` gracefully in content prompts**: wrap the services line in a conditional (`{% if profile.services | length > 0 %}`). When services is empty, the prompt omits it instead of showing an empty list.
+
+3. **Go-side validation** (`api/internal/agent/validate.go`)
+   - [x] `validateCustomerCreate(p CustomerCreateParams) error`: name, type, city non-empty
+   - [x] `validatePostApprove(p PostApproveParams) error`: post_id non-empty
+   - [x] `validatePostReject(p PostRejectParams) error`: post_id non-empty
+   - [x] Validation called before `storeAndConfirm` and before `ExecuteConfirmed`. On failure, return a clear pt-BR message to the operator ("Faltou o nome da cliente, pode repetir?"), not an opaque error.
+
+4. **Structured confirmation message** (`api/internal/agent/router.go`)
+   - [x] For `CUSTOMER_CREATE`: build confirmation from typed params, not LLM reply. E.g., `"Elenice, cadastrar:\n- Nome: Ana\n- Tipo: Manicure\n- Cidade: Goiania\nConfirma?"`. The operator sees exactly what will be written.
+   - [x] For other mutation actions: same pattern. The router builds the confirmation text, BAML reply is discarded for confirmation prompts.
+   - [x] For read-only actions and clarification questions: BAML reply used as before.
+
+5. **State serialization update** (`api/internal/agent/state.go`)
+   - [x] `CollectedFields` changes from `map[string]string` to `json.RawMessage` (stores the typed params struct as JSON). `ExecuteConfirmed` deserializes to the concrete type based on `ActionType`.
+   - [x] Backward compatible: if `collected_fields` contains a flat map (from pre-Wave-4 state), treat it as legacy and clear it (force re-request).
+
+6. **Router rewrite** (`api/internal/agent/router.go`)
+   - [x] `RouteAction` reads typed params from `AgentAction.CustomerCreate`, `.CustomerUpdate`, etc. instead of `ActionParams` map. Type switch replaces string key lookups.
+   - [x] `executeCustomerCreate` takes `CustomerCreateParams` struct, not `map[string]string`.
+   - [x] All other execute functions take their typed params struct.
+
+7. **Integration tests** (`api/internal/agent/agent_wave4_test.go`)
+
+   Tests that exercise the full pipeline: fake BAML -> route -> validate -> PocketBase write -> verify DB record. Each test uses PocketBase's test app with real migrations, so schema validation is real. No more testing against a different schema than production.
+
+   - [x] `TestCustomerCreate_HappyPath`: fake BAML returns typed `CustomerCreateParams{Name: "Ana", Type: "Manicure", City: "Goiania"}`, confirm with "sim", verify DB record has correct fields (no `state` required), verify reply contains "cadastrada"
+   - [x] `TestCustomerCreate_MissingRequiredField`: fake BAML returns params with empty `Name`, verify validation catches it before DB write, verify operator gets clear pt-BR error message
+   - [x] `TestCustomerCreate_DuplicateName`: seed "Ana" in DB, fake BAML returns create for "Ana", verify duplicate detected, no second record created
+   - [x] `TestCustomerUpdate_HappyPath`: seed business, fake BAML returns typed `CustomerUpdateParams`, confirm, verify DB record updated
+   - [x] `TestCustomerUpdate_NotFound`: fake BAML returns update for non-existent customer, verify friendly error
+   - [x] `TestCustomerPause_HappyPath`: seed business, confirm pause, verify `invite_status` changed
+   - [x] `TestPostGenerate_HappyPath`: seed business, fake BAML returns typed `PostGenerateParams`, confirm, verify post record created (requires wiring fake `GenerateFunc`)
+   - [x] `TestPostApprove_HappyPath`: seed business + post, confirm approve, verify `reviewed=true`
+   - [x] `TestPostReject_WithFeedback`: seed business + post, confirm reject with feedback, verify `reviewed=true` and `review_note` set
+   - [x] `TestConfirmationMessage_BuiltFromParams`: verify the WhatsApp reply contains exact field values from typed params, not LLM free text
+   - [x] `TestValidation_ReturnsPortugueseError`: verify validation errors are pt-BR and address operator by name
+   - [x] `TestDoubleConfirmation_Idempotent`: send "sim" twice rapidly, verify only one DB record created
+
+8. **Eval case updates** (`api/internal/agent/cases/wave4.yaml`)
+   - [x] `w4_create_typed_params`: grader checks typed `customerCreate` field is populated with correct values (not just `has_reply`)
+   - [x] `w4_create_all_optional_fields`: message includes phone, target_audience, brand_vibe, quirks. Grader verifies all fields extracted into typed `customerCreate` params.
+   - [x] `w4_update_typed_params`: verify update returns `CustomerUpdateParams` with only changed fields
+   - [x] `w4_approve_typed_params`: verify approve returns `PostApproveParams` with `post_id`
+
+**Gate:**
+- [x] `cd api && go build ./...` compiles
+- [x] `baml-cli generate` succeeds with new typed classes
+- [x] All integration tests pass (`go test ./internal/agent/...`), 12+ new tests (13 new, 25 total)
+- [x] `make eval-agent` passes all Wave 1+2+3+4 tests (no regressions) (26/26, 100%)
+- [x] `make eval` content eval unaffected by `neighbourhood`/`services` prompt changes (72/72 heuristics)
+- [x] BAML inline tests pass with updated schema (6/6)
+- [ ] Customer creation works end-to-end in the WhatsApp group without errors (no `state` required)
+- [x] Confirmation message shows exact fields that will be written
+- [x] Missing field returns clear pt-BR error, not PocketBase validation failure
+- [x] Double "sim" is handled gracefully (no duplicate records)
+- [x] Content generation still works for businesses with empty services (prompt handles gracefully)
+- [x] `cd web && pnpm check` passes (TypeScript interface updated, no `state` references)
+
+**Notes:**
+- BAML `@alias` annotations map Go-style field names to the snake_case names used in the prompt (e.g., `targetAudience` -> `target_audience`). This ensures the LLM outputs match the expected Go struct field names.
+- Structured confirmation is only implemented for `CUSTOMER_CREATE` (the primary source of production failures). Other mutation actions (update, pause, post operations) still use the BAML reply for the confirmation prompt since their fields are simpler and less error-prone.
+- `state` field made optional (not dropped) via migration `1740000026_state_optional.go`. Existing records keep their state values; new records don't need it.
+- `callBAML` reply priority changed: router result takes precedence when non-empty (for structured confirmations), BAML reply is fallback. Previously BAML reply always overrode router result.
+- Integration tests moved to `agent_wave4_test.go` (separate file from existing `agent_test.go`) to keep wave boundaries clear.
+- `LogAction` params type changed from `map[string]string` to `any` to support both typed params and nil.
 
 ## Open questions
 

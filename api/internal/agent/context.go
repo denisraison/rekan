@@ -28,27 +28,37 @@ func HydrateContext(app core.App, operatorName, operatorJID string) HydratedCont
 	}
 
 	// Active businesses
-	app.RecordQuery(domain.CollBusinesses).
+	if err := app.RecordQuery(domain.CollBusinesses).
 		AndWhere(dbx.NewExp("invite_status = 'active'")).
 		OrderBy("name ASC").
-		All(&ctx.Businesses)
+		All(&ctx.Businesses); err != nil {
+		return ctx
+	}
 
 	// Post count
-	ctx.PostCount, _ = app.CountRecords(domain.CollPosts)
+	if count, err := app.CountRecords(domain.CollPosts); err != nil {
+		app.Logger().Error("agent: count posts", "error", err)
+	} else {
+		ctx.PostCount = count
+	}
 
 	// Pending posts (not yet reviewed, newest first, max 20)
-	app.RecordQuery(domain.CollPosts).
+	if err := app.RecordQuery(domain.CollPosts).
 		AndWhere(dbx.NewExp("reviewed = FALSE OR reviewed = ''")).
 		OrderBy("created DESC").
 		Limit(20).
-		All(&ctx.PendingPosts)
+		All(&ctx.PendingPosts); err != nil {
+		app.Logger().Error("agent: query pending posts", "error", err)
+	}
 
 	// Recent agent actions (last 5)
 	var actions []*core.Record
-	app.RecordQuery(domain.CollAgentActionLog).
+	if err := app.RecordQuery(domain.CollAgentActionLog).
 		OrderBy("created DESC").
 		Limit(5).
-		All(&actions)
+		All(&actions); err != nil {
+		app.Logger().Error("agent: query recent actions", "error", err)
+	}
 
 	// Format for BAML prompt
 	var b strings.Builder

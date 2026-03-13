@@ -38,7 +38,7 @@ func DemoGenerate(deps Deps) func(*core.RequestEvent) error {
 			var price float64
 			if m := priceRe.FindStringSubmatch(name); m != nil {
 				name = strings.TrimSpace(priceRe.ReplaceAllString(name, ""))
-				p, _ := strconv.ParseFloat(strings.Replace(m[1], ",", ".", 1), 64)
+				p, _ := strconv.ParseFloat(strings.Replace(m[1], ",", ".", 1), 64) //nolint:errcheck // defaults to 0
 				price = p
 			}
 			services = append(services, content.Service{Name: name, PriceBRL: price})

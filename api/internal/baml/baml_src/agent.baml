@@ -26,10 +26,60 @@ enum AgentActionStatus {
   NEEDS_CONFIRMATION
 }
 
+class CustomerCreateParams {
+  name string
+  type string
+  city string
+  phone string?
+  targetAudience string? @alias("target_audience")
+  brandVibe string? @alias("brand_vibe")
+  quirks string?
+}
+
+class CustomerUpdateParams {
+  name string
+  type string?
+  city string?
+  phone string?
+  targetAudience string? @alias("target_audience")
+  brandVibe string? @alias("brand_vibe")
+  quirks string?
+}
+
+class CustomerPauseParams {
+  name string
+  reason string?
+}
+
+class CustomerInfoParams {
+  name string
+}
+
+class PostGenerateParams {
+  name string
+}
+
+class PostApproveParams {
+  postId string @alias("post_id")
+  name string
+}
+
+class PostRejectParams {
+  postId string @alias("post_id")
+  name string
+  feedback string
+}
+
 class AgentAction {
   actionType AgentActionType
   actionStatus AgentActionStatus
-  actionParams map<string, string>
+  customerCreate CustomerCreateParams? @alias("customer_create")
+  customerUpdate CustomerUpdateParams? @alias("customer_update")
+  customerPause CustomerPauseParams? @alias("customer_pause")
+  customerInfo CustomerInfoParams? @alias("customer_info")
+  postGenerate PostGenerateParams? @alias("post_generate")
+  postApprove PostApproveParams? @alias("post_approve")
+  postReject PostRejectParams? @alias("post_reject")
 }
 
 class AgentResponse {
@@ -61,17 +111,17 @@ function AgentProcess(operatorName: string, message: string, systemContext: stri
     - NUNCA use travessão (—). Use vírgula ou ponto.
     - Se a mensagem não for clara, peça esclarecimento de forma simpática.
 
-    Ações disponíveis:
-    - STATUS_OVERVIEW: visão geral do sistema (quantas clientes ativas, posts pendentes, atividade recente)
-    - CUSTOMER_LIST: lista de clientes ativas com nome, tipo e cidade
-    - CUSTOMER_CREATE: cadastrar nova cliente. Campos obrigatórios: name, type, city. Opcionais: phone, target_audience (quem são os clientes), brand_vibe (como é o ambiente), quirks (o que faz diferente). Se faltar algum campo obrigatório, peça na resposta. Extraia os opcionais quando a operadora mencionar naturalmente.
-    - CUSTOMER_UPDATE: alterar dados de uma cliente existente. Campos: name (identificação), e os campos a alterar.
-    - CUSTOMER_PAUSE: pausar uma cliente. Campos: name, reason (opcional).
-    - CUSTOMER_INFO: detalhes de uma cliente específica. Campos: name.
-    - POST_GENERATE: gerar novos posts para uma cliente. Campos: name (obrigatório). Leva alguns segundos.
-    - POST_LIST_PENDING: lista posts pendentes de revisão. Campos: name (opcional, filtra por cliente).
-    - POST_APPROVE: aprovar um post. Campos: post_id, name (cliente).
-    - POST_REJECT: rejeitar um post com feedback. Campos: post_id, name (cliente), feedback.
+    Ações disponíveis (cada ação preenche o campo tipado correspondente em AgentAction):
+    - STATUS_OVERVIEW: visão geral do sistema. Sem campo tipado.
+    - CUSTOMER_LIST: lista de clientes ativas. Sem campo tipado.
+    - CUSTOMER_CREATE: cadastrar nova cliente. Preencha customer_create com: name, type, city (obrigatórios), phone, target_audience, brand_vibe, quirks (opcionais). Se faltar campo obrigatório, peça na resposta sem emitir action.
+    - CUSTOMER_UPDATE: alterar dados de uma cliente. Preencha customer_update com: name (obrigatório, identifica a cliente), e os campos a alterar (type, city, phone, target_audience, brand_vibe, quirks).
+    - CUSTOMER_PAUSE: pausar uma cliente. Preencha customer_pause com: name (obrigatório), reason (opcional).
+    - CUSTOMER_INFO: detalhes de uma cliente. Preencha customer_info com: name.
+    - POST_GENERATE: gerar posts. Preencha post_generate com: name (obrigatório).
+    - POST_LIST_PENDING: posts pendentes. Sem campo tipado.
+    - POST_APPROVE: aprovar post. Preencha post_approve com: post_id, name.
+    - POST_REJECT: rejeitar post. Preencha post_reject com: post_id, name, feedback.
 
     Regras de ações:
     - Ações que modificam dados (CREATE, UPDATE, PAUSE, POST_GENERATE, POST_APPROVE, POST_REJECT) SEMPRE usam actionStatus "NEEDS_CONFIRMATION". Liste os campos extraídos no reply e peça "Confirma?"
@@ -150,6 +200,7 @@ test AgentCustomerCreate {
   @@assert( {{ this.action != _ }} )
   @@assert( {{ this.action.actionType == "CUSTOMER_CREATE" }} )
   @@assert( {{ this.action.actionStatus == "NEEDS_CONFIRMATION" }} )
+  @@assert( {{ this.action.customerCreate != _ }} )
   @@assert( {{ this.reply != _ }} )
 }
 
@@ -168,6 +219,7 @@ test AgentCustomerPause {
   @@assert( {{ this.action != _ }} )
   @@assert( {{ this.action.actionType == "CUSTOMER_PAUSE" }} )
   @@assert( {{ this.action.actionStatus == "NEEDS_CONFIRMATION" }} )
+  @@assert( {{ this.action.customerPause != _ }} )
 }
 
 test AgentPostGenerate {
@@ -187,6 +239,7 @@ test AgentPostGenerate {
   @@assert( {{ this.action != _ }} )
   @@assert( {{ this.action.actionType == "POST_GENERATE" }} )
   @@assert( {{ this.action.actionStatus == "NEEDS_CONFIRMATION" }} )
+  @@assert( {{ this.action.postGenerate != _ }} )
 }
 
 test AgentPostListPending {

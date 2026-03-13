@@ -715,7 +715,7 @@ func judgeMap(judges []judgeRecord) map[string]bool {
 }
 
 func parseChecks(s string) (passed, total int) {
-	fmt.Sscanf(s, "%d/%d", &passed, &total)
+	fmt.Sscanf(s, "%d/%d", &passed, &total) //nolint:errcheck // defaults to zero
 	return
 }
 

@@ -89,7 +89,7 @@ func TestCreatePendingCharges(t *testing.T) {
 		if r.URL.Path == "/payments" && r.Method == http.MethodPost {
 			chargeCreated = true
 			var body asaas.CreateChargeReq
-			json.NewDecoder(r.Body).Decode(&body)
+			_ = json.NewDecoder(r.Body).Decode(&body)
 			if body.Customer != "cus_due_soon" {
 				t.Errorf("expected customer cus_due_soon, got %s", body.Customer)
 			}
@@ -102,7 +102,7 @@ func TestCreatePendingCharges(t *testing.T) {
 			}
 		}
 		w.Header().Set("Content-Type", "application/json")
-		json.NewEncoder(w).Encode(map[string]string{"id": "pay_test", "status": "PENDING"})
+		_ = json.NewEncoder(w).Encode(map[string]string{"id": "pay_test", "status": "PENDING"})
 	}))
 	defer mockAsaas.Close()
 
@@ -137,7 +137,7 @@ func TestCreatePendingChargesSkipsPending(t *testing.T) {
 			chargeCreated = true
 		}
 		w.Header().Set("Content-Type", "application/json")
-		json.NewEncoder(w).Encode(map[string]string{"id": "pay_test", "status": "PENDING"})
+		_ = json.NewEncoder(w).Encode(map[string]string{"id": "pay_test", "status": "PENDING"})
 	}))
 	defer mockAsaas.Close()
 
@@ -163,7 +163,7 @@ func TestCreatePendingChargesSkipsFarOut(t *testing.T) {
 			chargeCreated = true
 		}
 		w.Header().Set("Content-Type", "application/json")
-		json.NewEncoder(w).Encode(map[string]string{"id": "pay_test", "status": "PENDING"})
+		_ = json.NewEncoder(w).Encode(map[string]string{"id": "pay_test", "status": "PENDING"})
 	}))
 	defer mockAsaas.Close()
 
@@ -189,7 +189,7 @@ func TestCreatePendingChargesSkipsNonActive(t *testing.T) {
 			chargeCreated = true
 		}
 		w.Header().Set("Content-Type", "application/json")
-		json.NewEncoder(w).Encode(map[string]string{"id": "pay_test", "status": "PENDING"})
+		_ = json.NewEncoder(w).Encode(map[string]string{"id": "pay_test", "status": "PENDING"})
 	}))
 	defer mockAsaas.Close()
 
@@ -211,7 +211,7 @@ func TestCreatePendingChargesRollbackOnFailure(t *testing.T) {
 	mockAsaas := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
 		w.Header().Set("Content-Type", "application/json")
 		w.WriteHeader(http.StatusBadRequest)
-		json.NewEncoder(w).Encode(map[string]any{
+		_ = json.NewEncoder(w).Encode(map[string]any{
 			"errors": []map[string]string{
 				{"description": "A autorização deve estar ativa"},
 			},

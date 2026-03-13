@@ -124,7 +124,6 @@ export async function createBusiness(data: {
 	name: string;
 	type: string;
 	city: string;
-	state: string;
 	phone: string;
 	client_name: string;
 	client_email: string;

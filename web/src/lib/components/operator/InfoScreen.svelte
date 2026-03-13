@@ -67,7 +67,7 @@
     </div>
     <div class="flex-1 min-w-0">
       <div class="text-[17px] font-semibold text-foreground truncate">{client.name}</div>
-      <div class="text-sm text-text-secondary">{client.type} — {client.city}/{client.state}</div>
+      <div class="text-sm text-text-secondary">{client.type} — {client.city}</div>
     </div>
     <Button
       onclick={onedit}

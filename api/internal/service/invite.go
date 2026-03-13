@@ -125,8 +125,8 @@ func AcceptInvite(ctx context.Context, app core.App, asaas *asaasclient.Client, 
 		return txApp.Save(fresh)
 	})
 	if errors.Is(err, errAlreadyClaimed) {
-		business, _ = app.FindFirstRecordByFilter(domain.CollBusinesses, "invite_token = {:token}", map[string]any{"token": token})
-		if business != nil && business.GetString("authorization_id") != "" {
+		business, findErr := app.FindFirstRecordByFilter(domain.CollBusinesses, "invite_token = {:token}", map[string]any{"token": token})
+		if findErr == nil && business != nil && business.GetString("authorization_id") != "" {
 			return business.GetString("qr_payload"), nil
 		}
 		return "", errors.New("convite está sendo processado")
@@ -213,5 +213,7 @@ func revertToInvited(app core.App, token string) {
 		return
 	}
 	biz.Set("invite_status", domain.InviteStatusInvited)
-	_ = app.Save(biz)
+	if err := app.Save(biz); err != nil {
+		app.Logger().Error("revertToInvited: save failed", "error", err)
+	}
 }

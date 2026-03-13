@@ -46,7 +46,6 @@ func BusinessToProfile(record *core.Record) (content.BusinessProfile, error) {
 		BusinessName:   record.GetString("name"),
 		BusinessType:   record.GetString("type"),
 		City:           record.GetString("city"),
-		Neighbourhood:  "", // collection stores state, not neighbourhood; city is sufficient for generation
 		Services:       services,
 		TargetAudience: record.GetString("target_audience"),
 		BrandVibe:      record.GetString("brand_vibe"),

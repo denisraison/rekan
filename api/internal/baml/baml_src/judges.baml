@@ -7,7 +7,6 @@ class BusinessProfile {
   businessName string
   businessType string
   city string
-  neighbourhood string
   services Service[]
   targetAudience string
   brandVibe string
@@ -47,7 +46,6 @@ function JudgeNaturalidade(profile: BusinessProfile, content: string) -> JudgeRe
     - Nome: {{ profile.businessName }}
     - Tipo: {{ profile.businessType }}
     - Cidade: {{ profile.city }}
-    - Bairro: {{ profile.neighbourhood }}
 
     Conteúdo a avaliar:
     ---
@@ -89,7 +87,6 @@ function JudgeEspecificidade(profile: BusinessProfile, content: string) -> Judge
     - Nome: {{ profile.businessName }}
     - Tipo: {{ profile.businessType }}
     - Cidade: {{ profile.city }}
-    - Bairro: {{ profile.neighbourhood }}
     - Serviços: {% for s in profile.services %}{{ s.name }} (R${{ s.priceBRL }}){% if not loop.last %}, {% endif %}{% endfor %}
     - Público: {{ profile.targetAudience }}
     - Vibe: {{ profile.brandVibe }}

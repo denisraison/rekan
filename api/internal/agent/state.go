@@ -20,57 +20,61 @@ const (
 // OperatorState represents the per-operator confirmation state machine.
 type OperatorState struct {
 	Record          *core.Record
-	State           string            // idle, collecting, confirming
-	ActionType      string            // e.g. CUSTOMER_CREATE
-	CollectedFields map[string]string // fields gathered so far
+	State           string           // idle, confirming
+	ActionType      string           // e.g. CUSTOMER_CREATE
+	CollectedFields json.RawMessage  // typed params struct as JSON
 	ExpiresAt       time.Time
 }
 
 // LoadState loads the current state for an operator, creating an idle record if none exists.
 func LoadState(app core.App, operatorJID string) (*OperatorState, error) {
 	var records []*core.Record
-	app.RecordQuery(domain.CollAgentState).
+	if err := app.RecordQuery(domain.CollAgentState).
 		AndWhere(dbx.NewExp("operator_jid = {:jid}", dbx.Params{"jid": operatorJID})).
 		Limit(1).
-		All(&records)
+		All(&records); err != nil {
+		return &OperatorState{State: StateIdle}, err
+	}
 
 	if len(records) == 0 {
-		return &OperatorState{State: StateIdle, CollectedFields: make(map[string]string)}, nil
+		return &OperatorState{State: StateIdle}, nil
 	}
 
 	record := records[0]
-	fields := make(map[string]string)
-	if raw := record.GetString("collected_fields"); raw != "" {
-		if err := json.Unmarshal([]byte(raw), &fields); err != nil {
-			return nil, fmt.Errorf("corrupted agent_state fields for %s: %w", operatorJID, err)
-		}
+	state := &OperatorState{
+		Record:     record,
+		State:      record.GetString("state"),
+		ActionType: record.GetString("action_type"),
+		ExpiresAt:  record.GetDateTime("expires_at").Time(),
 	}
 
-	state := &OperatorState{
-		Record:          record,
-		State:           record.GetString("state"),
-		ActionType:      record.GetString("action_type"),
-		CollectedFields: fields,
-		ExpiresAt:       record.GetDateTime("expires_at").Time(),
+	if raw := record.GetString("collected_fields"); raw != "" {
+		state.CollectedFields = json.RawMessage(raw)
 	}
 
 	// Auto-expire stale state
 	if state.State != StateIdle && !state.ExpiresAt.IsZero() && time.Now().After(state.ExpiresAt) {
 		state.State = StateIdle
 		state.ActionType = ""
-		state.CollectedFields = make(map[string]string)
-		saveState(app, state, operatorJID)
+		state.CollectedFields = nil
+		if err := saveState(app, state, operatorJID); err != nil {
+			app.Logger().Error("agent: auto-expire state", "error", err)
+		}
 	}
 
 	return state, nil
 }
 
-// SetConfirming transitions to confirming state with the given action type and fields.
+// SetConfirming transitions to confirming state with the given action type and typed params.
 // Uses the already-loaded state to avoid a redundant DB query.
-func SetConfirming(app core.App, state *OperatorState, operatorJID, actionType string, fields map[string]string) error {
+func SetConfirming(app core.App, state *OperatorState, operatorJID, actionType string, params any) error {
+	raw, err := json.Marshal(params)
+	if err != nil {
+		return fmt.Errorf("marshal params: %w", err)
+	}
 	state.State = StateConfirming
 	state.ActionType = actionType
-	state.CollectedFields = fields
+	state.CollectedFields = raw
 	state.ExpiresAt = time.Now().Add(stateExpiry)
 	return saveState(app, state, operatorJID)
 }
@@ -83,39 +87,46 @@ func ClearState(app core.App, state *OperatorState, operatorJID string) error {
 	}
 	state.State = StateIdle
 	state.ActionType = ""
-	state.CollectedFields = make(map[string]string)
+	state.CollectedFields = nil
 	return saveState(app, state, operatorJID)
 }
 
 // HasPendingAction checks if another operator has a pending action on the same entity (by name).
 func HasPendingAction(app core.App, excludeJID, entityName string) (string, bool) {
 	var records []*core.Record
-	app.RecordQuery(domain.CollAgentState).
+	if err := app.RecordQuery(domain.CollAgentState).
 		AndWhere(dbx.NewExp("operator_jid != {:jid}", dbx.Params{"jid": excludeJID})).
 		AndWhere(dbx.NewExp("state != {:state}", dbx.Params{"state": StateIdle})).
-		All(&records)
-
-	if len(records) == 0 {
+		AndWhere(dbx.NewExp("expires_at > {:now}", dbx.Params{"now": time.Now().UTC().Format("2006-01-02 15:04:05.000Z")})).
+		All(&records); err != nil {
 		return "", false
 	}
 
 	normalizedEntity := normalizeForMatch(entityName)
 	for _, r := range records {
-		expiresAt := r.GetDateTime("expires_at").Time()
-		if !expiresAt.IsZero() && time.Now().After(expiresAt) {
+		raw := r.GetString("collected_fields")
+		if raw == "" {
 			continue
 		}
-		var fields map[string]string
-		if raw := r.GetString("collected_fields"); raw != "" {
-			if err := json.Unmarshal([]byte(raw), &fields); err != nil {
-				continue
-			}
+		var nameHolder struct {
+			Name string `json:"name"`
 		}
-		if fields != nil && normalizeForMatch(fields["name"]) == normalizedEntity {
+		if err := json.Unmarshal([]byte(raw), &nameHolder); err != nil {
+			continue
+		}
+		if normalizeForMatch(nameHolder.Name) == normalizedEntity {
 			return fmt.Sprintf("operator %s", r.GetString("operator_jid")), true
 		}
 	}
 	return "", false
+}
+
+// unmarshalCollectedFields deserializes the collected_fields JSON into a typed struct.
+func unmarshalCollectedFields(raw json.RawMessage, dst any) error {
+	if len(raw) == 0 {
+		return fmt.Errorf("empty collected_fields")
+	}
+	return json.Unmarshal(raw, dst)
 }
 
 func saveState(app core.App, state *OperatorState, operatorJID string) error {
@@ -130,13 +141,15 @@ func saveState(app core.App, state *OperatorState, operatorJID string) error {
 		state.Record = record
 	}
 
-	fieldsJSON, _ := json.Marshal(state.CollectedFields)
-
 	record.Set("state", state.State)
 	record.Set("action_type", state.ActionType)
-	record.Set("collected_fields", string(fieldsJSON))
+	if len(state.CollectedFields) > 0 {
+		record.Set("collected_fields", string(state.CollectedFields))
+	} else {
+		record.Set("collected_fields", "")
+	}
 	if !state.ExpiresAt.IsZero() {
-		record.Set("expires_at", state.ExpiresAt.UTC().Format(time.RFC3339))
+		record.Set("expires_at", state.ExpiresAt.UTC().Format("2006-01-02 15:04:05.000Z"))
 	}
 	return app.Save(record)
 }

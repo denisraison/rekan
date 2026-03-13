@@ -23,9 +23,15 @@ import (
 )
 
 type AgentAction struct {
-	ActionType   *types.AgentActionType   `json:"actionType"`
-	ActionStatus *types.AgentActionStatus `json:"actionStatus"`
-	ActionParams map[string]string        `json:"actionParams"`
+	ActionType     *types.AgentActionType   `json:"actionType"`
+	ActionStatus   *types.AgentActionStatus `json:"actionStatus"`
+	CustomerCreate *CustomerCreateParams    `json:"customerCreate"`
+	CustomerUpdate *CustomerUpdateParams    `json:"customerUpdate"`
+	CustomerPause  *CustomerPauseParams     `json:"customerPause"`
+	CustomerInfo   *CustomerInfoParams      `json:"customerInfo"`
+	PostGenerate   *PostGenerateParams      `json:"postGenerate"`
+	PostApprove    *PostApproveParams       `json:"postApprove"`
+	PostReject     *PostRejectParams        `json:"postReject"`
 }
 
 func (c *AgentAction) Decode(holder *cffi.CFFIValueClass, typeMap baml.TypeMap) {
@@ -48,8 +54,26 @@ func (c *AgentAction) Decode(holder *cffi.CFFIValueClass, typeMap baml.TypeMap) 
 		case "actionStatus":
 			c.ActionStatus = baml.Decode(valueHolder).Interface().(*types.AgentActionStatus)
 
-		case "actionParams":
-			c.ActionParams = baml.Decode(valueHolder).Interface().(map[string]string)
+		case "customerCreate":
+			c.CustomerCreate = baml.Decode(valueHolder).Interface().(*CustomerCreateParams)
+
+		case "customerUpdate":
+			c.CustomerUpdate = baml.Decode(valueHolder).Interface().(*CustomerUpdateParams)
+
+		case "customerPause":
+			c.CustomerPause = baml.Decode(valueHolder).Interface().(*CustomerPauseParams)
+
+		case "customerInfo":
+			c.CustomerInfo = baml.Decode(valueHolder).Interface().(*CustomerInfoParams)
+
+		case "postGenerate":
+			c.PostGenerate = baml.Decode(valueHolder).Interface().(*PostGenerateParams)
+
+		case "postApprove":
+			c.PostApprove = baml.Decode(valueHolder).Interface().(*PostApproveParams)
+
+		case "postReject":
+			c.PostReject = baml.Decode(valueHolder).Interface().(*PostRejectParams)
 
 		default:
 
@@ -67,7 +91,19 @@ func (c AgentAction) Encode() (*cffi.HostValue, error) {
 
 	fields["actionStatus"] = c.ActionStatus
 
-	fields["actionParams"] = c.ActionParams
+	fields["customerCreate"] = c.CustomerCreate
+
+	fields["customerUpdate"] = c.CustomerUpdate
+
+	fields["customerPause"] = c.CustomerPause
+
+	fields["customerInfo"] = c.CustomerInfo
+
+	fields["postGenerate"] = c.PostGenerate
+
+	fields["postApprove"] = c.PostApprove
+
+	fields["postReject"] = c.PostReject
 
 	return baml.EncodeClass("AgentAction", fields, nil)
 }
@@ -128,7 +164,6 @@ type BusinessProfile struct {
 	BusinessName   *string   `json:"businessName"`
 	BusinessType   *string   `json:"businessType"`
 	City           *string   `json:"city"`
-	Neighbourhood  *string   `json:"neighbourhood"`
 	Services       []Service `json:"services"`
 	TargetAudience *string   `json:"targetAudience"`
 	BrandVibe      *string   `json:"brandVibe"`
@@ -157,9 +192,6 @@ func (c *BusinessProfile) Decode(holder *cffi.CFFIValueClass, typeMap baml.TypeM
 
 		case "city":
 			c.City = baml.Decode(valueHolder).Interface().(*string)
-
-		case "neighbourhood":
-			c.Neighbourhood = baml.Decode(valueHolder).Interface().(*string)
 
 		case "services":
 			c.Services = baml.Decode(valueHolder).Interface().([]Service)
@@ -190,8 +222,6 @@ func (c BusinessProfile) Encode() (*cffi.HostValue, error) {
 	fields["businessType"] = c.BusinessType
 
 	fields["city"] = c.City
-
-	fields["neighbourhood"] = c.Neighbourhood
 
 	fields["services"] = c.Services
 
@@ -254,6 +284,252 @@ func (c ContentRole) Encode() (*cffi.HostValue, error) {
 
 func (c ContentRole) BamlTypeName() string {
 	return "ContentRole"
+}
+
+type CustomerCreateParams struct {
+	Name           *string `json:"name"`
+	Type           *string `json:"type"`
+	City           *string `json:"city"`
+	Phone          *string `json:"phone"`
+	TargetAudience *string `json:"targetAudience"`
+	BrandVibe      *string `json:"brandVibe"`
+	Quirks         *string `json:"quirks"`
+}
+
+func (c *CustomerCreateParams) Decode(holder *cffi.CFFIValueClass, typeMap baml.TypeMap) {
+	typeName := holder.Name
+	if typeName.Namespace != cffi.CFFITypeNamespace_STREAM_TYPES {
+		panic(fmt.Sprintf("expected cffi.CFFITypeNamespace_STREAM_TYPES, got %s", string(typeName.Namespace.String())))
+	}
+	if typeName.Name != "CustomerCreateParams" {
+		panic(fmt.Sprintf("expected CustomerCreateParams, got %s", typeName.Name))
+	}
+
+	for _, field := range holder.Fields {
+		key := field.Key
+		valueHolder := field.Value
+		switch key {
+
+		case "name":
+			c.Name = baml.Decode(valueHolder).Interface().(*string)
+
+		case "type":
+			c.Type = baml.Decode(valueHolder).Interface().(*string)
+
+		case "city":
+			c.City = baml.Decode(valueHolder).Interface().(*string)
+
+		case "phone":
+			c.Phone = baml.Decode(valueHolder).Interface().(*string)
+
+		case "targetAudience":
+			c.TargetAudience = baml.Decode(valueHolder).Interface().(*string)
+
+		case "brandVibe":
+			c.BrandVibe = baml.Decode(valueHolder).Interface().(*string)
+
+		case "quirks":
+			c.Quirks = baml.Decode(valueHolder).Interface().(*string)
+
+		default:
+
+			panic(fmt.Sprintf("unexpected field: %s in class CustomerCreateParams", key))
+
+		}
+	}
+
+}
+
+func (c CustomerCreateParams) Encode() (*cffi.HostValue, error) {
+	fields := map[string]any{}
+
+	fields["name"] = c.Name
+
+	fields["type"] = c.Type
+
+	fields["city"] = c.City
+
+	fields["phone"] = c.Phone
+
+	fields["targetAudience"] = c.TargetAudience
+
+	fields["brandVibe"] = c.BrandVibe
+
+	fields["quirks"] = c.Quirks
+
+	return baml.EncodeClass("CustomerCreateParams", fields, nil)
+}
+
+func (c CustomerCreateParams) BamlTypeName() string {
+	return "CustomerCreateParams"
+}
+
+type CustomerInfoParams struct {
+	Name *string `json:"name"`
+}
+
+func (c *CustomerInfoParams) Decode(holder *cffi.CFFIValueClass, typeMap baml.TypeMap) {
+	typeName := holder.Name
+	if typeName.Namespace != cffi.CFFITypeNamespace_STREAM_TYPES {
+		panic(fmt.Sprintf("expected cffi.CFFITypeNamespace_STREAM_TYPES, got %s", string(typeName.Namespace.String())))
+	}
+	if typeName.Name != "CustomerInfoParams" {
+		panic(fmt.Sprintf("expected CustomerInfoParams, got %s", typeName.Name))
+	}
+
+	for _, field := range holder.Fields {
+		key := field.Key
+		valueHolder := field.Value
+		switch key {
+
+		case "name":
+			c.Name = baml.Decode(valueHolder).Interface().(*string)
+
+		default:
+
+			panic(fmt.Sprintf("unexpected field: %s in class CustomerInfoParams", key))
+
+		}
+	}
+
+}
+
+func (c CustomerInfoParams) Encode() (*cffi.HostValue, error) {
+	fields := map[string]any{}
+
+	fields["name"] = c.Name
+
+	return baml.EncodeClass("CustomerInfoParams", fields, nil)
+}
+
+func (c CustomerInfoParams) BamlTypeName() string {
+	return "CustomerInfoParams"
+}
+
+type CustomerPauseParams struct {
+	Name   *string `json:"name"`
+	Reason *string `json:"reason"`
+}
+
+func (c *CustomerPauseParams) Decode(holder *cffi.CFFIValueClass, typeMap baml.TypeMap) {
+	typeName := holder.Name
+	if typeName.Namespace != cffi.CFFITypeNamespace_STREAM_TYPES {
+		panic(fmt.Sprintf("expected cffi.CFFITypeNamespace_STREAM_TYPES, got %s", string(typeName.Namespace.String())))
+	}
+	if typeName.Name != "CustomerPauseParams" {
+		panic(fmt.Sprintf("expected CustomerPauseParams, got %s", typeName.Name))
+	}
+
+	for _, field := range holder.Fields {
+		key := field.Key
+		valueHolder := field.Value
+		switch key {
+
+		case "name":
+			c.Name = baml.Decode(valueHolder).Interface().(*string)
+
+		case "reason":
+			c.Reason = baml.Decode(valueHolder).Interface().(*string)
+
+		default:
+
+			panic(fmt.Sprintf("unexpected field: %s in class CustomerPauseParams", key))
+
+		}
+	}
+
+}
+
+func (c CustomerPauseParams) Encode() (*cffi.HostValue, error) {
+	fields := map[string]any{}
+
+	fields["name"] = c.Name
+
+	fields["reason"] = c.Reason
+
+	return baml.EncodeClass("CustomerPauseParams", fields, nil)
+}
+
+func (c CustomerPauseParams) BamlTypeName() string {
+	return "CustomerPauseParams"
+}
+
+type CustomerUpdateParams struct {
+	Name           *string `json:"name"`
+	Type           *string `json:"type"`
+	City           *string `json:"city"`
+	Phone          *string `json:"phone"`
+	TargetAudience *string `json:"targetAudience"`
+	BrandVibe      *string `json:"brandVibe"`
+	Quirks         *string `json:"quirks"`
+}
+
+func (c *CustomerUpdateParams) Decode(holder *cffi.CFFIValueClass, typeMap baml.TypeMap) {
+	typeName := holder.Name
+	if typeName.Namespace != cffi.CFFITypeNamespace_STREAM_TYPES {
+		panic(fmt.Sprintf("expected cffi.CFFITypeNamespace_STREAM_TYPES, got %s", string(typeName.Namespace.String())))
+	}
+	if typeName.Name != "CustomerUpdateParams" {
+		panic(fmt.Sprintf("expected CustomerUpdateParams, got %s", typeName.Name))
+	}
+
+	for _, field := range holder.Fields {
+		key := field.Key
+		valueHolder := field.Value
+		switch key {
+
+		case "name":
+			c.Name = baml.Decode(valueHolder).Interface().(*string)
+
+		case "type":
+			c.Type = baml.Decode(valueHolder).Interface().(*string)
+
+		case "city":
+			c.City = baml.Decode(valueHolder).Interface().(*string)
+
+		case "phone":
+			c.Phone = baml.Decode(valueHolder).Interface().(*string)
+
+		case "targetAudience":
+			c.TargetAudience = baml.Decode(valueHolder).Interface().(*string)
+
+		case "brandVibe":
+			c.BrandVibe = baml.Decode(valueHolder).Interface().(*string)
+
+		case "quirks":
+			c.Quirks = baml.Decode(valueHolder).Interface().(*string)
+
+		default:
+
+			panic(fmt.Sprintf("unexpected field: %s in class CustomerUpdateParams", key))
+
+		}
+	}
+
+}
+
+func (c CustomerUpdateParams) Encode() (*cffi.HostValue, error) {
+	fields := map[string]any{}
+
+	fields["name"] = c.Name
+
+	fields["type"] = c.Type
+
+	fields["city"] = c.City
+
+	fields["phone"] = c.Phone
+
+	fields["targetAudience"] = c.TargetAudience
+
+	fields["brandVibe"] = c.BrandVibe
+
+	fields["quirks"] = c.Quirks
+
+	return baml.EncodeClass("CustomerUpdateParams", fields, nil)
+}
+
+func (c CustomerUpdateParams) BamlTypeName() string {
+	return "CustomerUpdateParams"
 }
 
 type JudgeResult struct {
@@ -518,6 +794,150 @@ func (c Post) Encode() (*cffi.HostValue, error) {
 
 func (c Post) BamlTypeName() string {
 	return "Post"
+}
+
+type PostApproveParams struct {
+	PostId *string `json:"postId"`
+	Name   *string `json:"name"`
+}
+
+func (c *PostApproveParams) Decode(holder *cffi.CFFIValueClass, typeMap baml.TypeMap) {
+	typeName := holder.Name
+	if typeName.Namespace != cffi.CFFITypeNamespace_STREAM_TYPES {
+		panic(fmt.Sprintf("expected cffi.CFFITypeNamespace_STREAM_TYPES, got %s", string(typeName.Namespace.String())))
+	}
+	if typeName.Name != "PostApproveParams" {
+		panic(fmt.Sprintf("expected PostApproveParams, got %s", typeName.Name))
+	}
+
+	for _, field := range holder.Fields {
+		key := field.Key
+		valueHolder := field.Value
+		switch key {
+
+		case "postId":
+			c.PostId = baml.Decode(valueHolder).Interface().(*string)
+
+		case "name":
+			c.Name = baml.Decode(valueHolder).Interface().(*string)
+
+		default:
+
+			panic(fmt.Sprintf("unexpected field: %s in class PostApproveParams", key))
+
+		}
+	}
+
+}
+
+func (c PostApproveParams) Encode() (*cffi.HostValue, error) {
+	fields := map[string]any{}
+
+	fields["postId"] = c.PostId
+
+	fields["name"] = c.Name
+
+	return baml.EncodeClass("PostApproveParams", fields, nil)
+}
+
+func (c PostApproveParams) BamlTypeName() string {
+	return "PostApproveParams"
+}
+
+type PostGenerateParams struct {
+	Name *string `json:"name"`
+}
+
+func (c *PostGenerateParams) Decode(holder *cffi.CFFIValueClass, typeMap baml.TypeMap) {
+	typeName := holder.Name
+	if typeName.Namespace != cffi.CFFITypeNamespace_STREAM_TYPES {
+		panic(fmt.Sprintf("expected cffi.CFFITypeNamespace_STREAM_TYPES, got %s", string(typeName.Namespace.String())))
+	}
+	if typeName.Name != "PostGenerateParams" {
+		panic(fmt.Sprintf("expected PostGenerateParams, got %s", typeName.Name))
+	}
+
+	for _, field := range holder.Fields {
+		key := field.Key
+		valueHolder := field.Value
+		switch key {
+
+		case "name":
+			c.Name = baml.Decode(valueHolder).Interface().(*string)
+
+		default:
+
+			panic(fmt.Sprintf("unexpected field: %s in class PostGenerateParams", key))
+
+		}
+	}
+
+}
+
+func (c PostGenerateParams) Encode() (*cffi.HostValue, error) {
+	fields := map[string]any{}
+
+	fields["name"] = c.Name
+
+	return baml.EncodeClass("PostGenerateParams", fields, nil)
+}
+
+func (c PostGenerateParams) BamlTypeName() string {
+	return "PostGenerateParams"
+}
+
+type PostRejectParams struct {
+	PostId   *string `json:"postId"`
+	Name     *string `json:"name"`
+	Feedback *string `json:"feedback"`
+}
+
+func (c *PostRejectParams) Decode(holder *cffi.CFFIValueClass, typeMap baml.TypeMap) {
+	typeName := holder.Name
+	if typeName.Namespace != cffi.CFFITypeNamespace_STREAM_TYPES {
+		panic(fmt.Sprintf("expected cffi.CFFITypeNamespace_STREAM_TYPES, got %s", string(typeName.Namespace.String())))
+	}
+	if typeName.Name != "PostRejectParams" {
+		panic(fmt.Sprintf("expected PostRejectParams, got %s", typeName.Name))
+	}
+
+	for _, field := range holder.Fields {
+		key := field.Key
+		valueHolder := field.Value
+		switch key {
+
+		case "postId":
+			c.PostId = baml.Decode(valueHolder).Interface().(*string)
+
+		case "name":
+			c.Name = baml.Decode(valueHolder).Interface().(*string)
+
+		case "feedback":
+			c.Feedback = baml.Decode(valueHolder).Interface().(*string)
+
+		default:
+
+			panic(fmt.Sprintf("unexpected field: %s in class PostRejectParams", key))
+
+		}
+	}
+
+}
+
+func (c PostRejectParams) Encode() (*cffi.HostValue, error) {
+	fields := map[string]any{}
+
+	fields["postId"] = c.PostId
+
+	fields["name"] = c.Name
+
+	fields["feedback"] = c.Feedback
+
+	return baml.EncodeClass("PostRejectParams", fields, nil)
+}
+
+func (c PostRejectParams) BamlTypeName() string {
+	return "PostRejectParams"
 }
 
 type ProfileSignal struct {

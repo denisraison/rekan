@@ -13,11 +13,16 @@ func TestGetInviteInfo(t *testing.T) {
 	app, _, bizID := newInviteTestApp(t)
 	defer app.Cleanup()
 
-	biz, _ := app.FindRecordById(domain.CollBusinesses, bizID)
+	biz, err := app.FindRecordById(domain.CollBusinesses, bizID)
+	if err != nil {
+		t.Fatal(err)
+	}
 	biz.Set("invite_token", "info-token")
 	biz.Set("invite_status", "invited")
 	biz.Set("invite_sent_at", time.Now().UTC().Format(time.RFC3339))
-	app.Save(biz)
+	if err := app.Save(biz); err != nil {
+		t.Fatal(err)
+	}
 
 	info, err := service.GetInviteInfo(app, "info-token")
 	if err != nil {
@@ -38,11 +43,16 @@ func TestGetInviteInfoExpired(t *testing.T) {
 	app, _, bizID := newInviteTestApp(t)
 	defer app.Cleanup()
 
-	biz, _ := app.FindRecordById(domain.CollBusinesses, bizID)
+	biz, err := app.FindRecordById(domain.CollBusinesses, bizID)
+	if err != nil {
+		t.Fatal(err)
+	}
 	biz.Set("invite_token", "expired-info-token")
 	biz.Set("invite_status", "invited")
 	biz.Set("invite_sent_at", time.Now().Add(-8*24*time.Hour).UTC().Format(time.RFC3339))
-	app.Save(biz)
+	if err := app.Save(biz); err != nil {
+		t.Fatal(err)
+	}
 
 	info, err := service.GetInviteInfo(app, "expired-info-token")
 	if err != nil {

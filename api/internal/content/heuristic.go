@@ -16,7 +16,6 @@ type BusinessProfile struct {
 	BusinessName   string    `json:"businessName"`
 	BusinessType   string    `json:"businessType"`
 	City           string    `json:"city"`
-	Neighbourhood  string    `json:"neighbourhood"`
 	Services       []Service `json:"services"`
 	TargetAudience string    `json:"targetAudience"`
 	BrandVibe      string    `json:"brandVibe"`

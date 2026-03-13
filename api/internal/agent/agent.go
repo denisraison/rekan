@@ -80,7 +80,11 @@ func (a *Agent) HandleGroupMessage(evt *events.Message) {
 
 		// Sticker with pending confirmation = "sim"
 		if media.MediaType == "sticker" {
-			state, _ := LoadState(a.App, operatorJID)
+			state, err := LoadState(a.App, operatorJID)
+			if err != nil {
+				a.Logger.Error("agent: load state for sticker", "error", err)
+				return
+			}
 			if state.State == StateConfirming {
 				text = "sim"
 			} else {
@@ -128,19 +132,23 @@ func isCancellation(msg string) bool {
 
 // bamlResult holds the output of a callBAML invocation.
 type bamlResult struct {
-	ReplyText    string
-	ActionType   string
-	ActionParams map[string]string
+	ReplyText  string
+	ActionType string
 }
 
 // callBAML calls the BAML agent and routes the action if present.
 // Handles slow timer, error logging, and action routing.
 func (a *Agent) callBAML(ctx context.Context, groupJID types.JID, hydrated HydratedContext, state *OperatorState, operatorName, operatorJID, message string, start time.Time) (*bamlResult, error) {
-	history, _ := LoadRecentAndPrune(a.App, 15)
+	history, err := LoadRecentAndPrune(a.App, 15)
+	if err != nil {
+		a.Logger.Error("agent: failed to load conversation history", "error", err)
+	}
 	historyText := FormatConversation(history)
 
 	slowTimer := time.AfterFunc(5*time.Second, func() {
-		SendReply(ctx, a.WAClient, groupJID, "Um momento...")
+		if err := SendReply(ctx, a.WAClient, groupJID, "Um momento..."); err != nil {
+			a.Logger.Error("agent: failed to send slow timer reply", "error", err)
+		}
 	})
 
 	response, err := a.BAML(ctx, operatorName, message, hydrated.Formatted, historyText)
@@ -155,7 +163,6 @@ func (a *Agent) callBAML(ctx context.Context, groupJID types.JID, hydrated Hydra
 	result := &bamlResult{ActionType: "INFO"}
 	if response.Action != nil {
 		result.ActionType = string(response.Action.ActionType)
-		result.ActionParams = response.Action.ActionParams
 
 		// If a new NEEDS_CONFIRMATION comes in while confirming, clear old state
 		if state.State == StateConfirming && response.Action.ActionStatus == bamltypes.AgentActionStatusNEEDS_CONFIRMATION {
@@ -167,7 +174,7 @@ func (a *Agent) callBAML(ctx context.Context, groupJID types.JID, hydrated Hydra
 		routeResult, routeErr := RouteAction(a.App, hydrated, state, *response.Action, a.Generate)
 		if routeErr != nil {
 			a.Logger.Error("agent: action routing failed", "error", routeErr, "action", result.ActionType)
-			LogAction(a.App, operatorName, operatorJID, result.ActionType, result.ActionParams, routeErr.Error(), false, start)
+			LogAction(a.App, operatorName, operatorJID, result.ActionType, nil, routeErr.Error(), false, start)
 			return nil, routeErr
 		}
 		if routeResult != "" {
@@ -175,8 +182,9 @@ func (a *Agent) callBAML(ctx context.Context, groupJID types.JID, hydrated Hydra
 		}
 	}
 
-	// Prefer BAML reply over router result
-	if response.Reply != nil && *response.Reply != "" {
+	// For NEEDS_CONFIRMATION with a structured confirmation from the router, use the router result.
+	// For everything else, prefer the BAML reply.
+	if response.Reply != nil && *response.Reply != "" && result.ReplyText == "" {
 		result.ReplyText = *response.Reply
 	}
 
@@ -195,7 +203,10 @@ func (a *Agent) ProcessMessage(groupJID types.JID, messageID string, senderJID t
 		a.Logger.Error("agent: failed to store message", "error", err)
 	}
 
-	state, _ := LoadState(a.App, operatorJID)
+	state, err := LoadState(a.App, operatorJID)
+	if err != nil {
+		a.Logger.Error("agent: load state", "error", err)
+	}
 
 	// Handle confirmation/cancellation of pending actions
 	if state.State == StateConfirming {
@@ -205,7 +216,9 @@ func (a *Agent) ProcessMessage(groupJID types.JID, messageID string, senderJID t
 
 	hydrated := HydrateContext(a.App, operatorName, operatorJID)
 
-	ReactThumbsUp(ctx, a.WAClient, groupJID, messageID, senderJID)
+	if err := ReactThumbsUp(ctx, a.WAClient, groupJID, messageID, senderJID); err != nil {
+		a.Logger.Error("agent: react thumbs up", "error", err)
+	}
 
 	result, err := a.callBAML(ctx, groupJID, hydrated, state, operatorName, operatorJID, message, start)
 	if err != nil {
@@ -250,9 +263,11 @@ func (a *Agent) handleStatefulMessage(ctx context.Context, groupJID types.JID, m
 		actionType = result.ActionType
 	}
 
-	br := &bamlResult{ReplyText: replyText, ActionType: actionType, ActionParams: state.CollectedFields}
+	br := &bamlResult{ReplyText: replyText, ActionType: actionType}
 
-	ReactThumbsUp(ctx, a.WAClient, groupJID, messageID, senderJID)
+	if err := ReactThumbsUp(ctx, a.WAClient, groupJID, messageID, senderJID); err != nil {
+		a.Logger.Error("agent: react thumbs up", "error", err)
+	}
 	a.sendAndLog(ctx, groupJID, operatorName, operatorJID, br, start)
 }
 
@@ -268,6 +283,8 @@ func (a *Agent) sendAndLog(ctx context.Context, groupJID types.JID, operatorName
 		return
 	}
 
-	StoreMessage(a.App, "Rekan", "", "assistant", result.ReplyText, "")
-	LogAction(a.App, operatorName, operatorJID, result.ActionType, result.ActionParams, result.ReplyText, true, start)
+	if err := StoreMessage(a.App, "Rekan", "", "assistant", result.ReplyText, ""); err != nil {
+		a.Logger.Error("agent: failed to store assistant message", "error", err)
+	}
+	LogAction(a.App, operatorName, operatorJID, result.ActionType, nil, result.ReplyText, true, start)
 }

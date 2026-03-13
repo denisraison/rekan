@@ -2,6 +2,8 @@ package whatsapp
 
 import (
 	"context"
+	"database/sql"
+	"errors"
 	"time"
 
 	"go.mau.fi/whatsmeow/types/events"
@@ -77,7 +79,10 @@ func extractContent(ctx context.Context, deps HandlerDeps, evt *events.Message) 
 
 // isDuplicate returns true if a message with the given wa_message_id already exists.
 func isDuplicate(deps HandlerDeps, waMessageID string) bool {
-	existing, _ := deps.App.FindFirstRecordByFilter(domain.CollMessages, "wa_message_id = {:id}", map[string]any{"id": waMessageID})
+	existing, err := deps.App.FindFirstRecordByFilter(domain.CollMessages, "wa_message_id = {:id}", map[string]any{"id": waMessageID})
+	if err != nil && !errors.Is(err, sql.ErrNoRows) {
+		deps.Logger.Error("whatsapp: check duplicate message", "wa_message_id", waMessageID, "error", err)
+	}
 	return existing != nil
 }
 

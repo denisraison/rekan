@@ -34,7 +34,7 @@ func ExtractProfile(deps Deps) func(*core.RequestEvent) error {
 				"message": "arquivo de áudio obrigatório",
 			})
 		}
-		defer file.Close()
+		defer func() { _ = file.Close() }()
 
 		audioBytes, err := io.ReadAll(file)
 		if err != nil {

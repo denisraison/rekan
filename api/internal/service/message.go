@@ -39,24 +39,25 @@ func wrapNotFound(err error, msg string) error {
 // SimulateTyping shows a typing indicator, waits 1-3s, runs fn, then clears
 // the indicator. The typing indicator is best-effort (errors are ignored).
 func SimulateTyping(ctx context.Context, waClient *wa.Client, jid types.JID, fn func() error) error {
-	waClient.SendChatPresence(ctx, jid, types.ChatPresenceComposing, "")
+	waClient.SendChatPresence(ctx, jid, types.ChatPresenceComposing, "") //nolint:errcheck // best-effort typing indicator
 	delay := time.Duration(1000+rand.IntN(2000)) * time.Millisecond
 	select {
 	case <-time.After(delay):
 	case <-ctx.Done():
-		waClient.SendChatPresence(ctx, jid, types.ChatPresencePaused, "")
+		waClient.SendChatPresence(ctx, jid, types.ChatPresencePaused, "") //nolint:errcheck // best-effort typing indicator
 		return ctx.Err()
 	}
 	err := fn()
-	waClient.SendChatPresence(ctx, jid, types.ChatPresencePaused, "")
+	waClient.SendChatPresence(ctx, jid, types.ChatPresencePaused, "") //nolint:errcheck // best-effort typing indicator
 	return err
 }
 
 // StoreOutgoingMessage saves an outgoing message record. Errors are logged but
 // not returned since message storage is best-effort.
 func StoreOutgoingMessage(app core.App, businessID, phone, msgType, content string, media *filesystem.File) {
-	collection, _ := app.FindCollectionByNameOrId(domain.CollMessages)
-	if collection == nil {
+	collection, err := app.FindCollectionByNameOrId(domain.CollMessages)
+	if err != nil {
+		app.Logger().Error("storeOutgoingMessage: collection not found", "error", err)
 		return
 	}
 	record := core.NewRecord(collection)
@@ -115,17 +116,21 @@ func SendTextMessage(ctx context.Context, app core.App, waClient *wa.Client, par
 		time.Sleep(time.Duration(500+rand.IntN(1000)) * time.Millisecond)
 
 		noteText := "*Dica de foto:* " + params.ProductionNote
-		waClient.SendMessage(ctx, jid, &waE2E.Message{
+		if _, err := waClient.SendMessage(ctx, jid, &waE2E.Message{
 			Conversation: &noteText,
-		})
+		}); err != nil {
+			app.Logger().Error("sendTextMessage: production note", "error", err)
+		}
 		StoreOutgoingMessage(app, params.BusinessID, phone, domain.MsgTypeText, noteText, nil)
 
 		// Posting time tip
 		time.Sleep(time.Duration(500+rand.IntN(1000)) * time.Millisecond)
 		tipText := postingtime.Tip(business.GetString("type"))
-		waClient.SendMessage(ctx, jid, &waE2E.Message{
+		if _, err := waClient.SendMessage(ctx, jid, &waE2E.Message{
 			Conversation: &tipText,
-		})
+		}); err != nil {
+			app.Logger().Error("sendTextMessage: posting time tip", "error", err)
+		}
 		StoreOutgoingMessage(app, params.BusinessID, phone, domain.MsgTypeText, tipText, nil)
 	}
 
@@ -207,7 +212,10 @@ func SendMediaMessage(ctx context.Context, app core.App, waClient *wa.Client, pa
 	if isVideo {
 		msgType = domain.MsgTypeVideo
 	}
-	mediaFile, _ := filesystem.NewFileFromBytes(params.Data, params.Filename)
+	mediaFile, err := filesystem.NewFileFromBytes(params.Data, params.Filename)
+	if err != nil {
+		app.Logger().Error("sendMediaMessage: create file from bytes", "error", err)
+	}
 	StoreOutgoingMessage(app, params.BusinessID, phone, msgType, params.Caption, mediaFile)
 
 	return nil

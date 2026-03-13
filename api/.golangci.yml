@@ -11,12 +11,19 @@ linters:
     - ineffassign
     - revive
     - gocritic
+    - errcheck
 
   exclusions:
     paths:
       - internal/baml/baml_client  # generated code
 
   settings:
+    errcheck:
+      check-blank: true
+      exclude-functions:
+        - (io.Closer).Close
+        - (*os.File).Close
+
     revive:
       rules:
         - name: blank-imports

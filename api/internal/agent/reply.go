@@ -48,8 +48,8 @@ func SendReply(ctx context.Context, waClient WAClient, groupJID types.JID, text 
 }
 
 // ReactThumbsUp reacts to a message with a thumbs up emoji.
-func ReactThumbsUp(ctx context.Context, waClient WAClient, chat types.JID, messageID string, senderJID types.JID) {
-	waClient.SendMessage(ctx, chat, &waE2E.Message{
+func ReactThumbsUp(ctx context.Context, waClient WAClient, chat types.JID, messageID string, senderJID types.JID) error {
+	_, err := waClient.SendMessage(ctx, chat, &waE2E.Message{
 		ReactionMessage: &waE2E.ReactionMessage{
 			Key: &waCommon.MessageKey{
 				RemoteJID:   proto.String(chat.String()),
@@ -60,4 +60,5 @@ func ReactThumbsUp(ctx context.Context, waClient WAClient, chat types.JID, messa
 			Text: proto.String("\U0001F44D"),
 		},
 	})
+	return err
 }

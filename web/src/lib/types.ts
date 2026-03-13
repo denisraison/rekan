@@ -25,7 +25,7 @@ export interface Business {
 	name: string;
 	type: string;
 	city: string;
-	state: string;
+	state?: string;
 	services: Service[];
 	target_audience: string;
 	brand_vibe: string;

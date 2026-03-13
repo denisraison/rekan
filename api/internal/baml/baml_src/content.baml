@@ -8,8 +8,8 @@ function GenerateContent(profile: BusinessProfile, roles: ContentRole[], previou
     Seu negócio:
     - Nome: {{ profile.businessName }}
     - Tipo: {{ profile.businessType }}
-    - Cidade/Bairro: {{ profile.city }}, {{ profile.neighbourhood }}
-    - Serviços: {% for s in profile.services %}{{ s.name }} (R${{ s.priceBRL }}){% if not loop.last %}, {% endif %}{% endfor %}
+    - Cidade: {{ profile.city }}
+    {% if profile.services | length > 0 %}- Serviços: {% for s in profile.services %}{{ s.name }} (R${{ s.priceBRL }}){% if not loop.last %}, {% endif %}{% endfor %}{% endif %}
     - Público: {{ profile.targetAudience }}
     - Vibe: {{ profile.brandVibe }}
     - Diferenciais: {% for q in profile.quirks %}{{ q }}{% if not loop.last %}, {% endif %}{% endfor %}
@@ -63,8 +63,8 @@ function GenerateFromMessage(profile: BusinessProfile, clientMessage: string, pr
     Seu negócio:
     - Nome: {{ profile.businessName }}
     - Tipo: {{ profile.businessType }}
-    - Cidade/Bairro: {{ profile.city }}, {{ profile.neighbourhood }}
-    - Serviços: {% for s in profile.services %}{{ s.name }} (R${{ s.priceBRL }}){% if not loop.last %}, {% endif %}{% endfor %}
+    - Cidade: {{ profile.city }}
+    {% if profile.services | length > 0 %}- Serviços: {% for s in profile.services %}{{ s.name }} (R${{ s.priceBRL }}){% if not loop.last %}, {% endif %}{% endfor %}{% endif %}
     - Público: {{ profile.targetAudience }}
     - Vibe: {{ profile.brandVibe }}
     - Diferenciais: {% for q in profile.quirks %}{{ q }}{% if not loop.last %}, {% endif %}{% endfor %}

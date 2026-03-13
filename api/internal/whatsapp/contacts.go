@@ -2,6 +2,7 @@ package whatsapp
 
 import (
 	"context"
+	"database/sql"
 	"errors"
 	"time"
 
@@ -17,7 +18,11 @@ import (
 // phone number, creating a placeholder business if none exists yet. pushName is the
 // sender's WhatsApp display name (empty for outgoing messages).
 func findOrCreateBusiness(deps HandlerDeps, phone, pushName string) (id, inviteStatus, businessType string) {
-	business, _ := deps.App.FindFirstRecordByFilter(domain.CollBusinesses, "phone = {:phone}", map[string]any{"phone": phone})
+	business, err := deps.App.FindFirstRecordByFilter(domain.CollBusinesses, "phone = {:phone}", map[string]any{"phone": phone})
+	if err != nil && !errors.Is(err, sql.ErrNoRows) {
+		deps.Logger.Error("whatsapp: find business by phone", "phone", phone, "error", err)
+		return "", "", ""
+	}
 	if business != nil {
 		// Update name if the placeholder still uses the raw phone and we now have a real name.
 		if pushName != "" && business.GetString("name") == "+"+phone {
@@ -47,7 +52,6 @@ func findOrCreateBusiness(deps HandlerDeps, phone, pushName string) (id, inviteS
 	record.Set("client_name", pushName)
 	record.Set("type", "Desconhecido")
 	record.Set("city", "-")
-	record.Set("state", "-")
 
 	if err := deps.App.Save(record); err != nil {
 		deps.Logger.Error("whatsapp: failed to create placeholder business", "phone", phone, "error", err)
@@ -120,7 +124,9 @@ func refreshProfilePicture(deps HandlerDeps, businessID string, jid types.JID) {
 		}
 		// Still update the timestamp so we don't hammer the API on every message.
 		business.Set("profile_picture_updated", time.Now().UTC().Format(time.RFC3339))
-		_ = deps.App.Save(business)
+		if err := deps.App.Save(business); err != nil {
+			deps.Logger.Error("whatsapp: save profile picture timestamp", "phone", jid.User, "error", err)
+		}
 		return
 	}
 	if info == nil {

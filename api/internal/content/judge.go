@@ -46,7 +46,6 @@ func toBamlProfile(p BusinessProfile) types.BusinessProfile {
 		BusinessName:   p.BusinessName,
 		BusinessType:   p.BusinessType,
 		City:           p.City,
-		Neighbourhood:  p.Neighbourhood,
 		Services:       services,
 		TargetAudience: p.TargetAudience,
 		BrandVibe:      p.BrandVibe,

@@ -117,14 +117,14 @@ func (c *Client) post(ctx context.Context, path string, body, out any) error {
 	if err != nil {
 		return fmt.Errorf("http: %w", err)
 	}
-	defer resp.Body.Close()
+	defer func() { _ = resp.Body.Close() }()
 	if resp.StatusCode >= 400 {
 		var errResp struct {
 			Errors []struct {
 				Description string `json:"description"`
 			} `json:"errors"`
 		}
-		_ = json.NewDecoder(resp.Body).Decode(&errResp)
+		json.NewDecoder(resp.Body).Decode(&errResp) //nolint:errcheck // best-effort error detail
 		if len(errResp.Errors) > 0 {
 			return fmt.Errorf("asaas %s: %s", resp.Status, errResp.Errors[0].Description)
 		}
@@ -143,14 +143,14 @@ func (c *Client) del(ctx context.Context, path string) error {
 	if err != nil {
 		return fmt.Errorf("http: %w", err)
 	}
-	defer resp.Body.Close()
+	defer func() { _ = resp.Body.Close() }()
 	if resp.StatusCode >= 400 {
 		var errResp struct {
 			Errors []struct {
 				Description string `json:"description"`
 			} `json:"errors"`
 		}
-		_ = json.NewDecoder(resp.Body).Decode(&errResp)
+		json.NewDecoder(resp.Body).Decode(&errResp) //nolint:errcheck // best-effort error detail
 		if len(errResp.Errors) > 0 {
 			return fmt.Errorf("asaas %s: %s", resp.Status, errResp.Errors[0].Description)
 		}

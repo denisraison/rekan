@@ -11,7 +11,6 @@ var judgeProfile = BusinessProfile{
 	BusinessName:   "Confeitaria da Tia Marta",
 	BusinessType:   "confeitaria",
 	City:           "Belo Horizonte",
-	Neighbourhood:  "Funcionários",
 	Services: []Service{
 		{Name: "Bolo personalizado", PriceBRL: 180},
 		{Name: "Docinhos para festa", PriceBRL: 120},

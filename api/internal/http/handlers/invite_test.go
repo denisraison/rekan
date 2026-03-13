@@ -80,11 +80,16 @@ func TestInviteGetSuccess(t *testing.T) {
 	app, _, bizID := newInviteApp(t)
 	defer app.Cleanup()
 
-	biz, _ := app.FindRecordById("businesses", bizID)
+	biz, err := app.FindRecordById("businesses", bizID)
+	if err != nil {
+		t.Fatal(err)
+	}
 	biz.Set("invite_token", "valid-token-abc")
 	biz.Set("invite_status", "invited")
 	biz.Set("invite_sent_at", time.Now().UTC().Format(time.RFC3339))
-	app.Save(biz)
+	if err := app.Save(biz); err != nil {
+		t.Fatal(err)
+	}
 
 	s := &tests.ApiScenario{
 		Method:         http.MethodGet,
@@ -103,12 +108,17 @@ func TestInviteGetAcceptedReturnsQrPayload(t *testing.T) {
 	app, _, bizID := newInviteApp(t)
 	defer app.Cleanup()
 
-	biz, _ := app.FindRecordById("businesses", bizID)
+	biz, err := app.FindRecordById("businesses", bizID)
+	if err != nil {
+		t.Fatal(err)
+	}
 	biz.Set("invite_token", "accepted-token")
 	biz.Set("invite_status", "accepted")
 	biz.Set("invite_sent_at", time.Now().UTC().Format(time.RFC3339))
 	biz.Set("qr_payload", "00020126580014br.gov.bcb.pix")
-	app.Save(biz)
+	if err := app.Save(biz); err != nil {
+		t.Fatal(err)
+	}
 
 	s := &tests.ApiScenario{
 		Method:         http.MethodGet,
@@ -127,19 +137,24 @@ func TestInviteAcceptSuccess(t *testing.T) {
 	app, _, bizID := newInviteApp(t)
 	defer app.Cleanup()
 
-	biz, _ := app.FindRecordById("businesses", bizID)
+	biz, err := app.FindRecordById("businesses", bizID)
+	if err != nil {
+		t.Fatal(err)
+	}
 	biz.Set("invite_token", "accept-token")
 	biz.Set("invite_status", "invited")
 	biz.Set("invite_sent_at", time.Now().UTC().Format(time.RFC3339))
-	app.Save(biz)
+	if err := app.Save(biz); err != nil {
+		t.Fatal(err)
+	}
 
 	mockAsaas := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("Content-Type", "application/json")
 		switch {
 		case strings.Contains(r.URL.Path, "/customers"):
-			json.NewEncoder(w).Encode(map[string]string{"id": "cus_test"})
+			_ = json.NewEncoder(w).Encode(map[string]string{"id": "cus_test"})
 		case strings.Contains(r.URL.Path, "/pix/automatic/authorizations"):
-			json.NewEncoder(w).Encode(map[string]any{
+			_ = json.NewEncoder(w).Encode(map[string]any{
 				"id":      "auth_accept_test",
 				"status":  "CREATED",
 				"payload": "00020126580014br.gov.bcb.pix0136test-payload",
@@ -196,10 +211,15 @@ func TestAuthorizationCancelSuccess(t *testing.T) {
 	app, userID, bizID := newInviteApp(t)
 	defer app.Cleanup()
 
-	biz, _ := app.FindRecordById("businesses", bizID)
+	biz, err := app.FindRecordById("businesses", bizID)
+	if err != nil {
+		t.Fatal(err)
+	}
 	biz.Set("invite_status", "active")
 	biz.Set("authorization_id", "auth_to_cancel")
-	app.Save(biz)
+	if err := app.Save(biz); err != nil {
+		t.Fatal(err)
+	}
 
 	mockAsaas := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
 		w.WriteHeader(http.StatusOK)

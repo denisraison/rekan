@@ -276,7 +276,7 @@ func TestWebhookPaymentConfirmed(t *testing.T) {
 				if r.GetString("authorization_id") == testAuthorizationID {
 					r.Set("invite_status", "active")
 					r.Set("charge_pending", true)
-					app.Save(r)
+					_ = app.Save(r)
 				}
 			}
 			return app
@@ -325,7 +325,7 @@ func TestWebhookPaymentInstructionRefused(t *testing.T) {
 				if r.GetString("authorization_id") == testAuthorizationID {
 					r.Set("invite_status", "active")
 					r.Set("charge_pending", true)
-					app.Save(r)
+					_ = app.Save(r)
 				}
 			}
 			return app
@@ -365,7 +365,7 @@ func TestWebhookAuthorizationActivatedIdempotent(t *testing.T) {
 				if r.GetString("authorization_id") == testAuthorizationID {
 					r.Set("invite_status", "active")
 					r.Set("next_charge_date", "2026-04-01 00:00:00.000Z")
-					app.Save(r)
+					_ = app.Save(r)
 				}
 			}
 			return app
@@ -415,7 +415,7 @@ func TestWebhookPaymentConfirmedNotPending(t *testing.T) {
 					r.Set("invite_status", "active")
 					r.Set("charge_pending", false)
 					r.Set("next_charge_date", "2026-04-01 00:00:00.000Z")
-					app.Save(r)
+					_ = app.Save(r)
 				}
 			}
 			return app

@@ -9,7 +9,10 @@ import (
 
 func ListScheduledMessages() func(*core.RequestEvent) error {
 	return func(e *core.RequestEvent) error {
-		msgs, _ := service.ListScheduledMessages(e.App)
+		msgs, err := service.ListScheduledMessages(e.App)
+		if err != nil {
+			return e.JSON(http.StatusInternalServerError, map[string]string{"message": "erro ao buscar mensagens"})
+		}
 		if msgs == nil {
 			return e.JSON(http.StatusOK, []any{})
 		}
