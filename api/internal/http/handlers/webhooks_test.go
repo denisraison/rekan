@@ -108,9 +108,7 @@ func TestWebhookInvalidToken(t *testing.T) {
 			"Content-Type":       "application/json",
 			"asaas-access-token": "wrong-token",
 		},
-		TestAppFactory: func(tb testing.TB) *tests.TestApp {
-			return newWebhookApp(tb)
-		},
+		TestAppFactory: newWebhookApp,
 		BeforeTestFunc: func(_ testing.TB, app *tests.TestApp, e *core.ServeEvent) {
 			registerRoutes(app, e)
 		},
@@ -128,9 +126,7 @@ func TestWebhookNoTokenValidation(t *testing.T) {
 		Headers: map[string]string{
 			"Content-Type": "application/json",
 		},
-		TestAppFactory: func(tb testing.TB) *tests.TestApp {
-			return newWebhookApp(tb)
-		},
+		TestAppFactory: newWebhookApp,
 		BeforeTestFunc: func(_ testing.TB, app *tests.TestApp, e *core.ServeEvent) {
 			apphttp.RegisterRoutes(e.Router, handlers.Deps{
 				App:          app,
@@ -152,9 +148,7 @@ func TestWebhookUnknownEvent(t *testing.T) {
 			"Content-Type":       "application/json",
 			"asaas-access-token": testWebhookToken,
 		},
-		TestAppFactory: func(tb testing.TB) *tests.TestApp {
-			return newWebhookApp(tb)
-		},
+		TestAppFactory: newWebhookApp,
 		BeforeTestFunc: func(_ testing.TB, app *tests.TestApp, e *core.ServeEvent) {
 			registerRoutes(app, e)
 		},
@@ -462,9 +456,7 @@ func TestWebhookUnknownAuthorizationID(t *testing.T) {
 			"Content-Type":       "application/json",
 			"asaas-access-token": testWebhookToken,
 		},
-		TestAppFactory: func(tb testing.TB) *tests.TestApp {
-			return newWebhookApp(tb)
-		},
+		TestAppFactory: newWebhookApp,
 		BeforeTestFunc: func(_ testing.TB, app *tests.TestApp, e *core.ServeEvent) {
 			registerRoutes(app, e)
 		},

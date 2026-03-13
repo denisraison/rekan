@@ -23,7 +23,7 @@ func TestSendInviteNoPhone(t *testing.T) {
 	biz.Set("phone", "")
 	app.Save(biz)
 
-	_, err := service.SendInvite(context.Background(), app, nil, nil, bizID, "https://app.rekan.com.br")
+	_, err := service.SendInvite(context.Background(), app, nil, bizID, "https://app.rekan.com.br")
 	if err == nil {
 		t.Fatal("expected error for missing phone")
 	}
@@ -38,7 +38,7 @@ func TestSendInviteMissingTierCommitment(t *testing.T) {
 	biz.Set("commitment", "")
 	app.Save(biz)
 
-	_, err := service.SendInvite(context.Background(), app, nil, nil, bizID, "https://app.rekan.com.br")
+	_, err := service.SendInvite(context.Background(), app, nil, bizID, "https://app.rekan.com.br")
 	if err == nil {
 		t.Fatal("expected error for missing tier/commitment")
 	}
@@ -54,7 +54,7 @@ func TestSendInviteRejectsActiveOrAccepted(t *testing.T) {
 			biz.Set("invite_status", status)
 			app.Save(biz)
 
-			_, err := service.SendInvite(context.Background(), app, nil, nil, bizID, "https://app.rekan.com.br")
+			_, err := service.SendInvite(context.Background(), app, nil, bizID, "https://app.rekan.com.br")
 			if err == nil {
 				t.Fatalf("expected error for status %q", status)
 			}

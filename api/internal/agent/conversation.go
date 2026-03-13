@@ -32,29 +32,59 @@ type ConversationMessage struct {
 	Content      string
 }
 
+// LoadRecentAndPrune loads the last n messages (oldest first) and deletes any overflow in a single pass.
+func LoadRecentAndPrune(app core.App, n int) ([]ConversationMessage, error) {
+	records, err := queryRecentConversations(app, 0)
+	if err != nil {
+		return nil, err
+	}
+
+	// Delete overflow (records are newest-first from SQL)
+	if n > 0 && len(records) > n {
+		for _, r := range records[n:] {
+			_ = app.Delete(r)
+		}
+		records = records[:n]
+	}
+
+	return toMessages(records), nil
+}
+
 // LoadRecent loads the last n messages from the conversation buffer, oldest first.
 func LoadRecent(app core.App, n int) ([]ConversationMessage, error) {
-	records, err := app.FindRecordsByFilter(
-		domain.CollAgentConversations,
-		"1=1",
-		"-timestamp",
-		0,
-		n,
-		nil,
-	)
+	records, err := queryRecentConversations(app, int64(n))
 	if err != nil {
+		return nil, err
+	}
+	return toMessages(records), nil
+}
+
+// queryRecentConversations returns conversations ordered newest-first.
+// Pass limit=0 for all records.
+func queryRecentConversations(app core.App, limit int64) ([]*core.Record, error) {
+	q := app.RecordQuery(domain.CollAgentConversations).
+		OrderBy("timestamp DESC")
+	if limit > 0 {
+		q = q.Limit(limit)
+	}
+	var records []*core.Record
+	if err := q.All(&records); err != nil {
 		return nil, fmt.Errorf("load conversations: %w", err)
 	}
+	return records, nil
+}
+
+// toMessages converts newest-first records to oldest-first ConversationMessages.
+func toMessages(records []*core.Record) []ConversationMessage {
 	msgs := make([]ConversationMessage, len(records))
 	for i, r := range records {
-		// Reverse order: records come newest-first, we want oldest-first
 		msgs[len(records)-1-i] = ConversationMessage{
 			OperatorName: r.GetString("operator_name"),
 			Role:         r.GetString("role"),
 			Content:      r.GetString("content"),
 		}
 	}
-	return msgs, nil
+	return msgs
 }
 
 // FormatConversation renders messages as a text block for the BAML prompt.
@@ -73,26 +103,4 @@ func FormatConversation(msgs []ConversationMessage) string {
 		b.WriteByte('\n')
 	}
 	return b.String()
-}
-
-// Prune deletes messages beyond the keep limit, keeping the most recent ones.
-func Prune(app core.App, keep int) error {
-	// Fetch only the records past the keep window using offset.
-	records, err := app.FindRecordsByFilter(
-		domain.CollAgentConversations,
-		"1=1",
-		"-timestamp",
-		keep,
-		0,
-		nil,
-	)
-	if err != nil || len(records) == 0 {
-		return err
-	}
-	for _, r := range records {
-		if err := app.Delete(r); err != nil {
-			return err
-		}
-	}
-	return nil
 }

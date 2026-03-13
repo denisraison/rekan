@@ -6,6 +6,8 @@ import (
 
 	"github.com/pocketbase/pocketbase/core"
 	"github.com/pocketbase/pocketbase/tests"
+
+	_ "github.com/denisraison/rekan/api/migrations"
 )
 
 func setupTestApp(t *testing.T) core.App {
@@ -15,19 +17,6 @@ func setupTestApp(t *testing.T) core.App {
 		t.Fatal(err)
 	}
 	t.Cleanup(func() { app.Cleanup() })
-
-	col := core.NewBaseCollection("agent_state")
-	col.Fields.Add(
-		&core.TextField{Name: "operator_jid", Required: true},
-		&core.SelectField{Name: "state", Values: []string{"idle", "collecting", "confirming"}},
-		&core.TextField{Name: "action_type"},
-		&core.JSONField{Name: "collected_fields"},
-		&core.DateField{Name: "expires_at"},
-	)
-	if err := app.Save(col); err != nil {
-		t.Fatal(err)
-	}
-
 	return app
 }
 
@@ -37,7 +26,7 @@ func TestLoadState_NoExisting(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if state.State != "idle" {
+	if state.State != StateIdle {
 		t.Errorf("expected idle, got %s", state.State)
 	}
 }
@@ -53,7 +42,7 @@ func TestSetConfirming_And_ClearState(t *testing.T) {
 	}
 
 	state, _ = LoadState(app, jid)
-	if state.State != "confirming" {
+	if state.State != StateConfirming {
 		t.Errorf("expected confirming, got %s", state.State)
 	}
 	if state.ActionType != "CUSTOMER_CREATE" {
@@ -67,7 +56,7 @@ func TestSetConfirming_And_ClearState(t *testing.T) {
 		t.Fatal(err)
 	}
 	state, _ = LoadState(app, jid)
-	if state.State != "idle" {
+	if state.State != StateIdle {
 		t.Errorf("expected idle after clear, got %s", state.State)
 	}
 }
@@ -79,7 +68,7 @@ func TestState_AutoExpiry(t *testing.T) {
 	col, _ := app.FindCachedCollectionByNameOrId("agent_state")
 	record := core.NewRecord(col)
 	record.Set("operator_jid", jid)
-	record.Set("state", "confirming")
+	record.Set("state", StateConfirming)
 	record.Set("action_type", "CUSTOMER_CREATE")
 	record.Set("collected_fields", `{"name":"Test"}`)
 	record.Set("expires_at", time.Now().Add(-1*time.Minute).UTC().Format(time.RFC3339))
@@ -88,7 +77,7 @@ func TestState_AutoExpiry(t *testing.T) {
 	}
 
 	state, _ := LoadState(app, jid)
-	if state.State != "idle" {
+	if state.State != StateIdle {
 		t.Errorf("expected idle (auto-expired), got %s", state.State)
 	}
 }
@@ -118,10 +107,10 @@ func TestPerOperatorIsolation(t *testing.T) {
 	state1, _ = LoadState(app, jid1)
 	state2, _ = LoadState(app, jid2)
 
-	if state1.State != "idle" {
+	if state1.State != StateIdle {
 		t.Errorf("operator 1 expected idle after clear, got %s", state1.State)
 	}
-	if state2.State != "confirming" {
+	if state2.State != StateConfirming {
 		t.Errorf("operator 2 should still be confirming, got %s", state2.State)
 	}
 }

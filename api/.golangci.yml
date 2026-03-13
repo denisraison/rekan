@@ -10,6 +10,11 @@ linters:
     - staticcheck
     - ineffassign
     - revive
+    - gocritic
+
+  exclusions:
+    paths:
+      - internal/baml/baml_client  # generated code
 
   settings:
     revive:
@@ -26,4 +31,3 @@ linters:
         - name: superfluous-else
         - name: unreachable-code
         - name: unused-parameter
-

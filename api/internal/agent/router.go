@@ -155,6 +155,9 @@ func executeCustomerCreate(app core.App, ctx HydratedContext, fields map[string]
 	record.Set("name", fields["name"])
 	record.Set("type", fields["type"])
 	record.Set("city", fields["city"])
+	if s := fields["state"]; s != "" {
+		record.Set("state", s)
+	}
 	record.Set("invite_status", domain.InviteStatusDraft)
 
 	if err := app.Save(record); err != nil {

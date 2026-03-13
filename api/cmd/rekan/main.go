@@ -144,7 +144,7 @@ func run(ctx context.Context, getenv func(string) string) error {
 	app.RootCmd.AddCommand(&cobra.Command{
 		Use:   "list-groups",
 		Short: "List WhatsApp groups and their JIDs",
-		RunE: func(cmd *cobra.Command, args []string) error {
+		RunE: func(_ *cobra.Command, _ []string) error {
 			dbPath := filepath.Join(app.DataDir(), "whatsapp.db")
 			wac, err := whatsapp.New(ctx, dbPath, "Rekan", app.Logger())
 			if err != nil {

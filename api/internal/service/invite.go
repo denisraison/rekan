@@ -24,7 +24,7 @@ type SendInviteResult struct {
 	InviteURL string
 }
 
-func SendInvite(ctx context.Context, app core.App, wa *whatsapp.Client, asaas *asaasclient.Client, businessID, appURL string) (*SendInviteResult, error) {
+func SendInvite(ctx context.Context, app core.App, wa *whatsapp.Client, businessID, appURL string) (*SendInviteResult, error) {
 	business, err := app.FindRecordById(domain.CollBusinesses, businessID)
 	if err != nil {
 		return nil, wrapNotFound(err, "negócio não encontrado")

@@ -66,19 +66,20 @@ func main() {
 	var results []result
 	var err error
 
-	if *message != "" {
+	switch {
+	case *message != "":
 		if *profile == "" {
 			fmt.Fprintf(os.Stderr, "error: --message requires --profile\n")
 			os.Exit(1)
 		}
 		results, err = messageGenerate(context.Background(), *profile, *message, *judges, *verbose)
-	} else if *chain > 0 {
+	case *chain > 0:
 		if *profile == "" {
 			fmt.Fprintf(os.Stderr, "error: --chain requires --profile\n")
 			os.Exit(1)
 		}
 		results, err = chainGenerate(context.Background(), *chain, *profile, *judges, *verbose, *roles, gen)
-	} else if *fromRun != "" {
+	case *fromRun != "":
 		results, err = loadRun(*fromRun)
 		if err != nil {
 			fmt.Fprintf(os.Stderr, "error loading run: %v\n", err)
@@ -98,7 +99,7 @@ func main() {
 			results = filtered
 		}
 		results, err = evaluateContent(results, *judges, *verbose)
-	} else {
+	default:
 		sample := 0
 		if *fast && *profile == "" {
 			sample = 4

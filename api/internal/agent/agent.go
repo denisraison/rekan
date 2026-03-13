@@ -3,6 +3,7 @@ package agent
 import (
 	"context"
 	"log/slog"
+	"slices"
 	"strings"
 	"time"
 
@@ -16,14 +17,18 @@ import (
 	"github.com/pocketbase/pocketbase/core"
 )
 
+// BAMLFunc is the signature for the BAML agent function, matching baml.AgentProcess.
+type BAMLFunc func(ctx context.Context, operatorName, message, systemContext, conversationHistory string) (bamltypes.AgentResponse, error)
+
 // Agent handles WhatsApp group messages for the operator chat.
 type Agent struct {
 	App        core.App
 	WAClient   WAClient
 	Logger     *slog.Logger
 	Debouncer  *Debouncer
-	Transcribe *transcribe.Client           // nil if GEMINI_API_KEY not set
-	Generate   content.GenerateFunc         // nil if not wired
+	Transcribe *transcribe.Client   // nil if GEMINI_API_KEY not set
+	Generate   content.GenerateFunc // nil if not wired
+	BAML       BAMLFunc             // defaults to baml.AgentProcess
 }
 
 // New creates a new Agent instance.
@@ -35,6 +40,9 @@ func New(app core.App, waClient WAClient, logger *slog.Logger, tc *transcribe.Cl
 		Debouncer:  NewDebouncer(),
 		Transcribe: tc,
 		Generate:   gen,
+		BAML: func(ctx context.Context, operatorName, message, systemContext, conversationHistory string) (bamltypes.AgentResponse, error) {
+			return baml.AgentProcess(ctx, operatorName, message, systemContext, conversationHistory)
+		},
 	}
 }
 
@@ -73,7 +81,7 @@ func (a *Agent) HandleGroupMessage(evt *events.Message) {
 		// Sticker with pending confirmation = "sim"
 		if media.MediaType == "sticker" {
 			state, _ := LoadState(a.App, operatorJID)
-			if state.State == "confirming" {
+			if state.State == StateConfirming {
 				text = "sim"
 			} else {
 				return
@@ -87,8 +95,12 @@ func (a *Agent) HandleGroupMessage(evt *events.Message) {
 		}
 	}
 
+	groupJID := evt.Info.Chat
+	messageID := string(evt.Info.ID)
+	sender := senderJID
+
 	a.Debouncer.Submit(operatorJID, text, func(combined string) {
-		a.processMessage(evt, combined, operatorName, operatorJID)
+		a.ProcessMessage(groupJID, messageID, sender, combined, operatorName, operatorJID)
 	})
 }
 
@@ -106,22 +118,12 @@ func extractText(evt *events.Message) string {
 
 func isConfirmation(msg string) bool {
 	lower := strings.ToLower(strings.TrimSpace(msg))
-	for _, w := range []string{"sim", "confirma", "isso", "pode fazer", "pode", "s"} {
-		if lower == w {
-			return true
-		}
-	}
-	return false
+	return slices.Contains([]string{"sim", "confirma", "isso", "pode fazer", "pode", "s"}, lower)
 }
 
 func isCancellation(msg string) bool {
 	lower := strings.ToLower(strings.TrimSpace(msg))
-	for _, w := range []string{"não", "nao", "deixa", "cancela", "esquece", "n"} {
-		if lower == w {
-			return true
-		}
-	}
-	return false
+	return slices.Contains([]string{"não", "nao", "deixa", "cancela", "esquece", "n"}, lower)
 }
 
 // bamlResult holds the output of a callBAML invocation.
@@ -133,15 +135,15 @@ type bamlResult struct {
 
 // callBAML calls the BAML agent and routes the action if present.
 // Handles slow timer, error logging, and action routing.
-func (a *Agent) callBAML(ctx context.Context, groupJID types.JID, app core.App, hydrated HydratedContext, state *OperatorState, operatorName, operatorJID, message string, start time.Time) (*bamlResult, error) {
-	history, _ := LoadRecent(a.App, 15)
+func (a *Agent) callBAML(ctx context.Context, groupJID types.JID, hydrated HydratedContext, state *OperatorState, operatorName, operatorJID, message string, start time.Time) (*bamlResult, error) {
+	history, _ := LoadRecentAndPrune(a.App, 15)
 	historyText := FormatConversation(history)
 
 	slowTimer := time.AfterFunc(5*time.Second, func() {
 		SendReply(ctx, a.WAClient, groupJID, "Um momento...")
 	})
 
-	response, err := baml.AgentProcess(ctx, operatorName, message, hydrated.Formatted, historyText)
+	response, err := a.BAML(ctx, operatorName, message, hydrated.Formatted, historyText)
 	slowTimer.Stop()
 
 	if err != nil {
@@ -156,7 +158,7 @@ func (a *Agent) callBAML(ctx context.Context, groupJID types.JID, app core.App, 
 		result.ActionParams = response.Action.ActionParams
 
 		// If a new NEEDS_CONFIRMATION comes in while confirming, clear old state
-		if state.State == "confirming" && response.Action.ActionStatus == bamltypes.AgentActionStatusNEEDS_CONFIRMATION {
+		if state.State == StateConfirming && response.Action.ActionStatus == bamltypes.AgentActionStatusNEEDS_CONFIRMATION {
 			if err := ClearState(a.App, state, operatorJID); err != nil {
 				a.Logger.Error("agent: failed to clear old state", "error", err)
 			}
@@ -181,12 +183,13 @@ func (a *Agent) callBAML(ctx context.Context, groupJID types.JID, app core.App, 
 	return result, nil
 }
 
-func (a *Agent) processMessage(evt *events.Message, message, operatorName, operatorJID string) {
+// ProcessMessage is the core message processing pipeline.
+// Stores the message, loads conversation history, calls BAML, routes actions, and sends the reply.
+// Used by HandleGroupMessage (via debouncer) and directly by tests.
+func (a *Agent) ProcessMessage(groupJID types.JID, messageID string, senderJID types.JID, message, operatorName, operatorJID string) {
 	start := time.Now()
 	ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
 	defer cancel()
-
-	groupJID := evt.Info.Chat
 
 	if err := StoreMessage(a.App, operatorName, operatorJID, "user", message, ""); err != nil {
 		a.Logger.Error("agent: failed to store message", "error", err)
@@ -195,16 +198,16 @@ func (a *Agent) processMessage(evt *events.Message, message, operatorName, opera
 	state, _ := LoadState(a.App, operatorJID)
 
 	// Handle confirmation/cancellation of pending actions
-	if state.State == "confirming" {
-		a.handleStatefulMessage(ctx, evt, message, operatorName, operatorJID, state, start)
+	if state.State == StateConfirming {
+		a.handleStatefulMessage(ctx, groupJID, messageID, senderJID, message, operatorName, operatorJID, state, start)
 		return
 	}
 
 	hydrated := HydrateContext(a.App, operatorName, operatorJID)
 
-	ReactThumbsUp(ctx, a.WAClient, groupJID, string(evt.Info.ID), evt.Info.Sender)
+	ReactThumbsUp(ctx, a.WAClient, groupJID, messageID, senderJID)
 
-	result, err := a.callBAML(ctx, groupJID, a.App, hydrated, state, operatorName, operatorJID, message, start)
+	result, err := a.callBAML(ctx, groupJID, hydrated, state, operatorName, operatorJID, message, start)
 	if err != nil {
 		return
 	}
@@ -212,8 +215,7 @@ func (a *Agent) processMessage(evt *events.Message, message, operatorName, opera
 	a.sendAndLog(ctx, groupJID, operatorName, operatorJID, result, start)
 }
 
-func (a *Agent) handleStatefulMessage(ctx context.Context, evt *events.Message, message, operatorName, operatorJID string, state *OperatorState, start time.Time) {
-	groupJID := evt.Info.Chat
+func (a *Agent) handleStatefulMessage(ctx context.Context, groupJID types.JID, messageID string, senderJID types.JID, message, operatorName, operatorJID string, state *OperatorState, start time.Time) {
 	actionType := state.ActionType
 
 	var replyText string
@@ -240,7 +242,7 @@ func (a *Agent) handleStatefulMessage(ctx context.Context, evt *events.Message, 
 	default:
 		// Not confirmation or cancellation, pass to BAML
 		hydrated := HydrateContext(a.App, operatorName, operatorJID)
-		result, err := a.callBAML(ctx, groupJID, a.App, hydrated, state, operatorName, operatorJID, message, start)
+		result, err := a.callBAML(ctx, groupJID, hydrated, state, operatorName, operatorJID, message, start)
 		if err != nil {
 			return
 		}
@@ -250,7 +252,7 @@ func (a *Agent) handleStatefulMessage(ctx context.Context, evt *events.Message, 
 
 	br := &bamlResult{ReplyText: replyText, ActionType: actionType, ActionParams: state.CollectedFields}
 
-	ReactThumbsUp(ctx, a.WAClient, groupJID, string(evt.Info.ID), evt.Info.Sender)
+	ReactThumbsUp(ctx, a.WAClient, groupJID, messageID, senderJID)
 	a.sendAndLog(ctx, groupJID, operatorName, operatorJID, br, start)
 }
 
@@ -267,6 +269,5 @@ func (a *Agent) sendAndLog(ctx context.Context, groupJID types.JID, operatorName
 	}
 
 	StoreMessage(a.App, "Rekan", "", "assistant", result.ReplyText, "")
-	Prune(a.App, 15)
 	LogAction(a.App, operatorName, operatorJID, result.ActionType, result.ActionParams, result.ReplyText, true, start)
 }

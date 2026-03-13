@@ -5,6 +5,7 @@ import (
 	"strings"
 
 	"github.com/denisraison/rekan/api/internal/domain"
+	"github.com/pocketbase/dbx"
 	"github.com/pocketbase/pocketbase/core"
 )
 
@@ -27,31 +28,27 @@ func HydrateContext(app core.App, operatorName, operatorJID string) HydratedCont
 	}
 
 	// Active businesses
-	ctx.Businesses, _ = app.FindRecordsByFilter(
-		domain.CollBusinesses,
-		"invite_status = 'active'",
-		"name",
-		0, 0, nil,
-	)
+	app.RecordQuery(domain.CollBusinesses).
+		AndWhere(dbx.NewExp("invite_status = 'active'")).
+		OrderBy("name ASC").
+		All(&ctx.Businesses)
 
-	// Post count (cheap COUNT query instead of loading all records)
+	// Post count
 	ctx.PostCount, _ = app.CountRecords(domain.CollPosts)
 
-	// Pending posts (not yet reviewed)
-	ctx.PendingPosts, _ = app.FindRecordsByFilter(
-		domain.CollPosts,
-		"reviewed = false || reviewed = ''",
-		"-created",
-		0, 20, nil,
-	)
+	// Pending posts (not yet reviewed, newest first, max 20)
+	app.RecordQuery(domain.CollPosts).
+		AndWhere(dbx.NewExp("reviewed = FALSE OR reviewed = ''")).
+		OrderBy("created DESC").
+		Limit(20).
+		All(&ctx.PendingPosts)
 
-	// Recent agent actions
-	actions, _ := app.FindRecordsByFilter(
-		domain.CollAgentActionLog,
-		"1=1",
-		"-created",
-		0, 5, nil,
-	)
+	// Recent agent actions (last 5)
+	var actions []*core.Record
+	app.RecordQuery(domain.CollAgentActionLog).
+		OrderBy("created DESC").
+		Limit(5).
+		All(&actions)
 
 	// Format for BAML prompt
 	var b strings.Builder

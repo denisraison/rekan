@@ -25,7 +25,7 @@ func InviteSend(deps Deps) func(*core.RequestEvent) error {
 		}
 
 		businessID := e.Request.PathValue("id")
-		result, err := service.SendInvite(e.Request.Context(), e.App, deps.WhatsApp, deps.Asaas, businessID, deps.AppURL)
+		result, err := service.SendInvite(e.Request.Context(), e.App, deps.WhatsApp, businessID, deps.AppURL)
 		if err != nil {
 			if errors.Is(err, service.ErrNoPhone) {
 				return e.JSON(http.StatusBadRequest, map[string]string{"message": "cliente sem telefone cadastrado"})

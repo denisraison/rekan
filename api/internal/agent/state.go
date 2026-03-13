@@ -6,10 +6,16 @@ import (
 	"time"
 
 	"github.com/denisraison/rekan/api/internal/domain"
+	"github.com/pocketbase/dbx"
 	"github.com/pocketbase/pocketbase/core"
 )
 
 const stateExpiry = 10 * time.Minute
+
+const (
+	StateIdle       = "idle"
+	StateConfirming = "confirming"
+)
 
 // OperatorState represents the per-operator confirmation state machine.
 type OperatorState struct {
@@ -22,15 +28,17 @@ type OperatorState struct {
 
 // LoadState loads the current state for an operator, creating an idle record if none exists.
 func LoadState(app core.App, operatorJID string) (*OperatorState, error) {
-	record, err := app.FindFirstRecordByFilter(
-		domain.CollAgentState,
-		"operator_jid = {:jid}",
-		map[string]any{"jid": operatorJID},
-	)
-	if err != nil {
-		return &OperatorState{State: "idle", CollectedFields: make(map[string]string)}, nil
+	var records []*core.Record
+	app.RecordQuery(domain.CollAgentState).
+		AndWhere(dbx.NewExp("operator_jid = {:jid}", dbx.Params{"jid": operatorJID})).
+		Limit(1).
+		All(&records)
+
+	if len(records) == 0 {
+		return &OperatorState{State: StateIdle, CollectedFields: make(map[string]string)}, nil
 	}
 
+	record := records[0]
 	fields := make(map[string]string)
 	if raw := record.GetString("collected_fields"); raw != "" {
 		if err := json.Unmarshal([]byte(raw), &fields); err != nil {
@@ -47,8 +55,8 @@ func LoadState(app core.App, operatorJID string) (*OperatorState, error) {
 	}
 
 	// Auto-expire stale state
-	if state.State != "idle" && !state.ExpiresAt.IsZero() && time.Now().After(state.ExpiresAt) {
-		state.State = "idle"
+	if state.State != StateIdle && !state.ExpiresAt.IsZero() && time.Now().After(state.ExpiresAt) {
+		state.State = StateIdle
 		state.ActionType = ""
 		state.CollectedFields = make(map[string]string)
 		saveState(app, state, operatorJID)
@@ -60,7 +68,7 @@ func LoadState(app core.App, operatorJID string) (*OperatorState, error) {
 // SetConfirming transitions to confirming state with the given action type and fields.
 // Uses the already-loaded state to avoid a redundant DB query.
 func SetConfirming(app core.App, state *OperatorState, operatorJID, actionType string, fields map[string]string) error {
-	state.State = "confirming"
+	state.State = StateConfirming
 	state.ActionType = actionType
 	state.CollectedFields = fields
 	state.ExpiresAt = time.Now().Add(stateExpiry)
@@ -73,7 +81,7 @@ func ClearState(app core.App, state *OperatorState, operatorJID string) error {
 	if state.Record == nil {
 		return nil
 	}
-	state.State = "idle"
+	state.State = StateIdle
 	state.ActionType = ""
 	state.CollectedFields = make(map[string]string)
 	return saveState(app, state, operatorJID)
@@ -81,14 +89,13 @@ func ClearState(app core.App, state *OperatorState, operatorJID string) error {
 
 // HasPendingAction checks if another operator has a pending action on the same entity (by name).
 func HasPendingAction(app core.App, excludeJID, entityName string) (string, bool) {
-	records, err := app.FindRecordsByFilter(
-		domain.CollAgentState,
-		"operator_jid != {:jid} && state != 'idle'",
-		"",
-		0, 0,
-		map[string]any{"jid": excludeJID},
-	)
-	if err != nil || len(records) == 0 {
+	var records []*core.Record
+	app.RecordQuery(domain.CollAgentState).
+		AndWhere(dbx.NewExp("operator_jid != {:jid}", dbx.Params{"jid": excludeJID})).
+		AndWhere(dbx.NewExp("state != {:state}", dbx.Params{"state": StateIdle})).
+		All(&records)
+
+	if len(records) == 0 {
 		return "", false
 	}
 

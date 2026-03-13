@@ -32,13 +32,14 @@ type HandlerDeps struct {
 // RegisterMessageHandler wires incoming WhatsApp messages to PocketBase storage.
 func RegisterMessageHandler(deps HandlerDeps) {
 	deps.Client.AddEventHandler(func(evt any) {
-		switch v := evt.(type) {
-		case *events.Message:
-			if v.Info.IsGroup {
-				handleGroupMessage(deps, v)
-			} else {
-				handleDirectMessage(deps, v)
-			}
+		v, ok := evt.(*events.Message)
+		if !ok {
+			return
+		}
+		if v.Info.IsGroup {
+			handleGroupMessage(deps, v)
+		} else {
+			handleDirectMessage(deps, v)
 		}
 	})
 }
