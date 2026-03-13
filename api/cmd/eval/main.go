@@ -202,7 +202,7 @@ func generateAndEvaluate(withJudges, verbose bool, profileFilter string, sample 
 	for i, p := range profiles {
 		r := fixedRoles
 		if r == nil {
-			r = content.PickRoles(3, nil)
+			r = content.PickRoles(1, nil)
 		}
 		go func(i int, p content.BusinessProfile, roles []content.Role) {
 			fmt.Fprintf(os.Stderr, "Generating: %s...\n", p.BusinessName)
@@ -261,7 +261,7 @@ func chainGenerate(ctx context.Context, n int, profileName string, withJudges, v
 	for i := 1; i <= n; i++ {
 		roles := fixedRoles
 		if roles == nil {
-			roles = content.PickRoles(3, nil)
+			roles = content.PickRoles(1, nil)
 		}
 
 		roleNames := make([]string, len(roles))

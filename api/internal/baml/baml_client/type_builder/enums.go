@@ -91,6 +91,22 @@ func (t *AgentActionTypeEnumView) ValueCUSTOMER_INFO() (EnumValueView, error) {
 	return t.inner.Value("CUSTOMER_INFO")
 }
 
+func (t *AgentActionTypeEnumView) ValuePOST_GENERATE() (EnumValueView, error) {
+	return t.inner.Value("POST_GENERATE")
+}
+
+func (t *AgentActionTypeEnumView) ValuePOST_LIST_PENDING() (EnumValueView, error) {
+	return t.inner.Value("POST_LIST_PENDING")
+}
+
+func (t *AgentActionTypeEnumView) ValuePOST_APPROVE() (EnumValueView, error) {
+	return t.inner.Value("POST_APPROVE")
+}
+
+func (t *AgentActionTypeEnumView) ValuePOST_REJECT() (EnumValueView, error) {
+	return t.inner.Value("POST_REJECT")
+}
+
 func (t *TypeBuilder) AgentActionType() (*AgentActionTypeEnumView, error) {
 	bld, err := t.inner.Enum("AgentActionType")
 	if err != nil {

@@ -265,7 +265,7 @@ func (*stream) ExtractProfileSignal(ctx context.Context, message string, busines
 }
 
 // / Streaming version of GenerateContent
-func (*stream) GenerateContent(ctx context.Context, profile types.BusinessProfile, roles []types.ContentRole, previousHooks []string, opts ...CallOptionFunc) (<-chan StreamValue[[]stream_types.Post, []types.Post], error) {
+func (*stream) GenerateContent(ctx context.Context, profile types.BusinessProfile, roles []types.ContentRole, previousHooks []string, opts ...CallOptionFunc) (<-chan StreamValue[stream_types.Post, types.Post], error) {
 
 	var callOpts callOption
 	for _, opt := range opts {
@@ -306,11 +306,11 @@ func (*stream) GenerateContent(ctx context.Context, profile types.BusinessProfil
 		return nil, err
 	}
 
-	channel := make(chan StreamValue[[]stream_types.Post, []types.Post])
+	channel := make(chan StreamValue[stream_types.Post, types.Post])
 	go func() {
 		for result := range internal_channel {
 			if result.Error != nil {
-				channel <- StreamValue[[]stream_types.Post, []types.Post]{
+				channel <- StreamValue[stream_types.Post, types.Post]{
 					IsError: true,
 					Error:   result.Error,
 				}
@@ -318,14 +318,14 @@ func (*stream) GenerateContent(ctx context.Context, profile types.BusinessProfil
 				return
 			}
 			if result.HasData {
-				data := (result.Data).([]types.Post)
-				channel <- StreamValue[[]stream_types.Post, []types.Post]{
+				data := (result.Data).(types.Post)
+				channel <- StreamValue[stream_types.Post, types.Post]{
 					IsFinal:  true,
 					as_final: &data,
 				}
 			} else {
-				data := (result.StreamData).([]stream_types.Post)
-				channel <- StreamValue[[]stream_types.Post, []types.Post]{
+				data := (result.StreamData).(stream_types.Post)
+				channel <- StreamValue[stream_types.Post, types.Post]{
 					IsFinal:   false,
 					as_stream: &data,
 				}
@@ -413,7 +413,7 @@ func (*stream) GenerateFromMessage(ctx context.Context, profile types.BusinessPr
 }
 
 // / Streaming version of GenerateRekanContent
-func (*stream) GenerateRekanContent(ctx context.Context, profile types.BusinessProfile, roles []types.ContentRole, previousHooks []string, opts ...CallOptionFunc) (<-chan StreamValue[[]stream_types.Post, []types.Post], error) {
+func (*stream) GenerateRekanContent(ctx context.Context, profile types.BusinessProfile, roles []types.ContentRole, previousHooks []string, opts ...CallOptionFunc) (<-chan StreamValue[stream_types.Post, types.Post], error) {
 
 	var callOpts callOption
 	for _, opt := range opts {
@@ -454,11 +454,11 @@ func (*stream) GenerateRekanContent(ctx context.Context, profile types.BusinessP
 		return nil, err
 	}
 
-	channel := make(chan StreamValue[[]stream_types.Post, []types.Post])
+	channel := make(chan StreamValue[stream_types.Post, types.Post])
 	go func() {
 		for result := range internal_channel {
 			if result.Error != nil {
-				channel <- StreamValue[[]stream_types.Post, []types.Post]{
+				channel <- StreamValue[stream_types.Post, types.Post]{
 					IsError: true,
 					Error:   result.Error,
 				}
@@ -466,14 +466,14 @@ func (*stream) GenerateRekanContent(ctx context.Context, profile types.BusinessP
 				return
 			}
 			if result.HasData {
-				data := (result.Data).([]types.Post)
-				channel <- StreamValue[[]stream_types.Post, []types.Post]{
+				data := (result.Data).(types.Post)
+				channel <- StreamValue[stream_types.Post, types.Post]{
 					IsFinal:  true,
 					as_final: &data,
 				}
 			} else {
-				data := (result.StreamData).([]stream_types.Post)
-				channel <- StreamValue[[]stream_types.Post, []types.Post]{
+				data := (result.StreamData).(stream_types.Post)
+				channel <- StreamValue[stream_types.Post, types.Post]{
 					IsFinal:   false,
 					as_stream: &data,
 				}

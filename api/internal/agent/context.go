@@ -13,6 +13,7 @@ type HydratedContext struct {
 	OperatorName string
 	OperatorJID  string
 	Businesses   []*core.Record
+	PendingPosts []*core.Record // posts where reviewed = false
 	PostCount    int64
 	Formatted    string
 }
@@ -36,6 +37,14 @@ func HydrateContext(app core.App, operatorName, operatorJID string) HydratedCont
 	// Post count (cheap COUNT query instead of loading all records)
 	ctx.PostCount, _ = app.CountRecords(domain.CollPosts)
 
+	// Pending posts (not yet reviewed)
+	ctx.PendingPosts, _ = app.FindRecordsByFilter(
+		domain.CollPosts,
+		"reviewed = false || reviewed = ''",
+		"-created",
+		0, 20, nil,
+	)
+
 	// Recent agent actions
 	actions, _ := app.FindRecordsByFilter(
 		domain.CollAgentActionLog,
@@ -54,6 +63,18 @@ func HydrateContext(app core.App, operatorName, operatorJID string) HydratedCont
 	}
 
 	fmt.Fprintf(&b, "\nPosts gerados (total): %d\n", ctx.PostCount)
+
+	if len(ctx.PendingPosts) > 0 {
+		fmt.Fprintf(&b, "\nPosts pendentes de revisão: %d\n", len(ctx.PendingPosts))
+		for _, p := range ctx.PendingPosts {
+			bizName := businessNameByID(ctx.Businesses, p.GetString("business"))
+			caption := p.GetString("caption")
+			if len(caption) > 60 {
+				caption = caption[:60] + "..."
+			}
+			fmt.Fprintf(&b, "  - %s: \"%s\" (%s)\n", bizName, caption, p.Id)
+		}
+	}
 
 	if len(actions) > 0 {
 		b.WriteString("\nÚltimas ações:\n")

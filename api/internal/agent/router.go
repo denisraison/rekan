@@ -1,19 +1,22 @@
 package agent
 
 import (
+	"context"
 	"fmt"
 	"strings"
 	"time"
 
 	"github.com/denisraison/rekan/api/internal/baml/baml_client/types"
+	content "github.com/denisraison/rekan/api/internal/content"
 	"github.com/denisraison/rekan/api/internal/domain"
+	"github.com/denisraison/rekan/api/internal/service"
 	"github.com/pocketbase/pocketbase/core"
 )
 
 // RouteAction executes the action from an AgentResponse and returns the reply text.
 // For NEEDS_CONFIRMATION actions, it stores state and returns empty string (BAML reply carries the prompt).
 // For EXECUTE actions, it runs the action immediately.
-func RouteAction(app core.App, ctx HydratedContext, state *OperatorState, action types.AgentAction) (string, error) {
+func RouteAction(app core.App, ctx HydratedContext, state *OperatorState, action types.AgentAction, gen content.GenerateFunc) (string, error) {
 	switch action.ActionType {
 	case types.AgentActionTypeSTATUS_OVERVIEW:
 		return fmt.Sprintf("%s, temos %d clientes ativas e %d posts gerados.",
@@ -56,6 +59,27 @@ func RouteAction(app core.App, ctx HydratedContext, state *OperatorState, action
 		}
 		return executeCustomerPause(app, ctx, action.ActionParams)
 
+	case types.AgentActionTypePOST_GENERATE:
+		if action.ActionStatus == types.AgentActionStatusNEEDS_CONFIRMATION {
+			return storeAndConfirm(app, state, ctx, string(action.ActionType), action.ActionParams)
+		}
+		return executePostGenerate(app, ctx, action.ActionParams, gen)
+
+	case types.AgentActionTypePOST_LIST_PENDING:
+		return postListPending(ctx, action.ActionParams)
+
+	case types.AgentActionTypePOST_APPROVE:
+		if action.ActionStatus == types.AgentActionStatusNEEDS_CONFIRMATION {
+			return storeAndConfirm(app, state, ctx, string(action.ActionType), action.ActionParams)
+		}
+		return executePostApprove(app, ctx, action.ActionParams)
+
+	case types.AgentActionTypePOST_REJECT:
+		if action.ActionStatus == types.AgentActionStatusNEEDS_CONFIRMATION {
+			return storeAndConfirm(app, state, ctx, string(action.ActionType), action.ActionParams)
+		}
+		return executePostReject(app, ctx, action.ActionParams)
+
 	default:
 		return "", fmt.Errorf("unknown action type: %s", action.ActionType)
 	}
@@ -70,7 +94,7 @@ func storeAndConfirm(app core.App, state *OperatorState, ctx HydratedContext, ac
 }
 
 // ExecuteConfirmed runs the pending action after the operator said "sim".
-func ExecuteConfirmed(app core.App, ctx HydratedContext, state *OperatorState) (string, error) {
+func ExecuteConfirmed(app core.App, ctx HydratedContext, state *OperatorState, gen content.GenerateFunc) (string, error) {
 	defer ClearState(app, state, ctx.OperatorJID)
 
 	switch state.ActionType {
@@ -80,6 +104,12 @@ func ExecuteConfirmed(app core.App, ctx HydratedContext, state *OperatorState) (
 		return executeCustomerUpdate(app, ctx, state.CollectedFields)
 	case string(types.AgentActionTypeCUSTOMER_PAUSE):
 		return executeCustomerPause(app, ctx, state.CollectedFields)
+	case string(types.AgentActionTypePOST_GENERATE):
+		return executePostGenerate(app, ctx, state.CollectedFields, gen)
+	case string(types.AgentActionTypePOST_APPROVE):
+		return executePostApprove(app, ctx, state.CollectedFields)
+	case string(types.AgentActionTypePOST_REJECT):
+		return executePostReject(app, ctx, state.CollectedFields)
 	default:
 		return "", fmt.Errorf("unknown pending action: %s", state.ActionType)
 	}
@@ -184,6 +214,154 @@ func executeCustomerPause(app core.App, ctx HydratedContext, fields map[string]s
 		return fmt.Sprintf("%s, %s pausada. Motivo: %s.", ctx.OperatorName, name, reason), nil
 	}
 	return fmt.Sprintf("%s, %s pausada.", ctx.OperatorName, name), nil
+}
+
+func executePostGenerate(app core.App, ctx HydratedContext, fields map[string]string, gen content.GenerateFunc) (string, error) {
+	name := fields["name"]
+	if name == "" {
+		return fmt.Sprintf("%s, pra qual cliente você quer gerar post?", ctx.OperatorName), nil
+	}
+
+	matches := findBusinessRecords(ctx.Businesses, name)
+	if len(matches) == 0 {
+		return fmt.Sprintf("%s, não encontrei cliente '%s'.", ctx.OperatorName, name), nil
+	}
+	if len(matches) > 1 {
+		return disambiguate(ctx.OperatorName, matches), nil
+	}
+
+	biz := matches[0]
+	if gen == nil {
+		return fmt.Sprintf("%s, geração de posts não está configurada.", ctx.OperatorName), nil
+	}
+
+	result, err := service.GeneratePosts(context.Background(), app, gen, biz.Id)
+	if err != nil {
+		return "", fmt.Errorf("generating posts: %w", err)
+	}
+
+	if len(result.Posts) == 0 {
+		return fmt.Sprintf("%s, não consegui gerar post pra %s.", ctx.OperatorName, biz.GetString("name")), nil
+	}
+
+	post := result.Posts[0]
+	caption := post.Caption
+	if len(caption) > 80 {
+		caption = caption[:80] + "..."
+	}
+	return fmt.Sprintf("%s, post gerado pra %s! \"%s\" (%s)", ctx.OperatorName, biz.GetString("name"), caption, post.ID), nil
+}
+
+func postListPending(ctx HydratedContext, params map[string]string) (string, error) {
+	name := params["name"]
+
+	var pending []*core.Record
+	for _, p := range ctx.PendingPosts {
+		if name == "" {
+			pending = append(pending, p)
+			continue
+		}
+		bizID := p.GetString("business")
+		for _, biz := range ctx.Businesses {
+			if biz.Id == bizID && strings.Contains(normalizeForMatch(biz.GetString("name")), normalizeForMatch(name)) {
+				pending = append(pending, p)
+				break
+			}
+		}
+	}
+
+	if len(pending) == 0 {
+		if name != "" {
+			return fmt.Sprintf("%s, não tem posts pendentes da %s.", ctx.OperatorName, name), nil
+		}
+		return fmt.Sprintf("%s, não tem posts pendentes no momento.", ctx.OperatorName), nil
+	}
+
+	var b strings.Builder
+	fmt.Fprintf(&b, "%s, posts pendentes:\n", ctx.OperatorName)
+	for _, p := range pending {
+		bizName := businessNameByID(ctx.Businesses, p.GetString("business"))
+		caption := p.GetString("caption")
+		if len(caption) > 50 {
+			caption = caption[:50] + "..."
+		}
+		fmt.Fprintf(&b, "- %s: \"%s\" (%s)\n", bizName, caption, p.Id)
+	}
+	return b.String(), nil
+}
+
+func executePostApprove(app core.App, ctx HydratedContext, fields map[string]string) (string, error) {
+	postID := fields["post_id"]
+	if postID == "" {
+		return fmt.Sprintf("%s, qual post você quer aprovar?", ctx.OperatorName), nil
+	}
+
+	record := findPendingPost(ctx.PendingPosts, postID)
+	if record == nil {
+		var err error
+		record, err = app.FindRecordById(domain.CollPosts, postID)
+		if err != nil {
+			return fmt.Sprintf("%s, não encontrei o post %s.", ctx.OperatorName, postID), nil
+		}
+	}
+
+	record.Set("reviewed", true)
+	if err := app.Save(record); err != nil {
+		return "", fmt.Errorf("approving post: %w", err)
+	}
+
+	bizName := businessNameByID(ctx.Businesses, record.GetString("business"))
+	return fmt.Sprintf("%s, post da %s aprovado!", ctx.OperatorName, bizName), nil
+}
+
+func executePostReject(app core.App, ctx HydratedContext, fields map[string]string) (string, error) {
+	postID := fields["post_id"]
+	if postID == "" {
+		return fmt.Sprintf("%s, qual post você quer rejeitar?", ctx.OperatorName), nil
+	}
+
+	record := findPendingPost(ctx.PendingPosts, postID)
+	if record == nil {
+		var err error
+		record, err = app.FindRecordById(domain.CollPosts, postID)
+		if err != nil {
+			return fmt.Sprintf("%s, não encontrei o post %s.", ctx.OperatorName, postID), nil
+		}
+	}
+
+	feedback := fields["feedback"]
+	record.Set("reviewed", true)
+	record.Set("review_note", feedback)
+	if err := app.Save(record); err != nil {
+		return "", fmt.Errorf("rejecting post: %w", err)
+	}
+
+	bizName := businessNameByID(ctx.Businesses, record.GetString("business"))
+	if feedback != "" {
+		return fmt.Sprintf("%s, post da %s rejeitado. Feedback: %s.", ctx.OperatorName, bizName, feedback), nil
+	}
+	return fmt.Sprintf("%s, post da %s rejeitado.", ctx.OperatorName, bizName), nil
+}
+
+// findPendingPost looks up a post by ID in the pre-loaded pending posts slice.
+func findPendingPost(posts []*core.Record, id string) *core.Record {
+	for _, p := range posts {
+		if p.Id == id {
+			return p
+		}
+	}
+	return nil
+}
+
+// businessNameByID returns the business name for a given record ID,
+// or the raw ID as fallback if not found.
+func businessNameByID(businesses []*core.Record, id string) string {
+	for _, biz := range businesses {
+		if biz.Id == id {
+			return biz.GetString("name")
+		}
+	}
+	return id
 }
 
 // findBusinessRecords returns matching business records for a name query.

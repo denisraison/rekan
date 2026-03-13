@@ -143,16 +143,15 @@ function JudgeAcionavel(profile: BusinessProfile, content: string) -> JudgeResul
 
     NOTA DE PRODUÇÃO: reprove se for vaga ("tire uma foto do produto", "grave um vídeo mostrando o serviço"). Aprove se disser o que filmar, de que ângulo, em que momento.
 
-    CTA: reprove se for o mesmo CTA copiado em todos os posts. Aprove se variar entre posts.
+    CTA: reprove se for genérico e desconectado do conteúdo ("chama no WhatsApp!" solto). Aprove se tiver motivo claro ligado ao post.
 
-    FLUIDEZ: reprove se a legenda parecer seções coladas (texto → bloco de hashtags → CTA solto → nota solta). Aprove se a transição entre elementos for natural.
+    FLUIDEZ: reprove se a legenda parecer seções coladas (texto -> bloco de hashtags -> CTA solto -> nota solta). Aprove se a transição entre elementos for natural.
 
     Reprove se 2 ou mais critérios falharem.
 
     Exemplo de reprovação (elementos existem mas sem qualidade):
-    Post 1: "... Chama no WhatsApp! #empreendedorismo #sucesso #foco #negociolocal #motivação. Nota de produção: tire uma foto bonita do produto."
-    Post 2: "... Chama no WhatsApp! #empreendedorismo #sucesso #negociolocal #trabalho #foco. Nota de produção: grave um vídeo do serviço."
-    Motivo: hashtags genéricas repetidas, mesmo CTA em ambos, notas de produção vagas. Tudo existe estruturalmente mas nada tem qualidade.
+    "... Chama no WhatsApp! #empreendedorismo #sucesso #foco #negociolocal #motivação. Nota de produção: tire uma foto bonita do produto."
+    Motivo: hashtags genéricas, CTA genérico desconectado, nota de produção vaga. Tudo existe estruturalmente mas nada tem qualidade.
 
     Primeiro explique seu raciocínio em 2-3 frases, depois dê o veredito.
     Veredito: true se os elementos têm qualidade, false se são genéricos/repetitivos.

@@ -24,7 +24,7 @@ func TestChainGenerationProducesDifferentHooks(t *testing.T) {
 	}
 
 	ctx := context.Background()
-	roles := PickRoles(3, nil)
+	roles := PickRoles(1, nil)
 
 	// Batch 1: no previous hooks.
 	posts1, err := Generate(ctx, profile, roles, nil)
@@ -41,7 +41,7 @@ func TestChainGenerationProducesDifferentHooks(t *testing.T) {
 	}
 
 	// Batch 2: pass batch 1 hooks as exclusion context.
-	roles2 := PickRoles(3, nil)
+	roles2 := PickRoles(1, nil)
 	posts2, err := Generate(ctx, profile, roles2, hooks1)
 	if err != nil {
 		t.Fatalf("batch 2 generate: %v", err)

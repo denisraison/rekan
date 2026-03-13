@@ -36,7 +36,7 @@ func GeneratePosts(ctx context.Context, app core.App, generate content.GenerateF
 		return nil, fmt.Errorf("business to profile: %w", err)
 	}
 
-	roles := content.PickRoles(3, nil)
+	roles := content.PickRoles(1, nil)
 
 	previousHooks, err := operator.LoadPreviousHooks(app, businessID)
 	if err != nil {
@@ -172,7 +172,7 @@ func GenerateIdeas(ctx context.Context, app core.App, generate content.GenerateF
 		return nil, fmt.Errorf("load previous hooks: %w", err)
 	}
 
-	return generate(ctx, profile, content.PickRoles(3, nil), previousHooks)
+	return generate(ctx, profile, content.PickRoles(1, nil), previousHooks)
 }
 
 type SaveProactiveParams struct {

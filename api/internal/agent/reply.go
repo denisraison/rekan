@@ -14,6 +14,29 @@ import (
 type WAClient interface {
 	SendMessage(ctx context.Context, to types.JID, msg *waE2E.Message) (whatsmeow.SendResponse, error)
 	ResolveLID(ctx context.Context, jid types.JID) types.JID
+	Download(ctx context.Context, msg whatsmeow.DownloadableMessage) (data []byte, err error)
+	Upload(ctx context.Context, data []byte, mediaType whatsmeow.MediaType) (whatsmeow.UploadResponse, error)
+}
+
+// SendImage sends an image message to a WhatsApp chat.
+func SendImage(ctx context.Context, wa WAClient, to types.JID, imageData []byte, caption string) error {
+	resp, err := wa.Upload(ctx, imageData, whatsmeow.MediaImage)
+	if err != nil {
+		return err
+	}
+	_, err = wa.SendMessage(ctx, to, &waE2E.Message{
+		ImageMessage: &waE2E.ImageMessage{
+			URL:           &resp.URL,
+			DirectPath:    &resp.DirectPath,
+			MediaKey:      resp.MediaKey,
+			FileEncSHA256: resp.FileEncSHA256,
+			FileSHA256:    resp.FileSHA256,
+			FileLength:    proto.Uint64(uint64(len(imageData))),
+			Mimetype:      proto.String("image/jpeg"),
+			Caption:       &caption,
+		},
+	})
+	return err
 }
 
 // SendReply sends a text message to the WhatsApp group.

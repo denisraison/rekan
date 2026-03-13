@@ -89,12 +89,16 @@ func (e AgentActionStatus) BamlTypeName() string {
 type AgentActionType string
 
 const (
-	AgentActionTypeSTATUS_OVERVIEW AgentActionType = "STATUS_OVERVIEW"
-	AgentActionTypeCUSTOMER_LIST   AgentActionType = "CUSTOMER_LIST"
-	AgentActionTypeCUSTOMER_CREATE AgentActionType = "CUSTOMER_CREATE"
-	AgentActionTypeCUSTOMER_UPDATE AgentActionType = "CUSTOMER_UPDATE"
-	AgentActionTypeCUSTOMER_PAUSE  AgentActionType = "CUSTOMER_PAUSE"
-	AgentActionTypeCUSTOMER_INFO   AgentActionType = "CUSTOMER_INFO"
+	AgentActionTypeSTATUS_OVERVIEW   AgentActionType = "STATUS_OVERVIEW"
+	AgentActionTypeCUSTOMER_LIST     AgentActionType = "CUSTOMER_LIST"
+	AgentActionTypeCUSTOMER_CREATE   AgentActionType = "CUSTOMER_CREATE"
+	AgentActionTypeCUSTOMER_UPDATE   AgentActionType = "CUSTOMER_UPDATE"
+	AgentActionTypeCUSTOMER_PAUSE    AgentActionType = "CUSTOMER_PAUSE"
+	AgentActionTypeCUSTOMER_INFO     AgentActionType = "CUSTOMER_INFO"
+	AgentActionTypePOST_GENERATE     AgentActionType = "POST_GENERATE"
+	AgentActionTypePOST_LIST_PENDING AgentActionType = "POST_LIST_PENDING"
+	AgentActionTypePOST_APPROVE      AgentActionType = "POST_APPROVE"
+	AgentActionTypePOST_REJECT       AgentActionType = "POST_REJECT"
 )
 
 // Values returns all allowed values for the AgentActionType type.
@@ -106,6 +110,10 @@ func (AgentActionType) Values() []AgentActionType {
 		AgentActionTypeCUSTOMER_UPDATE,
 		AgentActionTypeCUSTOMER_PAUSE,
 		AgentActionTypeCUSTOMER_INFO,
+		AgentActionTypePOST_GENERATE,
+		AgentActionTypePOST_LIST_PENDING,
+		AgentActionTypePOST_APPROVE,
+		AgentActionTypePOST_REJECT,
 	}
 }
 

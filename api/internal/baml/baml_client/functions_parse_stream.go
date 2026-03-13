@@ -166,8 +166,8 @@ func (*parse_stream) ExtractProfileSignal(text string, opts ...CallOptionFunc) (
 	return casted, nil
 }
 
-// / Parse version of GenerateContent (Takes in string and returns []stream_types.Post)
-func (*parse_stream) GenerateContent(text string, opts ...CallOptionFunc) ([]stream_types.Post, error) {
+// / Parse version of GenerateContent (Takes in string and returns stream_types.Post)
+func (*parse_stream) GenerateContent(text string, opts ...CallOptionFunc) (stream_types.Post, error) {
 
 	var callOpts callOption
 	for _, opt := range opts {
@@ -205,10 +205,10 @@ func (*parse_stream) GenerateContent(text string, opts ...CallOptionFunc) ([]str
 
 	result, err := bamlRuntime.CallFunctionParse(context.Background(), "GenerateContent", encoded)
 	if err != nil {
-		return nil, err
+		return stream_types.Post{}, err
 	}
 
-	casted := (result).([]stream_types.Post)
+	casted := (result).(stream_types.Post)
 
 	return casted, nil
 }
@@ -260,8 +260,8 @@ func (*parse_stream) GenerateFromMessage(text string, opts ...CallOptionFunc) (s
 	return casted, nil
 }
 
-// / Parse version of GenerateRekanContent (Takes in string and returns []stream_types.Post)
-func (*parse_stream) GenerateRekanContent(text string, opts ...CallOptionFunc) ([]stream_types.Post, error) {
+// / Parse version of GenerateRekanContent (Takes in string and returns stream_types.Post)
+func (*parse_stream) GenerateRekanContent(text string, opts ...CallOptionFunc) (stream_types.Post, error) {
 
 	var callOpts callOption
 	for _, opt := range opts {
@@ -299,10 +299,10 @@ func (*parse_stream) GenerateRekanContent(text string, opts ...CallOptionFunc) (
 
 	result, err := bamlRuntime.CallFunctionParse(context.Background(), "GenerateRekanContent", encoded)
 	if err != nil {
-		return nil, err
+		return stream_types.Post{}, err
 	}
 
-	casted := (result).([]stream_types.Post)
+	casted := (result).(stream_types.Post)
 
 	return casted, nil
 }

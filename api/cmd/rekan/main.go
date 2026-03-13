@@ -72,7 +72,7 @@ func run(ctx context.Context, getenv func(string) string) error {
 			// Create group agent if CLAUDE_API_KEY is set
 			var handleGroupMsg whatsapp.GroupMessageHandler
 			if getenv("CLAUDE_API_KEY") != "" {
-				groupAgent := agent.New(app, wac, app.Logger())
+				groupAgent := agent.New(app, wac, app.Logger(), whisperClient, content.Generate)
 				handleGroupMsg = groupAgent.HandleGroupMessage
 			}
 

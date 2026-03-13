@@ -11,24 +11,30 @@ import (
 
 	baml "github.com/denisraison/rekan/api/internal/baml/baml_client"
 	bamltypes "github.com/denisraison/rekan/api/internal/baml/baml_client/types"
+	content "github.com/denisraison/rekan/api/internal/content"
+	"github.com/denisraison/rekan/api/internal/transcribe"
 	"github.com/pocketbase/pocketbase/core"
 )
 
 // Agent handles WhatsApp group messages for the operator chat.
 type Agent struct {
-	App       core.App
-	WAClient  WAClient
-	Logger    *slog.Logger
-	Debouncer *Debouncer
+	App        core.App
+	WAClient   WAClient
+	Logger     *slog.Logger
+	Debouncer  *Debouncer
+	Transcribe *transcribe.Client           // nil if GEMINI_API_KEY not set
+	Generate   content.GenerateFunc         // nil if not wired
 }
 
 // New creates a new Agent instance.
-func New(app core.App, waClient WAClient, logger *slog.Logger) *Agent {
+func New(app core.App, waClient WAClient, logger *slog.Logger, tc *transcribe.Client, gen content.GenerateFunc) *Agent {
 	return &Agent{
-		App:       app,
-		WAClient:  waClient,
-		Logger:    logger,
-		Debouncer: NewDebouncer(),
+		App:        app,
+		WAClient:   waClient,
+		Logger:     logger,
+		Debouncer:  NewDebouncer(),
+		Transcribe: tc,
+		Generate:   gen,
 	}
 }
 
@@ -56,8 +62,29 @@ func (a *Agent) HandleGroupMessage(evt *events.Message) {
 	operatorJID := senderJID.User
 
 	text := extractText(evt)
+
+	// Handle non-text media (images, audio, stickers, contacts, forwarded)
 	if text == "" {
-		return
+		media := ExtractMedia(context.Background(), a.WAClient, a.Transcribe, evt)
+		if media.Text == "" && media.MediaType == "" {
+			return
+		}
+
+		// Sticker with pending confirmation = "sim"
+		if media.MediaType == "sticker" {
+			state, _ := LoadState(a.App, operatorJID)
+			if state.State == "confirming" {
+				text = "sim"
+			} else {
+				return
+			}
+		} else {
+			text = media.Text
+		}
+
+		if text == "" {
+			return
+		}
 	}
 
 	a.Debouncer.Submit(operatorJID, text, func(combined string) {
@@ -135,7 +162,7 @@ func (a *Agent) callBAML(ctx context.Context, groupJID types.JID, app core.App, 
 			}
 		}
 
-		routeResult, routeErr := RouteAction(a.App, hydrated, state, *response.Action)
+		routeResult, routeErr := RouteAction(a.App, hydrated, state, *response.Action, a.Generate)
 		if routeErr != nil {
 			a.Logger.Error("agent: action routing failed", "error", routeErr, "action", result.ActionType)
 			LogAction(a.App, operatorName, operatorJID, result.ActionType, result.ActionParams, routeErr.Error(), false, start)
@@ -195,7 +222,7 @@ func (a *Agent) handleStatefulMessage(ctx context.Context, evt *events.Message, 
 	case isConfirmation(message):
 		// Only hydrate for execution (needs business records for update/pause)
 		hydrated := HydrateContext(a.App, operatorName, operatorJID)
-		result, err := ExecuteConfirmed(a.App, hydrated, state)
+		result, err := ExecuteConfirmed(a.App, hydrated, state, a.Generate)
 		if err != nil {
 			a.Logger.Error("agent: confirmed action failed", "error", err, "action", actionType)
 			replyText = operatorName + ", algo deu errado. Tenta de novo?"

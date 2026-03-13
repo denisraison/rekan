@@ -243,7 +243,7 @@ func ExtractProfileSignal(ctx context.Context, message string, businessType stri
 	}
 }
 
-func GenerateContent(ctx context.Context, profile types.BusinessProfile, roles []types.ContentRole, previousHooks []string, opts ...CallOptionFunc) ([]types.Post, error) {
+func GenerateContent(ctx context.Context, profile types.BusinessProfile, roles []types.ContentRole, previousHooks []string, opts ...CallOptionFunc) (types.Post, error) {
 
 	var callOpts callOption
 	for _, opt := range opts {
@@ -287,33 +287,33 @@ func GenerateContent(ctx context.Context, profile types.BusinessProfile, roles [
 	if callOpts.onTick == nil {
 		result, err := bamlRuntime.CallFunction(ctx, "GenerateContent", encoded, callOpts.onTick)
 		if err != nil {
-			return nil, err
+			return types.Post{}, err
 		}
 
 		if result.Error != nil {
-			return nil, result.Error
+			return types.Post{}, result.Error
 		}
 
-		casted := (result.Data).([]types.Post)
+		casted := (result.Data).(types.Post)
 
 		return casted, nil
 	} else {
 		channel, err := bamlRuntime.CallFunctionStream(ctx, "GenerateContent", encoded, callOpts.onTick)
 		if err != nil {
-			return nil, err
+			return types.Post{}, err
 		}
 
 		for result := range channel {
 			if result.Error != nil {
-				return nil, result.Error
+				return types.Post{}, result.Error
 			}
 
 			if result.HasData {
-				return result.Data.([]types.Post), nil
+				return result.Data.(types.Post), nil
 			}
 		}
 
-		return nil, fmt.Errorf("No data returned from stream")
+		return types.Post{}, fmt.Errorf("No data returned from stream")
 	}
 }
 
@@ -391,7 +391,7 @@ func GenerateFromMessage(ctx context.Context, profile types.BusinessProfile, cli
 	}
 }
 
-func GenerateRekanContent(ctx context.Context, profile types.BusinessProfile, roles []types.ContentRole, previousHooks []string, opts ...CallOptionFunc) ([]types.Post, error) {
+func GenerateRekanContent(ctx context.Context, profile types.BusinessProfile, roles []types.ContentRole, previousHooks []string, opts ...CallOptionFunc) (types.Post, error) {
 
 	var callOpts callOption
 	for _, opt := range opts {
@@ -435,33 +435,33 @@ func GenerateRekanContent(ctx context.Context, profile types.BusinessProfile, ro
 	if callOpts.onTick == nil {
 		result, err := bamlRuntime.CallFunction(ctx, "GenerateRekanContent", encoded, callOpts.onTick)
 		if err != nil {
-			return nil, err
+			return types.Post{}, err
 		}
 
 		if result.Error != nil {
-			return nil, result.Error
+			return types.Post{}, result.Error
 		}
 
-		casted := (result.Data).([]types.Post)
+		casted := (result.Data).(types.Post)
 
 		return casted, nil
 	} else {
 		channel, err := bamlRuntime.CallFunctionStream(ctx, "GenerateRekanContent", encoded, callOpts.onTick)
 		if err != nil {
-			return nil, err
+			return types.Post{}, err
 		}
 
 		for result := range channel {
 			if result.Error != nil {
-				return nil, result.Error
+				return types.Post{}, result.Error
 			}
 
 			if result.HasData {
-				return result.Data.([]types.Post), nil
+				return result.Data.(types.Post), nil
 			}
 		}
 
-		return nil, fmt.Errorf("No data returned from stream")
+		return types.Post{}, fmt.Errorf("No data returned from stream")
 	}
 }
 

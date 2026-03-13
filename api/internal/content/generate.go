@@ -21,35 +21,27 @@ type GenerateFunc func(ctx context.Context, profile BusinessProfile, roles []Rol
 type GenerateFromMessageFunc func(ctx context.Context, profile BusinessProfile, message string, previousHooks []string) (Post, error)
 
 func Generate(ctx context.Context, profile BusinessProfile, roles []Role, previousHooks []string) ([]Post, error) {
-	bamlPosts, err := baml.GenerateContent(ctx, toBamlProfile(profile), toBamlRoles(roles), previousHooks)
+	p, err := baml.GenerateContent(ctx, toBamlProfile(profile), toBamlRoles(roles), previousHooks)
 	if err != nil {
 		return nil, fmt.Errorf("generate content: %w", err)
 	}
-	posts := make([]Post, len(bamlPosts))
-	for i, p := range bamlPosts {
-		posts[i] = Post{
-			Caption:        p.Caption,
-			Hashtags:       p.Hashtags,
-			ProductionNote: p.ProductionNote,
-		}
-	}
-	return posts, nil
+	return []Post{{
+		Caption:        p.Caption,
+		Hashtags:       p.Hashtags,
+		ProductionNote: p.ProductionNote,
+	}}, nil
 }
 
 func GenerateRekan(ctx context.Context, profile BusinessProfile, roles []Role, previousHooks []string) ([]Post, error) {
-	bamlPosts, err := baml.GenerateRekanContent(ctx, toBamlProfile(profile), toBamlRoles(roles), previousHooks)
+	p, err := baml.GenerateRekanContent(ctx, toBamlProfile(profile), toBamlRoles(roles), previousHooks)
 	if err != nil {
 		return nil, fmt.Errorf("generate rekan content: %w", err)
 	}
-	posts := make([]Post, len(bamlPosts))
-	for i, p := range bamlPosts {
-		posts[i] = Post{
-			Caption:        p.Caption,
-			Hashtags:       p.Hashtags,
-			ProductionNote: p.ProductionNote,
-		}
-	}
-	return posts, nil
+	return []Post{{
+		Caption:        p.Caption,
+		Hashtags:       p.Hashtags,
+		ProductionNote: p.ProductionNote,
+	}}, nil
 }
 
 func GenerateFromMessage(ctx context.Context, profile BusinessProfile, message string, previousHooks []string) (Post, error) {
