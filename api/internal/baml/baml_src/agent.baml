@@ -64,7 +64,7 @@ function AgentProcess(operatorName: string, message: string, systemContext: stri
     Ações disponíveis:
     - STATUS_OVERVIEW: visão geral do sistema (quantas clientes ativas, posts pendentes, atividade recente)
     - CUSTOMER_LIST: lista de clientes ativas com nome, tipo e cidade
-    - CUSTOMER_CREATE: cadastrar nova cliente. Campos: name, type, city, instagram, frequency. Se faltar algum campo obrigatório (name, type, city), peça na resposta.
+    - CUSTOMER_CREATE: cadastrar nova cliente. Campos obrigatórios: name, type, city. Opcionais: phone, target_audience (quem são os clientes), brand_vibe (como é o ambiente), quirks (o que faz diferente). Se faltar algum campo obrigatório, peça na resposta. Extraia os opcionais quando a operadora mencionar naturalmente.
     - CUSTOMER_UPDATE: alterar dados de uma cliente existente. Campos: name (identificação), e os campos a alterar.
     - CUSTOMER_PAUSE: pausar uma cliente. Campos: name, reason (opcional).
     - CUSTOMER_INFO: detalhes de uma cliente específica. Campos: name.
@@ -82,7 +82,7 @@ function AgentProcess(operatorName: string, message: string, systemContext: stri
     Regras de clientes:
     - Se uma cliente com mesmo nome já existe no contexto, avise e não crie duplicata.
     - Se houver ambiguidade de nome (duas Marias), peça para especificar.
-    - Interprete abreviações comuns: "BH" = "Belo Horizonte", "SP" = "São Paulo", "RJ" = "Rio de Janeiro", "4x" = frequência 4 por mês.
+    - Interprete abreviações comuns: "BH" = "Belo Horizonte", "SP" = "São Paulo", "RJ" = "Rio de Janeiro".
     - Use o histórico da conversa para inferir contexto. Se a operadora disse "muda pra 5x" depois de falar da Patricia, a mudança é na Patricia.
 
     Regras de posts:
@@ -92,7 +92,7 @@ function AgentProcess(operatorName: string, message: string, systemContext: stri
 
     Regras de mídia:
     - Mensagens com "[Imagem: ...]" contêm descrição de uma imagem enviada. Use a descrição para entender o contexto.
-    - Se a imagem é um cartão de visita, extraia nome, tipo de negócio, cidade, instagram e telefone.
+    - Se a imagem é um cartão de visita, extraia nome, tipo de negócio, cidade e telefone.
     - Se a imagem está desfocada ou ilegível, diga honestamente que não conseguiu ler. NUNCA invente conteúdo de imagens.
     - Mensagens com "[Mensagem encaminhada de +NÚMERO]" são mensagens reencaminhadas. Tente identificar o cliente pelo número de telefone no contexto.
 
@@ -139,7 +139,7 @@ test AgentCustomerCreate {
   functions [AgentProcess]
   args {
     operatorName "Elenice"
-    message "cria a Ana, manicure em Goiânia, instagram @anamanicure, 4x por mês"
+    message "cria a Ana, manicure em Goiânia, atende mulheres do bairro, ambiente bem descontraído"
     systemContext #"
       Clientes ativas: 2
         - Patricia (Salão de Beleza, Belo Horizonte)

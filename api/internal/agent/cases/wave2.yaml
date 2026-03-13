@@ -1,7 +1,7 @@
 tests:
   # Happy path: all fields in one message
   - id: w2_create_happy_path
-    message: "cria a Patricia, salão de beleza em BH, instagram @patriciabeleza, 4x por mês"
+    message: "cria a Patricia, salão de beleza em BH, atende mulheres do bairro, ambiente acolhedor e descontraído"
     operator: { name: "Elenice", jid: "5511999990000" }
     context: |
       Operadora: Elenice
@@ -17,7 +17,7 @@ tests:
         equals: CUSTOMER_CREATE
       - type: llm_judge
         judge: confirmation_flow
-        criteria: "Agente lista os campos extraídos (nome, tipo, cidade, instagram, frequência) e pede confirmação explícita antes de criar"
+        criteria: "Agente lista os campos extraídos (nome, tipo, cidade, público-alvo, ambiente) e pede confirmação explícita antes de criar"
 
   # Incomplete: missing city, agent asks for it (no action yet, just reply)
   - id: w2_create_missing_city
@@ -36,9 +36,9 @@ tests:
         judge: confirmation_flow
         criteria: "Agente pede a cidade que está faltando, não tenta criar sem a informação"
 
-  # Abbreviations: BH -> Belo Horizonte, 4x -> frequency 4
+  # Abbreviations: BH -> Belo Horizonte
   - id: w2_abbreviations
-    message: "nova cliente: Ana, manicure, BH, 4x"
+    message: "nova cliente: Ana, manicure, BH"
     operator: { name: "Elenice", jid: "5511999990000" }
     context: |
       Operadora: Elenice
@@ -50,7 +50,7 @@ tests:
         equals: CUSTOMER_CREATE
       - type: llm_judge
         judge: no_hallucination
-        criteria: "Agente interpreta 'BH' como 'Belo Horizonte' e '4x' como frequência 4 por mês. Campos extraídos corretamente."
+        criteria: "Agente interpreta 'BH' como 'Belo Horizonte'. Campos extraídos corretamente."
 
   # Cancel mid-flow
   - id: w2_cancel_flow
@@ -129,9 +129,9 @@ tests:
         judge: no_hallucination
         criteria: "Agente detecta que Patricia (Salão de Beleza, Belo Horizonte) já existe e avisa, não tenta criar duplicata"
 
-  # Contextual inference: "muda pra 5x" after discussing Patricia
+  # Contextual inference: "muda a cidade" after discussing Patricia
   - id: w2_contextual_update
-    message: "muda pra 5x"
+    message: "muda pra Contagem"
     operator: { name: "Bruna", jid: "5511999991111" }
     context: |
       Operadora: Bruna
@@ -143,14 +143,14 @@ tests:
     conversation_history: |
       Bruna: como tá a Patricia?
       [Rekan]: Bruna, a Patricia (Salão de Beleza, Belo Horizonte) está com 4 posts gerados.
-      Bruna: muda pra 5x
+      Bruna: muda pra Contagem
     graders:
       - type: deterministic
         field: action_type
         equals: CUSTOMER_UPDATE
       - type: llm_judge
         judge: confirmation_flow
-        criteria: "Agente entende do contexto que 'muda pra 5x' se refere à Patricia e pede confirmação para alterar frequência"
+        criteria: "Agente entende do contexto que 'muda pra Contagem' se refere à cidade da Patricia e pede confirmação"
 
   # Customer info
   - id: w2_customer_info

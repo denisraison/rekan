@@ -158,6 +158,18 @@ func executeCustomerCreate(app core.App, ctx HydratedContext, fields map[string]
 	if s := fields["state"]; s != "" {
 		record.Set("state", s)
 	}
+	if p := fields["phone"]; p != "" {
+		record.Set("phone", p)
+	}
+	if v := fields["target_audience"]; v != "" {
+		record.Set("target_audience", v)
+	}
+	if v := fields["brand_vibe"]; v != "" {
+		record.Set("brand_vibe", v)
+	}
+	if v := fields["quirks"]; v != "" {
+		record.Set("quirks", v)
+	}
 	record.Set("invite_status", domain.InviteStatusDraft)
 
 	if err := app.Save(record); err != nil {
@@ -167,6 +179,7 @@ func executeCustomerCreate(app core.App, ctx HydratedContext, fields map[string]
 	return fmt.Sprintf("%s, %s cadastrada! (%s, %s)",
 		ctx.OperatorName, fields["name"], fields["type"], fields["city"]), nil
 }
+
 
 func executeCustomerUpdate(app core.App, ctx HydratedContext, fields map[string]string) (string, error) {
 	name := fields["name"]

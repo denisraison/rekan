@@ -94,7 +94,6 @@
     if (!formName.trim() || !formType || !formCity.trim() || !formState) return "Preencha nome, tipo, cidade e estado.";
     if (invite) { if (!formClientName.trim()) return "Preencha o nome do cliente para enviar convite."; if (!formClientEmail.trim() || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(formClientEmail.trim())) return "Preencha um email válido para enviar convite."; }
     else { if (formClientName.trim() && !formClientEmail.trim()) return "Preencha o email do cliente."; if (formClientEmail.trim() && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(formClientEmail.trim())) return "Email inválido."; }
-    if (!formServices.some((s: Service) => s.name.trim())) return "Adicione pelo menos um serviço.";
     return null;
   }
 

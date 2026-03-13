@@ -53,15 +53,6 @@ func ExtractMedia(ctx context.Context, wa WAClient, tc *transcribe.Client, evt *
 		return processContact(contact.GetDisplayName(), contact.GetVcard())
 	}
 
-	// Extended text with link preview
-	if ext := msg.GetExtendedTextMessage(); ext != nil {
-		text := ext.GetText()
-		// Check for Instagram links
-		if handle := extractInstagramHandle(text); handle != "" {
-			return MediaResult{Text: text, MediaType: ""}
-		}
-	}
-
 	return MediaResult{}
 }
 
@@ -152,21 +143,5 @@ func extractVCardPhone(vcard string) string {
 	return strings.TrimSpace(m[1])
 }
 
-var instagramRe = regexp.MustCompile(`(?:instagram\.com|instagr\.am)/([a-zA-Z0-9_.]+)`)
 
-// extractInstagramHandle parses an Instagram handle from a URL.
-func extractInstagramHandle(text string) string {
-	m := instagramRe.FindStringSubmatch(text)
-	if len(m) < 2 {
-		return ""
-	}
-	handle := m[1]
-	// Skip common non-profile paths
-	for _, skip := range []string{"p", "reel", "stories", "explore", "accounts"} {
-		if handle == skip {
-			return ""
-		}
-	}
-	return "@" + handle
-}
 

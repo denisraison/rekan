@@ -93,7 +93,7 @@ tests:
 
   # Business card photo -> creation flow
   - id: w3_business_card_photo
-    message: "[Imagem: Cartão de visita. Nome: Carla Souza. Salão de Beleza Carla. Rua das Flores 123, Goiânia. Instagram: @salaodacarla. Tel: (62) 99999-0000] cria essa cliente"
+    message: "[Imagem: Cartão de visita. Nome: Carla Souza. Salão de Beleza Carla. Rua das Flores 123, Goiânia. Tel: (62) 99999-0000] cria essa cliente"
     operator: { name: "Elenice", jid: "5511999990000" }
     context: |
       Operadora: Elenice
@@ -107,25 +107,7 @@ tests:
         equals: CUSTOMER_CREATE
       - type: llm_judge
         judge: no_hallucination
-        criteria: "Agente extrai nome (Carla Souza ou Carla), tipo (Salão de Beleza), cidade (Goiânia), e instagram (@salaodacarla) da descrição do cartão. Não inventa dados."
-
-  # Instagram profile link
-  - id: w3_instagram_link
-    message: "o instagram da Patricia é https://instagram.com/patriciabeleza"
-    operator: { name: "Bruna", jid: "5511999991111" }
-    context: |
-      Operadora: Bruna
-
-      Clientes ativas: 2
-        - Patricia (Salão de Beleza, Belo Horizonte)
-        - Maria (Confeitaria, São Paulo)
-    graders:
-      - type: deterministic
-        field: action_type
-        equals: CUSTOMER_UPDATE
-      - type: llm_judge
-        judge: no_hallucination
-        criteria: "Agente extrai o handle @patriciabeleza do link e propõe atualizar o instagram da Patricia"
+        criteria: "Agente extrai nome (Carla Souza ou Carla), tipo (Salão de Beleza), cidade (Goiânia) e telefone ((62) 99999-0000) da descrição do cartão. Não inventa dados."
 
   # Blurry image -> can't read
   - id: w3_blurry_image
