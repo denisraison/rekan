@@ -36,7 +36,7 @@ require (
 	github.com/remyoudompheng/bigfft v0.0.0-20230129092748-24d4a6f8daec // indirect
 	github.com/rs/zerolog v1.34.0 // indirect
 	github.com/spf13/cast v1.10.0 // indirect
-	github.com/spf13/cobra v1.10.2 // indirect
+	github.com/spf13/cobra v1.10.2
 	github.com/spf13/pflag v1.0.10 // indirect
 	github.com/vektah/gqlparser/v2 v2.5.27 // indirect
 	go.mau.fi/libsignal v0.2.1 // indirect
