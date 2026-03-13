@@ -39,12 +39,11 @@
               root = ./.;
               fileset = pkgs.lib.fileset.unions [
                 ./api
-                ./eval
               ];
             };
             modRoot = "api";
             subPackages = [ "." ];
-            vendorHash = "sha256-JdSotTL3E3RWz/2lzUf2eXKf23tuhV1W6BcHvD9+2x8=";
+            vendorHash = "sha256-mvDdijdVNkNMwcDGVSRV+Uhi96K6pAz4sb31zHA7+eQ=";
             proxyVendor = true;
             preCheck = "export BAML_LIBRARY_PATH=${bamlLibPath}";
             meta.mainProgram = "api";
