@@ -48,12 +48,13 @@ type toolUseResult struct {
 }
 
 // RunToolLoop runs the Claude tool-use loop until a final reply or max round trips.
-func (cc *ClaudeClient) RunToolLoop(ctx context.Context, app core.App, operatorName string, gen content.GenerateFunc, messages []anthropic.MessageParam, systemPrompt string) (result *toolUseResult, err error) {
+func (cc *ClaudeClient) RunToolLoop(ctx context.Context, app core.App, waClient WAClient, operatorName string, gen content.GenerateFunc, messages []anthropic.MessageParam, systemPrompt string) (result *toolUseResult, err error) {
 	tools := agentTools
 
 	executor := &ToolExecutor{
 		Ctx:      ctx,
 		App:      app,
+		WAClient: waClient,
 		Generate: gen,
 	}
 

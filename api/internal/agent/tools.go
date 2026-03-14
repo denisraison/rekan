@@ -9,6 +9,7 @@ import (
 	"github.com/anthropics/anthropic-sdk-go"
 	content "github.com/denisraison/rekan/api/internal/content"
 	"github.com/denisraison/rekan/api/internal/domain"
+	"github.com/denisraison/rekan/api/internal/service"
 	"github.com/pocketbase/dbx"
 	"github.com/pocketbase/pocketbase/core"
 )
@@ -150,6 +151,7 @@ func buildToolDefs() []anthropic.ToolUnionParam {
 type ToolExecutor struct {
 	Ctx        context.Context
 	App        core.App
+	WAClient   WAClient
 	Generate   content.GenerateFunc
 	businesses []*core.Record // cached on first access
 	Posts      []*core.Record // posts referenced during execution, appended to reply programmatically
@@ -247,14 +249,20 @@ func appendPostFields(b *strings.Builder, caption string, hashtags []string, pro
 	}
 }
 
+// decodeHashtags parses a JSON array string (e.g. `["#foo","#bar"]`) into a slice.
+func decodeHashtags(hashtagsJSON string) []string {
+	if hashtagsJSON == "" {
+		return nil
+	}
+	var tags []string
+	json.Unmarshal([]byte(hashtagsJSON), &tags) //nolint:errcheck
+	return tags
+}
+
 // appendPostFieldsJSON is like appendPostFields but decodes hashtags from a
 // raw JSON string (e.g. `["#foo","#bar"]`).
 func appendPostFieldsJSON(b *strings.Builder, caption, hashtagsJSON, productionNote string) {
-	var tags []string
-	if hashtagsJSON != "" {
-		json.Unmarshal([]byte(hashtagsJSON), &tags) //nolint:errcheck
-	}
-	appendPostFields(b, caption, tags, productionNote)
+	appendPostFields(b, caption, decodeHashtags(hashtagsJSON), productionNote)
 }
 
 // --- Read tool implementations ---
@@ -596,14 +604,22 @@ func (te *ToolExecutor) approvePost(input json.RawMessage, operatorName string) 
 
 	p := &PostApproveParams{PostId: args.PostID, Name: args.CustomerName}
 
-	if record, err := te.App.FindRecordById(domain.CollPosts, args.PostID); err == nil {
-		te.Posts = append(te.Posts, record)
-	}
-
-	result, err := executePostApprove(te.App, operatorName, p)
+	record, result, err := executePostApprove(te.App, operatorName, p)
 	if err != nil {
 		return toolResult{Text: "Erro ao aprovar: " + err.Error(), IsWrite: true}
 	}
+
+	if record != nil {
+		te.Posts = append(te.Posts, record)
+
+		if te.WAClient != nil {
+			if sendErr := te.sendPostToClient(record); sendErr != nil {
+				return toolResult{Text: result + " (mas não consegui enviar pro cliente: " + sendErr.Error() + ")", IsWrite: true}
+			}
+			result += " Enviado pro cliente!"
+		}
+	}
+
 	return toolResult{Text: result, IsWrite: true}
 }
 
@@ -632,4 +648,14 @@ func (te *ToolExecutor) rejectPost(input json.RawMessage, operatorName string) t
 		return toolResult{Text: "Erro ao rejeitar: " + err.Error(), IsWrite: true}
 	}
 	return toolResult{Text: result, IsWrite: true}
+}
+
+// sendPostToClient sends the post content to the client's WhatsApp.
+func (te *ToolExecutor) sendPostToClient(post *core.Record) error {
+	return service.SendTextMessage(te.Ctx, te.App, te.WAClient, service.SendTextParams{
+		BusinessID:     post.GetString("business"),
+		Caption:        post.GetString("caption"),
+		Hashtags:       strings.Join(decodeHashtags(post.GetString("hashtags")), " "),
+		ProductionNote: post.GetString("production_note"),
+	})
 }

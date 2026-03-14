@@ -184,19 +184,19 @@ func executePostGenerate(ctx context.Context, app core.App, operatorName string,
 	return b.String(), postIDs, nil
 }
 
-func executePostApprove(app core.App, operatorName string, p *PostApproveParams) (string, error) {
+func executePostApprove(app core.App, operatorName string, p *PostApproveParams) (*core.Record, string, error) {
 	record, err := app.FindRecordById(domain.CollPosts, p.PostId)
 	if err != nil {
-		return fmt.Sprintf("%s, não encontrei o post %s.", operatorName, p.PostId), nil //nolint:nilerr // not-found is a user-facing reply, not an error
+		return nil, fmt.Sprintf("%s, não encontrei o post %s.", operatorName, p.PostId), nil //nolint:nilerr // not-found is a user-facing reply, not an error
 	}
 
 	record.Set("reviewed", true)
 	if err := app.Save(record); err != nil {
-		return "", fmt.Errorf("approving post: %w", err)
+		return nil, "", fmt.Errorf("approving post: %w", err)
 	}
 
 	bizName := resolveBusinessName(app, record, p.Name)
-	return fmt.Sprintf("%s, post da %s aprovado!", operatorName, bizName), nil
+	return record, fmt.Sprintf("%s, post da %s aprovado!", operatorName, bizName), nil
 }
 
 func executePostReject(app core.App, operatorName string, p *PostRejectParams) (string, error) {

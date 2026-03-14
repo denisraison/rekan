@@ -25,6 +25,12 @@ var (
 	ErrConflict = errors.New("conflito")
 )
 
+// WAClient is the subset of whatsmeow used for sending messages.
+type WAClient interface {
+	SendMessage(ctx context.Context, to types.JID, msg *waE2E.Message) (whatsmeow.SendResponse, error)
+	SendChatPresence(ctx context.Context, jid types.JID, state types.ChatPresence, media types.ChatPresenceMedia) error
+}
+
 // wrapNotFound returns ErrNotFound if err is sql.ErrNoRows (PocketBase's
 // not-found signal), otherwise returns the original error unchanged.
 func wrapNotFound(err error, msg string) error {
@@ -64,7 +70,7 @@ type SendTextParams struct {
 	ProductionNote string
 }
 
-func SendTextMessage(ctx context.Context, app core.App, waClient *wa.Client, params SendTextParams) error {
+func SendTextMessage(ctx context.Context, app core.App, waClient WAClient, params SendTextParams) error {
 	business, err := app.FindRecordById(domain.CollBusinesses, params.BusinessID)
 	if err != nil {
 		return err

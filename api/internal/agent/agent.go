@@ -167,7 +167,7 @@ func (a *Agent) processWithTools(ctx context.Context, groupJID types.JID, operat
 	})
 
 	systemPrompt := buildSystemPrompt(operatorName)
-	tuResult, err := a.Claude.RunToolLoop(ctx, a.App, operatorName, a.Generate, messages, systemPrompt)
+	tuResult, err := a.Claude.RunToolLoop(ctx, a.App, a.WAClient, operatorName, a.Generate, messages, systemPrompt)
 	slowTimer.Stop()
 
 	if err != nil {
