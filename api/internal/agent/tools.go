@@ -589,8 +589,15 @@ func (te *ToolExecutor) approvePost(input json.RawMessage, operatorName string) 
 		return toolResult{Text: "Erro ao salvar estado.", ToolName: "approve_post", IsWrite: true}
 	}
 
+	var b strings.Builder
+	fmt.Fprintf(&b, "Confirmação necessária. Aprovar post %s.\n\n", args.PostID)
+	if record, err := te.App.FindRecordById(domain.CollPosts, args.PostID); err == nil {
+		appendPostFieldsJSON(&b, record.GetString("caption"), record.GetString("hashtags"), record.GetString("production_note"))
+	}
+	b.WriteString("\nAguardando resposta da operadora.")
+
 	return toolResult{
-		Text:     fmt.Sprintf("Confirmação necessária. Aprovar post %s. Aguardando resposta da operadora.", args.PostID),
+		Text:     b.String(),
 		ToolName: "approve_post",
 		IsWrite:  true,
 	}
@@ -616,8 +623,15 @@ func (te *ToolExecutor) rejectPost(input json.RawMessage, operatorName string) t
 		return toolResult{Text: "Erro ao salvar estado.", ToolName: "reject_post", IsWrite: true}
 	}
 
+	var b strings.Builder
+	fmt.Fprintf(&b, "Confirmação necessária. Rejeitar post %s. Feedback: %s.\n\n", args.PostID, args.Feedback)
+	if record, err := te.App.FindRecordById(domain.CollPosts, args.PostID); err == nil {
+		appendPostFieldsJSON(&b, record.GetString("caption"), record.GetString("hashtags"), record.GetString("production_note"))
+	}
+	b.WriteString("\nAguardando resposta da operadora.")
+
 	return toolResult{
-		Text:     fmt.Sprintf("Confirmação necessária. Rejeitar post %s. Feedback: %s. Aguardando resposta da operadora.", args.PostID, args.Feedback),
+		Text:     b.String(),
 		ToolName: "reject_post",
 		IsWrite:  true,
 	}
