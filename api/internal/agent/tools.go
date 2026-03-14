@@ -569,9 +569,14 @@ func (te *ToolExecutor) generatePost(input json.RawMessage, operatorName string)
 
 	p := &PostGenerateParams{Name: args.CustomerName}
 
-	result, err := executePostGenerate(te.Ctx, te.App, operatorName, p, te.Generate)
+	result, postIDs, err := executePostGenerate(te.Ctx, te.App, operatorName, p, te.Generate)
 	if err != nil {
 		return toolResult{Text: "Erro ao gerar: " + err.Error(), IsWrite: true}
+	}
+	for _, id := range postIDs {
+		if record, err := te.App.FindRecordById(domain.CollPosts, id); err == nil {
+			te.Posts = append(te.Posts, record)
+		}
 	}
 	return toolResult{Text: result, IsWrite: true}
 }

@@ -162,6 +162,8 @@ func (a *Agent) processWithTools(ctx context.Context, groupJID types.JID, operat
 		if err := SendReply(ctx, a.WAClient, groupJID, "Um momento..."); err != nil {
 			a.Logger.Error("agent: failed to send slow timer reply", "error", err)
 		}
+		// Sending a message clears the typing indicator; restart it.
+		wa.Typing(ctx, a.WAClient, groupJID)
 	})
 
 	systemPrompt := buildSystemPrompt(operatorName)

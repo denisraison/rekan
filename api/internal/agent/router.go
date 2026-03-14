@@ -143,32 +143,32 @@ func executeCustomerPause(app core.App, operatorName string, p *CustomerPausePar
 	return fmt.Sprintf("%s, %s pausada.", operatorName, p.Name), nil
 }
 
-func executePostGenerate(ctx context.Context, app core.App, operatorName string, p *PostGenerateParams, gen content.GenerateFunc) (string, error) {
+func executePostGenerate(ctx context.Context, app core.App, operatorName string, p *PostGenerateParams, gen content.GenerateFunc) (string, []string, error) {
 	if p.Name == "" {
-		return operatorName + ", pra qual cliente você quer gerar post?", nil
+		return operatorName + ", pra qual cliente você quer gerar post?", nil, nil
 	}
 
 	businesses := loadActiveBusinesses(app)
 	matches := findBusinessRecords(businesses, p.Name)
 	if len(matches) == 0 {
-		return fmt.Sprintf("%s, não encontrei cliente '%s'.", operatorName, p.Name), nil
+		return fmt.Sprintf("%s, não encontrei cliente '%s'.", operatorName, p.Name), nil, nil
 	}
 	if len(matches) > 1 {
-		return disambiguate(operatorName, matches), nil
+		return disambiguate(operatorName, matches), nil, nil
 	}
 
 	biz := matches[0]
 	if gen == nil {
-		return operatorName + ", geração de posts não está configurada.", nil
+		return operatorName + ", geração de posts não está configurada.", nil, nil
 	}
 
 	result, err := service.GeneratePosts(ctx, app, gen, biz.Id)
 	if err != nil {
-		return "", fmt.Errorf("generating posts: %w", err)
+		return "", nil, fmt.Errorf("generating posts: %w", err)
 	}
 
 	if len(result.Posts) == 0 {
-		return fmt.Sprintf("%s, não consegui gerar post pra %s.", operatorName, biz.GetString("name")), nil
+		return fmt.Sprintf("%s, não consegui gerar post pra %s.", operatorName, biz.GetString("name")), nil, nil
 	}
 
 	post := result.Posts[0]
@@ -176,7 +176,12 @@ func executePostGenerate(ctx context.Context, app core.App, operatorName string,
 	fmt.Fprintf(&b, "%s, post gerado pra %s!\n\n", operatorName, biz.GetString("name"))
 	appendPostFields(&b, post.Caption, post.Hashtags, post.ProductionNote)
 	fmt.Fprintf(&b, "ID: %s", post.ID)
-	return b.String(), nil
+
+	postIDs := make([]string, len(result.Posts))
+	for i, p := range result.Posts {
+		postIDs[i] = p.ID
+	}
+	return b.String(), postIDs, nil
 }
 
 func executePostApprove(app core.App, operatorName string, p *PostApproveParams) (string, error) {
