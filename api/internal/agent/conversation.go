@@ -10,7 +10,8 @@ import (
 )
 
 // StoreMessage saves a message to the agent_conversations collection.
-func StoreMessage(app core.App, operatorName, operatorJID, role, content, mediaType string) error {
+// The structured parameter holds the JSON-serialized MessageParam for replay.
+func StoreMessage(app core.App, operatorName, operatorJID, role, content, mediaType, structured string) error {
 	col, err := app.FindCachedCollectionByNameOrId(domain.CollAgentConversations)
 	if err != nil {
 		return fmt.Errorf("agent_conversations collection: %w", err)
@@ -21,6 +22,7 @@ func StoreMessage(app core.App, operatorName, operatorJID, role, content, mediaT
 	record.Set("role", role)
 	record.Set("content", content)
 	record.Set("media_type", mediaType)
+	record.Set("structured", structured)
 	record.Set("timestamp", time.Now().UTC().Format(time.RFC3339))
 	return app.Save(record)
 }
@@ -30,6 +32,7 @@ type ConversationMessage struct {
 	OperatorName string
 	Role         string
 	Content      string
+	Structured   string // JSON-serialized MessageParam, empty for old messages
 }
 
 // LoadRecentAndPrune loads the last n messages (oldest first) and deletes any overflow in a single pass.
@@ -84,6 +87,7 @@ func toMessages(records []*core.Record) []ConversationMessage {
 			OperatorName: r.GetString("operator_name"),
 			Role:         r.GetString("role"),
 			Content:      r.GetString("content"),
+			Structured:   r.GetString("structured"),
 		}
 	}
 	return msgs

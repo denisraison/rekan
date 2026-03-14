@@ -134,6 +134,8 @@ type agentResult struct {
 	ReplyText   string
 	ToolSummary string
 	ActionType  string
+	LoopMsgs    []anthropic.MessageParam // tool loop messages for structured storage
+	FinalMsg    anthropic.MessageParam   // actual final assistant response from Claude
 }
 
 // ProcessMessage is the core message processing pipeline.
@@ -144,7 +146,8 @@ func (a *Agent) ProcessMessage(groupJID types.JID, messageID string, senderJID t
 	ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
 	defer cancel()
 
-	if err := StoreMessage(a.App, operatorName, operatorJID, "user", message, ""); err != nil {
+	userStructured := marshalMessageParam(anthropic.NewUserMessage(anthropic.NewTextBlock(message)))
+	if err := StoreMessage(a.App, operatorName, operatorJID, "user", message, "", userStructured); err != nil {
 		a.Logger.Error("agent: failed to store message", "error", err)
 	}
 
@@ -230,6 +233,8 @@ func (a *Agent) processWithTools(ctx context.Context, groupJID types.JID, state 
 		ReplyText:   reply,
 		ToolSummary: buildToolSummary(tuResult.ToolLog),
 		ActionType:  actionType,
+		LoopMsgs:    tuResult.LoopMsgs,
+		FinalMsg:    tuResult.FinalMsg,
 	}, nil
 }
 
@@ -238,6 +243,16 @@ func buildClaudeMessages(history []ConversationMessage, currentMessage string) [
 	var messages []anthropic.MessageParam
 
 	for _, msg := range history {
+		// Prefer structured JSON when available (preserves tool_use/tool_result blocks)
+		if msg.Structured != "" {
+			var mp anthropic.MessageParam
+			if json.Unmarshal([]byte(msg.Structured), &mp) == nil {
+				messages = append(messages, mp)
+				continue
+			}
+		}
+
+		// Fallback: plain text for old messages without structured data
 		text := msg.Content
 		if msg.Role == "user" {
 			messages = append(messages, anthropic.NewUserMessage(anthropic.NewTextBlock(text)))
@@ -417,16 +432,46 @@ func (a *Agent) sendAndLog(ctx context.Context, groupJID types.JID, operatorName
 		return
 	}
 
-	// Store reply with tool summary for conversation context, but WhatsApp only gets the reply text
+	// Store tool loop messages (assistant tool_use + user tool_result pairs)
+	for _, msg := range result.LoopMsgs {
+		role := "assistant"
+		if msg.Role == anthropic.MessageParamRoleUser {
+			role = "user"
+		}
+		structured := marshalMessageParam(msg)
+		if err := StoreMessage(a.App, "Rekan", "", role, "", "", structured); err != nil {
+			a.Logger.Error("agent: failed to store loop message", "error", err)
+		}
+	}
+
+	// Store final assistant reply with structured data
 	storedContent := result.ReplyText
 	if result.ToolSummary != "" {
 		storedContent += "\n\n" + result.ToolSummary
 	}
+	// Use the actual final message from Claude when available (preserves all content blocks)
+	finalMsg := result.FinalMsg
+	if len(finalMsg.Content) == 0 {
+		finalMsg = anthropic.MessageParam{
+			Role:    anthropic.MessageParamRoleAssistant,
+			Content: []anthropic.ContentBlockParamUnion{anthropic.NewTextBlock(result.ReplyText)},
+		}
+	}
+	replyStructured := marshalMessageParam(finalMsg)
 
-	if err := StoreMessage(a.App, "Rekan", "", "assistant", storedContent, ""); err != nil {
+	if err := StoreMessage(a.App, "Rekan", "", "assistant", storedContent, "", replyStructured); err != nil {
 		a.Logger.Error("agent: failed to store assistant message", "error", err)
 	}
 	LogAction(a.App, operatorName, operatorJID, result.ActionType, nil, result.ReplyText, true, start)
+}
+
+// marshalMessageParam serializes a MessageParam to JSON for the structured field.
+func marshalMessageParam(mp anthropic.MessageParam) string {
+	data, err := json.Marshal(mp)
+	if err != nil {
+		return ""
+	}
+	return string(data)
 }
 
 // buildToolSummary formats tool calls into a bracketed summary for conversation history.

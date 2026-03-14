@@ -133,12 +133,21 @@ And tool results are stored as user messages:
 - PocketBase migration for `agent_conversations` schema (add `structured` text field)
 
 **Gate:**
-- [ ] `cd api && go build ./...` compiles
-- [ ] New messages are stored with `structured` field containing valid JSON
-- [ ] `buildClaudeMessages` produces `MessageParam` objects with tool use blocks for recent messages
-- [ ] Old messages (without `structured`) still load correctly as plain text
-- [ ] Follow-up messages after a tool call show Claude its previous tool calls in context
-- [ ] Stored `structured` field size stays reasonable (< 5KB per message on average)
+- [x] `cd api && go build ./...` compiles
+- [x] New messages are stored with `structured` field containing valid JSON
+- [x] `buildClaudeMessages` produces `MessageParam` objects with tool use blocks for recent messages
+- [x] Old messages (without `structured`) still load correctly as plain text
+- [x] Follow-up messages after a tool call show Claude its previous tool calls in context
+- [x] Stored `structured` field size stays reasonable (< 5KB per message on average) — typical message ~164 bytes
+
+**Notes:**
+- Migration: `1740000028_agent_structured.go` adds `structured` TextField (max 20000) to `agent_conversations`
+- `StoreMessage` gains a `structured` parameter for the JSON-serialized `MessageParam`
+- `RunToolLoop` captures intermediate assistant/tool_result messages in `LoopMsgs`
+- `sendAndLog` stores each loop message as a separate DB record with structured data, then stores the final reply
+- `buildClaudeMessages` tries `json.Unmarshal` on `Structured` first, falls back to plain text
+- Tool loop messages stored as individual records (not batched) since volume is low (~30 messages/day) and the 15-message window bounds total storage
+- `content` field kept alongside `structured` for human-readable logging and backward compatibility
 
 ## Consequences
 

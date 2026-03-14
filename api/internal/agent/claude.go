@@ -51,8 +51,10 @@ type toolUseResult struct {
 	ToolsCalled []string
 	ToolLog     []toolCallEntry
 	WriteUsed   bool
-	Posts       []*core.Record    // posts referenced during execution, appended to reply
-	BizNames    map[string]string // business ID -> display name
+	LoopMsgs    []anthropic.MessageParam // intermediate messages (tool_use + tool_result) for structured storage
+	FinalMsg    anthropic.MessageParam   // the actual final assistant response from Claude
+	Posts       []*core.Record           // posts referenced during execution, appended to reply
+	BizNames    map[string]string        // business ID -> display name
 }
 
 // RunToolLoop runs the Claude tool-use loop until a final reply or max round trips.
@@ -88,7 +90,8 @@ func (cc *ClaudeClient) RunToolLoop(ctx context.Context, app core.App, state *Op
 		}
 
 		// Add assistant response to messages
-		messages = append(messages, resp.ToParam())
+		assistantMsg := resp.ToParam()
+		messages = append(messages, assistantMsg)
 
 		// Collect tool calls and text
 		var toolResults []anthropic.ContentBlockParamUnion
@@ -113,8 +116,14 @@ func (cc *ClaudeClient) RunToolLoop(ctx context.Context, app core.App, state *Op
 
 		// No tool calls means we're done
 		if len(toolResults) == 0 {
+			result.FinalMsg = assistantMsg
 			return result, nil
 		}
+
+		// Capture intermediate messages for structured storage
+		result.LoopMsgs = append(result.LoopMsgs, assistantMsg)
+		toolResultMsg := anthropic.NewUserMessage(toolResults...)
+		result.LoopMsgs = append(result.LoopMsgs, toolResultMsg)
 
 		// If a write tool was called, stop the loop (wait for confirmation)
 		if result.WriteUsed {
@@ -122,7 +131,7 @@ func (cc *ClaudeClient) RunToolLoop(ctx context.Context, app core.App, state *Op
 		}
 
 		// Feed tool results back
-		messages = append(messages, anthropic.NewUserMessage(toolResults...))
+		messages = append(messages, toolResultMsg)
 	}
 
 	// Max round trips reached

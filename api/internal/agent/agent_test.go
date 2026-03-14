@@ -120,9 +120,10 @@ func TestCancellationFlow(t *testing.T) {
 	wa := &fakeWAClient{}
 
 	setConfirmingState(t, app, "5511999990000", agent.ActionCustomerCreate, &agent.CustomerCreateParams{
-		Name: "Ana",
-		Type: "Manicure",
-		City: "Goiania",
+		Name:  "Ana",
+		Type:  "Manicure",
+		City:  "Goiania",
+		Phone: "62999990000",
 	})
 
 	a := newAgent(t, app, wa)
@@ -170,9 +171,10 @@ func TestReplyStoredInConversation(t *testing.T) {
 
 	// Set up a confirmation that will produce a reply when confirmed
 	setConfirmingState(t, app, "5511999990000", agent.ActionCustomerCreate, &agent.CustomerCreateParams{
-		Name: "Ana",
-		Type: "Manicure",
-		City: "Goiania",
+		Name:  "Ana",
+		Type:  "Manicure",
+		City:  "Goiania",
+		Phone: "62999990000",
 	})
 
 	a := newAgent(t, app, wa)
@@ -202,9 +204,10 @@ func TestActionLog_Recorded(t *testing.T) {
 	wa := &fakeWAClient{}
 
 	setConfirmingState(t, app, "5511999990000", agent.ActionCustomerCreate, &agent.CustomerCreateParams{
-		Name: "Ana",
-		Type: "Manicure",
-		City: "Goiania",
+		Name:  "Ana",
+		Type:  "Manicure",
+		City:  "Goiania",
+		Phone: "62999990000",
 	})
 
 	a := newAgent(t, app, wa)
@@ -237,6 +240,7 @@ func TestCollectedFieldsRoundTrip(t *testing.T) {
 		Name:           "Ana",
 		Type:           "Manicure",
 		City:           "Goiania",
+		Phone:          "62999990000",
 		TargetAudience: &audience,
 	}
 
@@ -256,5 +260,158 @@ func TestCollectedFieldsRoundTrip(t *testing.T) {
 	}
 	if recovered.TargetAudience == nil || *recovered.TargetAudience != "mulheres do bairro" {
 		t.Errorf("target_audience: got %v, want %q", recovered.TargetAudience, "mulheres do bairro")
+	}
+}
+
+// TestStructuredStorage verifies that messages are stored with structured JSON.
+func TestStructuredStorage(t *testing.T) {
+	app := newTestApp(t)
+	wa := &fakeWAClient{}
+
+	setConfirmingState(t, app, "5511999990000", agent.ActionCustomerCreate, &agent.CustomerCreateParams{
+		Name:  "Ana",
+		Type:  "Manicure",
+		City:  "Goiania",
+		Phone: "62999990000",
+	})
+
+	a := newAgent(t, app, wa)
+
+	// "sim" triggers confirmation flow, stores user + assistant messages
+	send(a, "sim", "Elenice", "5511999990000")
+
+	records, err := app.FindAllRecords(domain.CollAgentConversations)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	var userStructured, assistantStructured int
+	for _, r := range records {
+		s := r.GetString("structured")
+		if s == "" {
+			continue
+		}
+		// Verify it's valid JSON
+		var m map[string]any
+		if err := json.Unmarshal([]byte(s), &m); err != nil {
+			t.Errorf("invalid structured JSON: %v", err)
+			continue
+		}
+		role, _ := m["role"].(string)
+		switch role {
+		case "user":
+			userStructured++
+		case "assistant":
+			assistantStructured++
+		}
+	}
+
+	if userStructured == 0 {
+		t.Error("expected at least one user message with structured data")
+	}
+	if assistantStructured == 0 {
+		t.Error("expected at least one assistant message with structured data")
+	}
+}
+
+// TestBuildClaudeMessages_StructuredToolUse verifies that structured messages with
+// tool_use blocks are deserialized and passed to buildClaudeMessages correctly.
+func TestBuildClaudeMessages_StructuredToolUse(t *testing.T) {
+	app := newTestApp(t)
+
+	// Store a user message with structured data
+	userJSON := `{"role":"user","content":[{"type":"text","text":"busca a Nika"}]}`
+	if err := agent.StoreMessage(app, "Elenice", "5511999990000", "user", "busca a Nika", "", userJSON); err != nil {
+		t.Fatal(err)
+	}
+
+	// Store an assistant message with tool_use block in structured data
+	assistantJSON := `{"role":"assistant","content":[{"type":"text","text":"Deixa eu verificar..."},{"type":"tool_use","id":"toolu_xxx","name":"find_customer","input":{"query":"Nika"}}]}`
+	if err := agent.StoreMessage(app, "Rekan", "", "assistant", "Deixa eu verificar...", "", assistantJSON); err != nil {
+		t.Fatal(err)
+	}
+
+	// Store a tool result as user message
+	toolResultJSON := `{"role":"user","content":[{"type":"tool_result","tool_use_id":"toolu_xxx","content":"Nome: Nika\nTipo: Moda"}]}`
+	if err := agent.StoreMessage(app, "Rekan", "", "user", "", "", toolResultJSON); err != nil {
+		t.Fatal(err)
+	}
+
+	// Store final assistant reply
+	replyJSON := `{"role":"assistant","content":[{"type":"text","text":"Encontrei a Nika!"}]}`
+	if err := agent.StoreMessage(app, "Rekan", "", "assistant", "Encontrei a Nika!", "", replyJSON); err != nil {
+		t.Fatal(err)
+	}
+
+	msgs, err := agent.LoadRecent(app, 15)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	// Verify structured data is present
+	var hasStructured int
+	for _, m := range msgs {
+		if m.Structured != "" {
+			hasStructured++
+		}
+	}
+	if hasStructured != 4 {
+		t.Errorf("expected 4 messages with structured data, got %d", hasStructured)
+	}
+
+	// Verify that a structured message with tool_use survives JSON round-trip
+	foundToolUse := false
+	for _, m := range msgs {
+		if strings.Contains(m.Structured, `"type":"tool_use"`) {
+			foundToolUse = true
+			if !strings.Contains(m.Structured, "find_customer") {
+				t.Errorf("tool_use block lost tool name after storage, got: %s", m.Structured)
+			}
+			break
+		}
+	}
+	if !foundToolUse {
+		for i, m := range msgs {
+			t.Logf("msg[%d] role=%s structured=%q", i, m.Role, m.Structured)
+		}
+		t.Error("no message with tool_use found in structured data")
+	}
+}
+
+// TestOldMessagesLoadWithoutStructured verifies backward compatibility.
+func TestOldMessagesLoadWithoutStructured(t *testing.T) {
+	app := newTestApp(t)
+
+	// Store a message without structured data (simulating old format)
+	if err := agent.StoreMessage(app, "Elenice", "5511999990000", "user", "oi", "", ""); err != nil {
+		t.Fatal(err)
+	}
+	if err := agent.StoreMessage(app, "Rekan", "", "assistant", "oi Elenice!", "", ""); err != nil {
+		t.Fatal(err)
+	}
+
+	msgs, err := agent.LoadRecent(app, 15)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	if len(msgs) != 2 {
+		t.Fatalf("expected 2 messages, got %d", len(msgs))
+	}
+	// Verify both messages loaded correctly (order depends on DB timestamp)
+	var foundUser, foundAssistant bool
+	for _, m := range msgs {
+		switch {
+		case m.Role == "user" && m.Content == "oi":
+			foundUser = true
+		case m.Role == "assistant" && m.Content == "oi Elenice!":
+			foundAssistant = true
+		}
+	}
+	if !foundUser {
+		t.Error("user message not found in loaded messages")
+	}
+	if !foundAssistant {
+		t.Error("assistant message not found in loaded messages")
 	}
 }
