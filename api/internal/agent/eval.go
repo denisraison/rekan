@@ -5,7 +5,10 @@ import (
 	"encoding/json"
 	"fmt"
 	"os"
+	"regexp"
 	"strings"
+	"sync"
+	"time"
 
 	"github.com/anthropics/anthropic-sdk-go"
 	"github.com/anthropics/anthropic-sdk-go/option"
@@ -15,12 +18,11 @@ import (
 
 // TestCase represents a single eval test case from YAML.
 type TestCase struct {
-	ID                  string   `yaml:"id"`
-	Message             string   `yaml:"message"`
-	Operator            Operator `yaml:"operator"`
-	Context             string   `yaml:"context"`
-	ConversationHistory string   `yaml:"conversation_history"`
-	Graders             []Grader `yaml:"graders"`
+	ID       string      `yaml:"id"`
+	Message  string      `yaml:"message"`
+	Operator Operator    `yaml:"operator"`
+	Fixtures Fixtures    `yaml:"fixtures"`
+	Assert   []Assertion `yaml:"assert"`
 }
 
 // Operator identifies the test sender.
@@ -29,14 +31,46 @@ type Operator struct {
 	JID  string `yaml:"jid"`
 }
 
-// Grader describes how to evaluate a test case result.
-type Grader struct {
-	Type     string `yaml:"type"`
-	Field    string `yaml:"field"`
-	Equals   string `yaml:"equals"`
+// Fixtures holds structured mock data for a test case.
+type Fixtures struct {
+	Customers []MockCustomer `yaml:"customers"`
+	Posts     []MockPost     `yaml:"posts"`
+}
+
+// MockCustomer is a customer fixture.
+type MockCustomer struct {
+	Name  string `yaml:"name"`
+	Type  string `yaml:"type"`
+	City  string `yaml:"city"`
+	Phone string `yaml:"phone"`
+}
+
+// MockPost is a post fixture.
+type MockPost struct {
+	ID             string   `yaml:"id"`
+	Business       string   `yaml:"business"`
+	Caption        string   `yaml:"caption"`
+	Hashtags       []string `yaml:"hashtags"`
+	ProductionNote string   `yaml:"production_note"`
+	Reviewed       bool     `yaml:"reviewed"`
+}
+
+// Assertion describes a single check on the eval result.
+type Assertion struct {
+	ToolCalled      string      `yaml:"tool_called"`
+	ToolNotCalled   string      `yaml:"tool_not_called"`
+	ToolArg         *ToolArgDef `yaml:"tool_arg"`
+	ReplyContains   string      `yaml:"reply_contains"`
+	ReplyNotContain string      `yaml:"reply_not_contains"`
+	NoEmptyPromise  bool        `yaml:"no_empty_promise"`
+	MaxToolCalls    int         `yaml:"max_tool_calls"`
+}
+
+// ToolArgDef checks that a tool was called with a specific argument value.
+type ToolArgDef struct {
+	Tool     string `yaml:"tool"`
+	Key      string `yaml:"key"`
 	Contains string `yaml:"contains"`
-	Judge    string `yaml:"judge"`
-	Criteria string `yaml:"criteria"`
 }
 
 // TestSuite is the top-level YAML structure.
@@ -46,14 +80,22 @@ type TestSuite struct {
 
 // TestResult holds the outcome of running a single test case.
 type TestResult struct {
-	ID     string
-	Passed bool
-	Checks []CheckResult
+	ID          string
+	Passed      bool
+	Checks      []CheckResult
+	Reply       string
+	ToolsCalled []string
+	ToolLog     []toolCallEntry
+	InputTokens int
+	OutputTokens int
+	WallTimeMs  int64
+	ToolRoundTrips int
+	Error       string
 }
 
-// CheckResult is the outcome of a single grader.
+// CheckResult is the outcome of a single assertion.
 type CheckResult struct {
-	Grader Grader
+	Name   string
 	Passed bool
 	Reason string
 }
@@ -73,74 +115,87 @@ func LoadTestCases(path string) ([]TestCase, error) {
 
 // evalResult holds the output of running a single eval case through the tool-use loop.
 type evalResult struct {
-	Reply       string
-	ToolsCalled []string
-	ToolArgs    map[string]json.RawMessage // tool name -> last input
+	Reply          string
+	ToolsCalled    []string
+	ToolArgs       map[string][]json.RawMessage // tool name -> all invocations' input
+	ToolLog        []toolCallEntry
+	InputTokens    int
+	OutputTokens   int
+	ToolRoundTrips int
 }
 
-// RunEval runs all test cases through the tool-use loop and returns results.
-func RunEval(ctx context.Context, cases []TestCase, verbose bool) ([]TestResult, error) {
+// RunEval runs all test cases in parallel (max 5 concurrent) and returns results.
+func RunEval(ctx context.Context, cases []TestCase) []TestResult {
 	apiKey := os.Getenv("CLAUDE_API_KEY")
 	client := anthropic.NewClient(option.WithAPIKey(apiKey))
 
-	results := make([]TestResult, 0, len(cases))
+	results := make([]TestResult, len(cases))
+	sem := make(chan struct{}, 5)
+	var wg sync.WaitGroup
 
-	for _, tc := range cases {
-		result := TestResult{ID: tc.ID, Passed: true}
-
-		er, err := runEvalCase(ctx, client, tc)
-		if err != nil {
-			result.Passed = false
-			result.Checks = append(result.Checks, CheckResult{
-				Grader: Grader{Type: "error"},
-				Passed: false,
-				Reason: fmt.Sprintf("tool-use error: %v", err),
-			})
-			results = append(results, result)
-			continue
-		}
-
-		toolsCalledStr := strings.Join(er.ToolsCalled, ",")
-		hasReply := "false"
-		if er.Reply != "" {
-			hasReply = "true"
-		}
-
-		if verbose {
-			fmt.Printf("  [%s] tools=%q reply=%q\n", tc.ID, toolsCalledStr, truncate(er.Reply, 80))
-		}
-
-		for _, g := range tc.Graders {
-			cr := runGrader(g, toolsCalledStr, er.Reply, hasReply, er.ToolArgs)
-			result.Checks = append(result.Checks, cr)
-			if !cr.Passed {
-				result.Passed = false
-			}
-		}
-
-		results = append(results, result)
+	for i, tc := range cases {
+		wg.Add(1)
+		go func() {
+			defer wg.Done()
+			sem <- struct{}{}
+			defer func() { <-sem }()
+			results[i] = runAndGrade(ctx, client, tc)
+		}()
 	}
 
-	return results, nil
+	wg.Wait()
+	return results
+}
+
+func runAndGrade(ctx context.Context, client anthropic.Client, tc TestCase) TestResult {
+	start := timeNowMs()
+	er, err := runEvalCase(ctx, client, tc)
+	elapsed := timeNowMs() - start
+
+	result := TestResult{
+		ID:         tc.ID,
+		Passed:     true,
+		WallTimeMs: elapsed,
+	}
+
+	if err != nil {
+		result.Passed = false
+		result.Error = err.Error()
+		result.Checks = append(result.Checks, CheckResult{
+			Name:   "api_call",
+			Passed: false,
+			Reason: err.Error(),
+		})
+		return result
+	}
+
+	result.Reply = er.Reply
+	result.ToolsCalled = er.ToolsCalled
+	result.ToolLog = er.ToolLog
+	result.InputTokens = er.InputTokens
+	result.OutputTokens = er.OutputTokens
+	result.ToolRoundTrips = er.ToolRoundTrips
+
+	for _, a := range tc.Assert {
+		cr := runAssertion(a, er)
+		result.Checks = append(result.Checks, cr)
+		if !cr.Passed {
+			result.Passed = false
+		}
+	}
+
+	return result
 }
 
 // runEvalCase runs a single test case through the Claude tool-use loop with mock data.
 func runEvalCase(ctx context.Context, client anthropic.Client, tc TestCase) (*evalResult, error) {
 	systemPrompt := buildSystemPrompt(tc.Operator.Name)
-	// Inject test context into system prompt so Claude has data to work with
-	if tc.Context != "" {
-		systemPrompt += "\n\nContexto do sistema:\n" + tc.Context
+	messages := []anthropic.MessageParam{
+		anthropic.NewUserMessage(anthropic.NewTextBlock(tc.Message)),
 	}
-
-	// Build messages from conversation history
-	var messages []anthropic.MessageParam
-	if tc.ConversationHistory != "" {
-		messages = parseConversationHistory(tc.ConversationHistory)
-	}
-	messages = append(messages, anthropic.NewUserMessage(anthropic.NewTextBlock(tc.Message)))
-
 	tools := agentTools
-	er := &evalResult{ToolArgs: make(map[string]json.RawMessage)}
+	er := &evalResult{ToolArgs: make(map[string][]json.RawMessage)}
+	mock := &MockExecutor{Fixtures: tc.Fixtures, OperatorName: tc.Operator.Name}
 
 	for range maxToolRoundTrips {
 		resp, err := client.Messages.New(ctx, anthropic.MessageNewParams{
@@ -154,19 +209,25 @@ func runEvalCase(ctx context.Context, client anthropic.Client, tc TestCase) (*ev
 			return nil, err
 		}
 
+		er.InputTokens += int(resp.Usage.InputTokens)
+		er.OutputTokens += int(resp.Usage.OutputTokens)
 		messages = append(messages, resp.ToParam())
 
 		var toolResults []anthropic.ContentBlockParamUnion
-
 		for _, block := range resp.Content {
 			switch v := block.AsAny().(type) {
 			case anthropic.TextBlock:
 				er.Reply = v.Text
 			case anthropic.ToolUseBlock:
 				er.ToolsCalled = append(er.ToolsCalled, v.Name)
-				er.ToolArgs[v.Name] = v.Input
+				er.ToolArgs[v.Name] = append(er.ToolArgs[v.Name], v.Input)
 
-				mockResult := mockToolResult(v.Name, v.Input, tc.Context)
+				mockResult := mock.Execute(v.Name, v.Input)
+				er.ToolLog = append(er.ToolLog, toolCallEntry{
+					Name:   v.Name,
+					Args:   truncate(string(v.Input), 80),
+					Result: truncate(mockResult, 60),
+				})
 				toolResults = append(toolResults, anthropic.NewToolResultBlock(v.ID, mockResult, false))
 			}
 		}
@@ -175,257 +236,437 @@ func runEvalCase(ctx context.Context, client anthropic.Client, tc TestCase) (*ev
 			break
 		}
 
+		er.ToolRoundTrips++
 		messages = append(messages, anthropic.NewUserMessage(toolResults...))
 	}
 
 	return er, nil
 }
 
-// mockToolResult returns mock data for a tool call based on the test context.
-func mockToolResult(name string, input json.RawMessage, testContext string) string {
+// MockExecutor implements tool dispatch using structured fixtures.
+type MockExecutor struct {
+	Fixtures     Fixtures
+	OperatorName string
+}
+
+// Execute dispatches a mock tool call and returns the result string.
+// Output format matches the real ToolExecutor methods in tools.go.
+func (m *MockExecutor) Execute(name string, input json.RawMessage) string {
 	switch name {
 	case "find_customer":
-		var args struct {
-			Query string `json:"query"`
-		}
-		if err := json.Unmarshal(input, &args); err != nil {
-			return "erro: " + err.Error()
-		}
-		return findInContext(testContext, args.Query)
+		return m.findCustomer(input)
 	case "list_customers":
-		return extractSection(testContext, "Clientes ativas")
+		return m.listCustomers()
 	case "find_post":
-		var args struct {
-			PostID string `json:"post_id"`
-		}
-		if err := json.Unmarshal(input, &args); err != nil {
-			return "erro: " + err.Error()
-		}
-		return findPostInContext(testContext, args.PostID)
+		return m.findPost(input)
 	case "list_posts":
-		var args struct {
-			CustomerName string `json:"customer_name"`
-		}
-		if err := json.Unmarshal(input, &args); err != nil {
-			return "erro: " + err.Error()
-		}
-		if args.CustomerName != "" {
-			return findPostsForCustomer(testContext, args.CustomerName)
-		}
-		return extractSection(testContext, "Posts pendentes")
+		return m.listPosts(input)
 	case "recent_activity":
-		return extractSection(testContext, "Últimas ações")
+		return "Nenhuma ação recente."
+	case "create_customer":
+		return m.createCustomer(input)
+	case "update_customer":
+		return m.updateCustomer(input)
+	case "pause_customer":
+		return m.pauseCustomer(input)
+	case "generate_post":
+		return m.generatePost(input)
+	case "approve_post":
+		return m.approvePost(input)
+	case "reject_post":
+		return m.rejectPost(input)
 	default:
-		return "Ação executada com sucesso."
+		return "Ferramenta desconhecida: " + name
 	}
 }
 
-// findInContext searches test context for a customer matching the query.
-func findInContext(ctx, query string) string {
-	if query == "" {
-		return "Nenhuma cliente encontrada."
+func (m *MockExecutor) findCustomer(input json.RawMessage) string {
+	var args struct {
+		Query string `json:"query"`
 	}
-	normalizedQuery := service.NormalizeForMatch(query)
-	var found []string
-	for line := range strings.SplitSeq(ctx, "\n") {
-		trimmed := strings.TrimSpace(line)
-		if !strings.HasPrefix(trimmed, "- ") {
+	if err := json.Unmarshal(input, &args); err != nil || args.Query == "" {
+		return "Parâmetro 'query' obrigatório."
+	}
+
+	query := service.NormalizeForMatch(args.Query)
+	var matches []MockCustomer
+	for _, c := range m.Fixtures.Customers {
+		if strings.Contains(service.NormalizeForMatch(c.Name), query) {
+			matches = append(matches, c)
+		}
+	}
+
+	if len(matches) == 0 {
+		return fmt.Sprintf("Nenhuma cliente encontrada com '%s'.", args.Query)
+	}
+
+	var b strings.Builder
+	for _, c := range matches {
+		fmt.Fprintf(&b, "Nome: %s\n", c.Name)
+		fmt.Fprintf(&b, "Tipo: %s\n", c.Type)
+		fmt.Fprintf(&b, "Cidade: %s\n", c.City)
+		if c.Phone != "" {
+			fmt.Fprintf(&b, "Tel: %s\n", c.Phone)
+		}
+		fmt.Fprintf(&b, "Status: active\n")
+		b.WriteString("---\n")
+	}
+	return b.String()
+}
+
+func (m *MockExecutor) listCustomers() string {
+	if len(m.Fixtures.Customers) == 0 {
+		return "Nenhuma cliente ativa no momento."
+	}
+	var b strings.Builder
+	fmt.Fprintf(&b, "Clientes ativas: %d\n", len(m.Fixtures.Customers))
+	for _, c := range m.Fixtures.Customers {
+		fmt.Fprintf(&b, "- %s (%s, %s)\n", c.Name, c.Type, c.City)
+	}
+	return b.String()
+}
+
+func (m *MockExecutor) findPost(input json.RawMessage) string {
+	var args struct {
+		PostID string `json:"post_id"`
+	}
+	if err := json.Unmarshal(input, &args); err != nil || args.PostID == "" {
+		return "Parâmetro 'post_id' obrigatório."
+	}
+
+	for _, p := range m.Fixtures.Posts {
+		if p.ID == args.PostID {
+			status := "pendente"
+			if p.Reviewed {
+				status = "revisado"
+			}
+			return fmt.Sprintf("Post: %s | Cliente: %s | Status: %s", p.ID, p.Business, status)
+		}
+	}
+	return fmt.Sprintf("Post %s não encontrado.", args.PostID)
+}
+
+func (m *MockExecutor) listPosts(input json.RawMessage) string {
+	var args struct {
+		CustomerName string `json:"customer_name"`
+		Status       string `json:"status"`
+	}
+	if len(input) > 0 {
+		json.Unmarshal(input, &args) //nolint:errcheck
+	}
+
+	var posts []MockPost
+	for _, p := range m.Fixtures.Posts {
+		if args.CustomerName != "" && !strings.Contains(service.NormalizeForMatch(p.Business), service.NormalizeForMatch(args.CustomerName)) {
 			continue
 		}
-		entry := strings.TrimPrefix(trimmed, "- ")
-		if strings.Contains(service.NormalizeForMatch(entry), normalizedQuery) {
-			// Parse "Name (Type, City)" format
-			if idx := strings.Index(entry, " ("); idx > 0 {
-				name := entry[:idx]
-				rest := strings.TrimSuffix(entry[idx+2:], ")")
-				parts := strings.SplitN(rest, ", ", 2)
-				if len(parts) == 2 {
-					found = append(found, fmt.Sprintf("Nome: %s\nTipo: %s\nCidade: %s\nStatus: active", name, parts[0], parts[1]))
-				}
-			}
-		}
-	}
-	if len(found) == 0 {
-		return fmt.Sprintf("Nenhuma cliente encontrada com '%s'.", query)
-	}
-	return strings.Join(found, "\n---\n")
-}
-
-// findPostInContext searches test context for a post matching the ID.
-func findPostInContext(ctx, postID string) string {
-	for line := range strings.SplitSeq(ctx, "\n") {
-		trimmed := strings.TrimSpace(line)
-		if strings.Contains(trimmed, "("+postID+")") {
-			// Parse "- Name: "caption..." (post_id)" format
-			entry := strings.TrimPrefix(trimmed, "- ")
-			if colonIdx := strings.Index(entry, ": \""); colonIdx > 0 {
-				name := entry[:colonIdx]
-				rest := entry[colonIdx+3:]
-				if quoteEnd := strings.Index(rest, "\""); quoteEnd > 0 {
-					caption := rest[:quoteEnd]
-					return fmt.Sprintf("Post: %s\nCliente: %s\nLegenda: %s\nStatus: pendente", postID, name, caption)
-				}
-			}
-		}
-	}
-	return fmt.Sprintf("Post %s não encontrado.", postID)
-}
-
-// findPostsForCustomer returns posts matching a customer name from context.
-func findPostsForCustomer(ctx, customerName string) string {
-	normalizedName := service.NormalizeForMatch(customerName)
-	var found []string
-	for line := range strings.SplitSeq(ctx, "\n") {
-		trimmed := strings.TrimSpace(line)
-		if !strings.HasPrefix(trimmed, "- ") {
+		if args.Status == "pending" && p.Reviewed {
 			continue
 		}
-		entry := strings.TrimPrefix(trimmed, "- ")
-		if colonIdx := strings.Index(entry, ": \""); colonIdx > 0 {
-			name := entry[:colonIdx]
-			if strings.Contains(service.NormalizeForMatch(name), normalizedName) {
-				found = append(found, trimmed)
-			}
-		}
-	}
-	if len(found) == 0 {
-		return fmt.Sprintf("Nenhum post encontrado para '%s'.", customerName)
-	}
-	return strings.Join(found, "\n")
-}
-
-// extractSection returns a section of text starting with the given prefix.
-func extractSection(ctx, prefix string) string {
-	lines := strings.Split(ctx, "\n")
-	var section []string
-	capturing := false
-	for _, line := range lines {
-		trimmed := strings.TrimSpace(line)
-		if strings.HasPrefix(trimmed, prefix) {
-			capturing = true
-			section = append(section, trimmed)
+		if args.Status == "reviewed" && !p.Reviewed {
 			continue
 		}
-		if capturing {
-			if trimmed == "" || (!strings.HasPrefix(trimmed, "- ") && !strings.HasPrefix(trimmed, " ")) {
-				break
-			}
-			section = append(section, trimmed)
+		posts = append(posts, p)
+	}
+
+	if len(posts) == 0 {
+		if args.CustomerName != "" {
+			return fmt.Sprintf("Nenhum post encontrado para '%s'.", args.CustomerName)
 		}
+		return "Nenhum post encontrado."
 	}
-	if len(section) == 0 {
-		return "Nenhum dado encontrado."
+
+	var b strings.Builder
+	fmt.Fprintf(&b, "Posts: %d\n", len(posts))
+	for _, p := range posts {
+		status := "pendente"
+		if p.Reviewed {
+			status = "revisado"
+		}
+		fmt.Fprintf(&b, "- %s (%s) [%s]\n", p.Business, p.ID, status)
 	}
-	return strings.Join(section, "\n")
+	b.WriteString("O conteúdo completo dos posts será exibido automaticamente. Não inclua legendas, hashtags ou notas de produção na sua resposta.")
+	return b.String()
 }
 
-// parseConversationHistory converts a conversation history string into Claude messages.
-func parseConversationHistory(history string) []anthropic.MessageParam {
-	var messages []anthropic.MessageParam
-	for line := range strings.SplitSeq(strings.TrimSpace(history), "\n") {
-		line = strings.TrimSpace(line)
-		if line == "" {
-			continue
-		}
-		if after, ok := strings.CutPrefix(line, "[Rekan]:"); ok {
-			text := strings.TrimSpace(after)
-			messages = append(messages, anthropic.MessageParam{
-				Role:    anthropic.MessageParamRoleAssistant,
-				Content: []anthropic.ContentBlockParamUnion{anthropic.NewTextBlock(text)},
-			})
-		} else if idx := strings.Index(line, ":"); idx > 0 {
-			text := strings.TrimSpace(line[idx+1:])
-			messages = append(messages, anthropic.NewUserMessage(anthropic.NewTextBlock(text)))
+func (m *MockExecutor) createCustomer(input json.RawMessage) string {
+	var args struct {
+		Name string `json:"name"`
+		Type string `json:"type"`
+		City string `json:"city"`
+	}
+	if err := json.Unmarshal(input, &args); err != nil {
+		return "Erro ao ler parâmetros."
+	}
+
+	// Check for duplicate
+	for _, c := range m.Fixtures.Customers {
+		if strings.EqualFold(c.Name, args.Name) {
+			return fmt.Sprintf("%s já existe (%s, %s).", c.Name, c.Type, c.City)
 		}
 	}
-	return mergeConsecutiveRoles(messages)
+
+	return fmt.Sprintf("%s, %s cadastrada! (%s, %s)", m.OperatorName, args.Name, args.Type, args.City)
 }
 
-// isWriteTool returns true if the tool modifies data.
-// Derived from toolNameToActionType to keep a single source of truth.
-func isWriteTool(name string) bool {
-	switch name {
-	case "find_customer", "list_customers", "find_post", "list_posts", "recent_activity":
-		return false
+func (m *MockExecutor) updateCustomer(input json.RawMessage) string {
+	var args struct {
+		Name string `json:"name"`
 	}
-	return toolNameToActionType(name) != ""
+	if err := json.Unmarshal(input, &args); err != nil {
+		return "Erro ao ler parâmetros."
+	}
+	return fmt.Sprintf("%s, %s atualizada!", m.OperatorName, args.Name)
 }
 
-func runGrader(g Grader, toolsCalled, reply, hasReply string, toolArgs map[string]json.RawMessage) CheckResult {
-	switch g.Type {
-	case "deterministic":
-		return runDeterministicGrader(g, toolsCalled, reply, hasReply, toolArgs)
-	case "llm_judge":
-		return CheckResult{Grader: g, Passed: true, Reason: "llm judge (skipped in deterministic mode)"}
+func (m *MockExecutor) pauseCustomer(input json.RawMessage) string {
+	var args struct {
+		Name string `json:"name"`
+	}
+	if err := json.Unmarshal(input, &args); err != nil {
+		return "Erro ao ler parâmetros."
+	}
+	return fmt.Sprintf("%s, %s pausada.", m.OperatorName, args.Name)
+}
+
+func (m *MockExecutor) generatePost(input json.RawMessage) string {
+	var args struct {
+		CustomerName string `json:"customer_name"`
+	}
+	if err := json.Unmarshal(input, &args); err != nil {
+		return "Erro ao ler parâmetros."
+	}
+
+	// Check customer exists
+	found := false
+	for _, c := range m.Fixtures.Customers {
+		if strings.Contains(service.NormalizeForMatch(c.Name), service.NormalizeForMatch(args.CustomerName)) {
+			found = true
+			break
+		}
+	}
+	if !found {
+		return fmt.Sprintf("%s, não encontrei cliente '%s'.", m.OperatorName, args.CustomerName)
+	}
+
+	var b strings.Builder
+	fmt.Fprintf(&b, "%s, post gerado pra %s!\n\n", m.OperatorName, args.CustomerName)
+	fmt.Fprintf(&b, "Legenda: Post de exemplo para %s\n", args.CustomerName)
+	b.WriteString("Hashtags: #exemplo #post\n")
+	b.WriteString("Nota de produção: Foto de exemplo\n")
+	b.WriteString("ID: post_gen_001")
+	return b.String()
+}
+
+func (m *MockExecutor) approvePost(input json.RawMessage) string {
+	var args struct {
+		PostID string `json:"post_id"`
+	}
+	if err := json.Unmarshal(input, &args); err != nil {
+		return "Erro ao ler parâmetros."
+	}
+
+	for _, p := range m.Fixtures.Posts {
+		if p.ID == args.PostID {
+			return fmt.Sprintf("%s, post da %s aprovado!", m.OperatorName, p.Business)
+		}
+	}
+	return fmt.Sprintf("Post %s não encontrado.", args.PostID)
+}
+
+func (m *MockExecutor) rejectPost(input json.RawMessage) string {
+	var args struct {
+		PostID   string `json:"post_id"`
+		Feedback string `json:"feedback"`
+	}
+	if err := json.Unmarshal(input, &args); err != nil {
+		return "Erro ao ler parâmetros."
+	}
+
+	for _, p := range m.Fixtures.Posts {
+		if p.ID == args.PostID {
+			return fmt.Sprintf("%s, post da %s rejeitado. Feedback: %s.", m.OperatorName, p.Business, args.Feedback)
+		}
+	}
+	return fmt.Sprintf("Post %s não encontrado.", args.PostID)
+}
+
+// --- Assertion engine ---
+
+func runAssertion(a Assertion, er *evalResult) CheckResult {
+	switch {
+	case a.ToolCalled != "":
+		return assertToolCalled(a.ToolCalled, er.ToolsCalled)
+	case a.ToolNotCalled != "":
+		return assertToolNotCalled(a.ToolNotCalled, er.ToolsCalled)
+	case a.ToolArg != nil:
+		return assertToolArg(a.ToolArg, er.ToolArgs)
+	case a.ReplyContains != "":
+		return assertReplyContains(a.ReplyContains, er.Reply)
+	case a.ReplyNotContain != "":
+		return assertReplyNotContains(a.ReplyNotContain, er.Reply)
+	case a.NoEmptyPromise:
+		return assertNoEmptyPromise(er.Reply, er.ToolsCalled)
+	case a.MaxToolCalls > 0:
+		return assertMaxToolCalls(a.MaxToolCalls, er.ToolsCalled)
 	default:
-		return CheckResult{Grader: g, Passed: false, Reason: "unknown grader type: " + g.Type}
+		return CheckResult{Name: "unknown", Passed: false, Reason: "no assertion type matched"}
 	}
 }
 
-func runDeterministicGrader(g Grader, toolsCalled, reply, hasReply string, toolArgs map[string]json.RawMessage) CheckResult {
-	var actual string
-	switch g.Field {
-	case "action_type":
-		// Prefer write tools for action_type (write tools are the primary action).
-		// Fall back to last read tool if no write tool was called.
-		if toolsCalled != "" {
-			tools := strings.Split(toolsCalled, ",")
-			for _, t := range tools {
-				if isWriteTool(t) {
-					actual = toolNameToActionType(t)
-					break
-				}
-			}
-			if actual == "" {
-				for i := len(tools) - 1; i >= 0; i-- {
-					if at := toolNameToActionType(tools[i]); at != "" {
-						actual = at
-						break
-					}
-				}
+func assertToolCalled(name string, called []string) CheckResult {
+	for _, t := range called {
+		if t == name {
+			return CheckResult{Name: "tool_called:" + name, Passed: true}
+		}
+	}
+	return CheckResult{
+		Name:   "tool_called:" + name,
+		Passed: false,
+		Reason: fmt.Sprintf("%s not called (called: %s)", name, strings.Join(called, ", ")),
+	}
+}
+
+func assertToolNotCalled(name string, called []string) CheckResult {
+	for _, t := range called {
+		if t == name {
+			return CheckResult{
+				Name:   "tool_not_called:" + name,
+				Passed: false,
+				Reason: fmt.Sprintf("%s was called but shouldn't have been", name),
 			}
 		}
-	case "tools_called":
-		actual = toolsCalled
-	case "reply":
-		actual = reply
-	case "has_reply":
-		actual = hasReply
-	case "tool_args":
-		// Check that a tool was called with args containing a value
-		// g.Equals format: "tool_name" and g.Contains is the expected substring in args JSON
-		if raw, ok := toolArgs[g.Equals]; ok {
-			if g.Contains != "" {
-				if strings.Contains(strings.ToLower(string(raw)), strings.ToLower(g.Contains)) {
-					return CheckResult{Grader: g, Passed: true}
-				}
-				return CheckResult{Grader: g, Passed: false, Reason: fmt.Sprintf("tool %s args %q doesn't contain %q", g.Equals, string(raw), g.Contains)}
-			}
-			return CheckResult{Grader: g, Passed: true}
-		}
-		return CheckResult{Grader: g, Passed: false, Reason: fmt.Sprintf("tool %q not called", g.Equals)}
-	default:
-		return CheckResult{Grader: g, Passed: false, Reason: "unknown field: " + g.Field}
+	}
+	return CheckResult{Name: "tool_not_called:" + name, Passed: true}
+}
+
+func assertToolArg(def *ToolArgDef, toolArgs map[string][]json.RawMessage) CheckResult {
+	name := fmt.Sprintf("tool_arg:%s.%s~%s", def.Tool, def.Key, def.Contains)
+	invocations, ok := toolArgs[def.Tool]
+	if !ok {
+		return CheckResult{Name: name, Passed: false, Reason: fmt.Sprintf("tool %s not called", def.Tool)}
 	}
 
-	if g.Equals != "" {
-		passed := strings.EqualFold(actual, g.Equals)
-		reason := ""
-		if !passed {
-			reason = fmt.Sprintf("expected %q, got %q", g.Equals, actual)
+	for _, raw := range invocations {
+		var args map[string]json.RawMessage
+		if err := json.Unmarshal(raw, &args); err != nil {
+			continue
 		}
-		return CheckResult{Grader: g, Passed: passed, Reason: reason}
-	}
-	if g.Contains != "" {
-		passed := strings.Contains(strings.ToLower(actual), strings.ToLower(g.Contains))
-		reason := ""
-		if !passed {
-			reason = fmt.Sprintf("expected to contain %q, got %q", g.Contains, actual)
+		val, ok := args[def.Key]
+		if !ok {
+			continue
 		}
-		return CheckResult{Grader: g, Passed: passed, Reason: reason}
+		if strings.Contains(strings.ToLower(string(val)), strings.ToLower(def.Contains)) {
+			return CheckResult{Name: name, Passed: true}
+		}
 	}
 
-	return CheckResult{Grader: g, Passed: false, Reason: "no equals or contains specified"}
+	return CheckResult{
+		Name:   name,
+		Passed: false,
+		Reason: fmt.Sprintf("no invocation of %s has %s containing %q", def.Tool, def.Key, def.Contains),
+	}
+}
+
+func assertReplyContains(substr string, reply string) CheckResult {
+	name := "reply_contains:" + substr
+	if strings.Contains(strings.ToLower(reply), strings.ToLower(substr)) {
+		return CheckResult{Name: name, Passed: true}
+	}
+	return CheckResult{
+		Name:   name,
+		Passed: false,
+		Reason: fmt.Sprintf("reply does not contain %q", substr),
+	}
+}
+
+func assertReplyNotContains(substr string, reply string) CheckResult {
+	name := "reply_not_contains:" + substr
+	if !strings.Contains(strings.ToLower(reply), strings.ToLower(substr)) {
+		return CheckResult{Name: name, Passed: true}
+	}
+	return CheckResult{
+		Name:   name,
+		Passed: false,
+		Reason: fmt.Sprintf("reply contains %q but shouldn't", substr),
+	}
+}
+
+// promisePatterns matches first-person Portuguese verbs that claim an action was completed.
+// Excludes past participles (cadastrada/atualizada) and infinitives used in context (para cadastrar).
+var promisePatterns = regexp.MustCompile(`(?i)\b(cadastrei|atualizei|aprovei|rejeitei|pausei|gerei|alterei|criei|cadastrou|atualizou|aprovou|rejeitou|pausou|gerou)\b`)
+
+// questionPattern detects sentences that are questions (contain verb near a ?).
+var questionPattern = regexp.MustCompile(`(?i)\b(quer|posso|devo|gostaria|prefere|deseja)\b.*\?`)
+
+// writeToolNames maps promise verbs to expected tools.
+var writeToolNames = map[string]bool{
+	"create_customer": true,
+	"update_customer": true,
+	"approve_post":    true,
+	"reject_post":     true,
+	"pause_customer":  true,
+	"generate_post":   true,
+}
+
+func assertNoEmptyPromise(reply string, toolsCalled []string) CheckResult {
+	name := "no_empty_promise"
+
+	// Find all promise verb matches, but exclude those inside questions
+	matches := promisePatterns.FindAllStringIndex(reply, -1)
+	hasDeclarativePromise := false
+	for _, m := range matches {
+		// Extract the sentence containing this match
+		sentence := extractSentence(reply, m[0])
+		if questionPattern.MatchString(sentence) {
+			continue
+		}
+		hasDeclarativePromise = true
+		break
+	}
+
+	if !hasDeclarativePromise {
+		return CheckResult{Name: name, Passed: true}
+	}
+
+	// Reply contains declarative action verbs, check that at least one write tool was called
+	for _, t := range toolsCalled {
+		if writeToolNames[t] {
+			return CheckResult{Name: name, Passed: true}
+		}
+	}
+
+	return CheckResult{
+		Name:   name,
+		Passed: false,
+		Reason: "reply contains action verbs but no write tool was called",
+	}
+}
+
+// extractSentence returns the sentence containing the character at position pos.
+func extractSentence(text string, pos int) string {
+	start := strings.LastIndexAny(text[:pos], ".!?\n") + 1
+	end := strings.IndexAny(text[pos:], ".!?\n")
+	if end < 0 {
+		return text[start:]
+	}
+	return text[start : pos+end+1]
+}
+
+func assertMaxToolCalls(max int, toolsCalled []string) CheckResult {
+	name := fmt.Sprintf("max_tool_calls:%d", max)
+	if len(toolsCalled) <= max {
+		return CheckResult{Name: name, Passed: true}
+	}
+	return CheckResult{
+		Name:   name,
+		Passed: false,
+		Reason: fmt.Sprintf("called %d tools, max %d", len(toolsCalled), max),
+	}
+}
+
+func timeNowMs() int64 {
+	return time.Now().UnixMilli()
 }
 
 func truncate(s string, n int) string {

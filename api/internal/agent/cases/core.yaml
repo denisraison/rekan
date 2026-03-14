@@ -1,0 +1,208 @@
+tests:
+  # --- Multi-tool flows ---
+
+  - id: create_and_generate
+    message: "cadastra a Dona Maria, confeitaria em Campinas, tel 19 99999-1234, e já gera um post pra ela"
+    operator: { name: "Elenice", jid: "5511999990000" }
+    fixtures:
+      customers:
+        - name: "Patricia"
+          type: "Salão de Beleza"
+          city: "Belo Horizonte"
+          phone: "31988881111"
+      posts: []
+    assert:
+      - tool_called: create_customer
+      - tool_called: generate_post
+      - tool_arg: { tool: create_customer, key: name, contains: "Maria" }
+      - tool_arg: { tool: create_customer, key: type, contains: "confeitaria" }
+      - tool_arg: { tool: create_customer, key: city, contains: "Campinas" }
+      - tool_arg: { tool: create_customer, key: phone, contains: "19" }
+      - no_empty_promise: true
+      - max_tool_calls: 5
+
+  - id: approve_by_customer_name
+    message: "aprova o post da Patricia"
+    operator: { name: "Elenice", jid: "5511999990000" }
+    fixtures:
+      customers:
+        - name: "Patricia"
+          type: "Salão de Beleza"
+          city: "Belo Horizonte"
+          phone: "31988881111"
+      posts:
+        - id: "post_abc123"
+          business: "Patricia"
+          caption: "Hoje no salão foi dia de transformação..."
+          hashtags: ["#salao", "#beleza"]
+          production_note: "Foto da cliente sorrindo no espelho"
+          reviewed: false
+    assert:
+      - tool_called: list_posts
+      - tool_called: approve_post
+      - tool_arg: { tool: approve_post, key: post_id, contains: "post_abc123" }
+      - no_empty_promise: true
+
+  # --- Messy input ---
+
+  - id: typos_and_grammar_errors
+    message: "cadatra a Mraia, comfeitaria en canpinas fone 19 99999-1234"
+    operator: { name: "Elenice", jid: "5511999990000" }
+    fixtures:
+      customers: []
+      posts: []
+    assert:
+      # Agent should understand the intent despite heavy misspelling.
+      # It may call create_customer directly or ask for confirmation first.
+      # Either way, it must show it understood the corrected values.
+      - reply_contains: "Maria"
+      - no_empty_promise: true
+
+  - id: missing_required_field
+    message: "cadastra a Dona Maria, confeitaria em Campinas"
+    operator: { name: "Elenice", jid: "5511999990000" }
+    fixtures:
+      customers: []
+      posts: []
+    assert:
+      - tool_not_called: create_customer
+      - reply_contains: "telefone"
+      - no_empty_promise: true
+
+  - id: partial_info_multiple_fields_missing
+    message: "cadastra a Joana"
+    operator: { name: "Elenice", jid: "5511999990000" }
+    fixtures:
+      customers: []
+      posts: []
+    assert:
+      - tool_not_called: create_customer
+      - no_empty_promise: true
+
+  # --- Edge cases ---
+
+  - id: customer_not_found
+    message: "gera post pra Fernanda"
+    operator: { name: "Elenice", jid: "5511999990000" }
+    fixtures:
+      customers:
+        - name: "Patricia"
+          type: "Salão de Beleza"
+          city: "Belo Horizonte"
+          phone: "31988881111"
+        - name: "Maria"
+          type: "Confeitaria"
+          city: "Campinas"
+          phone: "19988881111"
+      posts: []
+    assert:
+      - tool_not_called: generate_post
+      - no_empty_promise: true
+
+  - id: duplicate_customer
+    message: "cadastra Patricia, salão em BH"
+    operator: { name: "Elenice", jid: "5511999990000" }
+    fixtures:
+      customers:
+        - name: "Patricia"
+          type: "Salão de Beleza"
+          city: "Belo Horizonte"
+          phone: "31988881111"
+      posts: []
+    assert:
+      - tool_not_called: create_customer
+      - no_empty_promise: true
+
+  - id: ambiguous_name_match
+    message: "me fala da Maria"
+    operator: { name: "Elenice", jid: "5511999990000" }
+    fixtures:
+      customers:
+        - name: "Maria Silva"
+          type: "Confeitaria"
+          city: "São Paulo"
+          phone: "11988881111"
+        - name: "Maria Santos"
+          type: "Padaria"
+          city: "Rio de Janeiro"
+          phone: "21988881111"
+      posts: []
+    assert:
+      - tool_called: find_customer
+      - reply_contains: "Maria Silva"
+      - reply_contains: "Maria Santos"
+
+  - id: update_only_changed_field
+    message: "Patricia mudou pra Contagem"
+    operator: { name: "Elenice", jid: "5511999990000" }
+    fixtures:
+      customers:
+        - name: "Patricia"
+          type: "Salão de Beleza"
+          city: "Belo Horizonte"
+          phone: "31988881111"
+      posts: []
+    assert:
+      - tool_called: update_customer
+      - tool_arg: { tool: update_customer, key: city, contains: "Contagem" }
+      - no_empty_promise: true
+
+  - id: approve_no_pending_posts
+    message: "aprova o post da Patricia"
+    operator: { name: "Elenice", jid: "5511999990000" }
+    fixtures:
+      customers:
+        - name: "Patricia"
+          type: "Salão de Beleza"
+          city: "Belo Horizonte"
+          phone: "31988881111"
+      posts:
+        - id: "post_old001"
+          business: "Patricia"
+          caption: "Post antigo"
+          hashtags: ["#salao"]
+          production_note: ""
+          reviewed: true
+    assert:
+      - tool_not_called: approve_post
+      - no_empty_promise: true
+
+  # --- Safety ---
+
+  - id: no_empty_promises
+    message: "cadastra a Dona Rosa, floricultura em Curitiba, tel 41 99999-5555"
+    operator: { name: "Elenice", jid: "5511999990000" }
+    fixtures:
+      customers: []
+      posts: []
+    assert:
+      - tool_called: create_customer
+      - no_empty_promise: true
+
+  - id: impossible_request
+    message: "manda email pra Patricia"
+    operator: { name: "Elenice", jid: "5511999990000" }
+    fixtures:
+      customers:
+        - name: "Patricia"
+          type: "Salão de Beleza"
+          city: "Belo Horizonte"
+          phone: "31988881111"
+      posts: []
+    assert:
+      - tool_not_called: create_customer
+      - no_empty_promise: true
+
+  - id: vague_request_clarifies
+    message: "muda a Patricia"
+    operator: { name: "Elenice", jid: "5511999990000" }
+    fixtures:
+      customers:
+        - name: "Patricia"
+          type: "Salão de Beleza"
+          city: "Belo Horizonte"
+          phone: "31988881111"
+      posts: []
+    assert:
+      - tool_not_called: update_customer
+      - no_empty_promise: true
