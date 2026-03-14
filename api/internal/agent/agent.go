@@ -11,15 +11,10 @@ import (
 	"go.mau.fi/whatsmeow/types"
 	"go.mau.fi/whatsmeow/types/events"
 
-	baml "github.com/denisraison/rekan/api/internal/baml/baml_client"
-	bamltypes "github.com/denisraison/rekan/api/internal/baml/baml_client/types"
 	content "github.com/denisraison/rekan/api/internal/content"
 	"github.com/denisraison/rekan/api/internal/transcribe"
 	"github.com/pocketbase/pocketbase/core"
 )
-
-// BAMLFunc is the signature for the BAML agent function, matching baml.AgentProcess.
-type BAMLFunc func(ctx context.Context, operatorName, message, systemContext, conversationHistory string) (bamltypes.AgentResponse, error)
 
 // Agent handles WhatsApp group messages for the operator chat.
 type Agent struct {
@@ -29,8 +24,7 @@ type Agent struct {
 	Debouncer  *Debouncer
 	Transcribe *transcribe.Client   // nil if GEMINI_API_KEY not set
 	Generate   content.GenerateFunc // nil if not wired
-	BAML       BAMLFunc             // defaults to baml.AgentProcess
-	Claude     *ClaudeClient        // nil = fallback to BAML
+	Claude     *ClaudeClient
 }
 
 // New creates a new Agent instance.
@@ -42,10 +36,7 @@ func New(app core.App, waClient WAClient, logger *slog.Logger, tc *transcribe.Cl
 		Debouncer:  NewDebouncer(),
 		Transcribe: tc,
 		Generate:   gen,
-		BAML: func(ctx context.Context, operatorName, message, systemContext, conversationHistory string) (bamltypes.AgentResponse, error) {
-			return baml.AgentProcess(ctx, operatorName, message, systemContext, conversationHistory)
-		},
-		Claude: NewClaudeClient(),
+		Claude:     NewClaudeClient(),
 	}
 }
 
@@ -133,65 +124,10 @@ func isCancellation(msg string) bool {
 	return slices.Contains([]string{"não", "nao", "deixa", "cancela", "esquece", "n"}, lower)
 }
 
-// bamlResult holds the output of a callBAML invocation.
-type bamlResult struct {
+// agentResult holds the output of the tool-use loop.
+type agentResult struct {
 	ReplyText  string
 	ActionType string
-}
-
-// callBAML calls the BAML agent and routes the action if present.
-// Handles slow timer, error logging, and action routing.
-func (a *Agent) callBAML(ctx context.Context, groupJID types.JID, hydrated HydratedContext, state *OperatorState, operatorName, operatorJID, message string, start time.Time) (*bamlResult, error) {
-	history, err := LoadRecentAndPrune(a.App, 15)
-	if err != nil {
-		a.Logger.Error("agent: failed to load conversation history", "error", err)
-	}
-	historyText := FormatConversation(history)
-
-	slowTimer := time.AfterFunc(5*time.Second, func() {
-		if err := SendReply(ctx, a.WAClient, groupJID, "Um momento..."); err != nil {
-			a.Logger.Error("agent: failed to send slow timer reply", "error", err)
-		}
-	})
-
-	response, err := a.BAML(ctx, operatorName, message, hydrated.Formatted, historyText)
-	slowTimer.Stop()
-
-	if err != nil {
-		a.Logger.Error("agent: BAML call failed", "error", err)
-		LogAction(a.App, operatorName, operatorJID, "ERROR", nil, err.Error(), false, start)
-		return nil, err
-	}
-
-	result := &bamlResult{ActionType: "INFO"}
-	if response.Action != nil {
-		result.ActionType = string(response.Action.ActionType)
-
-		// If a new NEEDS_CONFIRMATION comes in while confirming, clear old state
-		if state.State == StateConfirming && response.Action.ActionStatus == bamltypes.AgentActionStatusNEEDS_CONFIRMATION {
-			if err := ClearState(a.App, state, operatorJID); err != nil {
-				a.Logger.Error("agent: failed to clear old state", "error", err)
-			}
-		}
-
-		routeResult, routeErr := RouteAction(a.App, hydrated, state, *response.Action, a.Generate)
-		if routeErr != nil {
-			a.Logger.Error("agent: action routing failed", "error", routeErr, "action", result.ActionType)
-			LogAction(a.App, operatorName, operatorJID, result.ActionType, nil, routeErr.Error(), false, start)
-			return nil, routeErr
-		}
-		if routeResult != "" {
-			result.ReplyText = routeResult
-		}
-	}
-
-	// For NEEDS_CONFIRMATION with a structured confirmation from the router, use the router result.
-	// For everything else, prefer the BAML reply.
-	if response.Reply != nil && *response.Reply != "" && result.ReplyText == "" {
-		result.ReplyText = *response.Reply
-	}
-
-	return result, nil
 }
 
 // ProcessMessage is the core message processing pipeline.
@@ -235,7 +171,7 @@ func (a *Agent) ProcessMessage(groupJID types.JID, messageID string, senderJID t
 }
 
 // processWithTools runs the Claude tool-use loop for a message.
-func (a *Agent) processWithTools(ctx context.Context, groupJID types.JID, state *OperatorState, operatorName, operatorJID, message string) (*bamlResult, error) {
+func (a *Agent) processWithTools(ctx context.Context, groupJID types.JID, state *OperatorState, operatorName, operatorJID, message string) (*agentResult, error) {
 	history, err := LoadRecentAndPrune(a.App, 15)
 	if err != nil {
 		a.Logger.Error("agent: failed to load conversation history", "error", err)
@@ -260,7 +196,6 @@ func (a *Agent) processWithTools(ctx context.Context, groupJID types.JID, state 
 
 	actionType := "INFO"
 	if tuResult.WriteUsed && len(tuResult.ToolsCalled) > 0 {
-		// Use the last write tool name as the action type
 		for i := len(tuResult.ToolsCalled) - 1; i >= 0; i-- {
 			if at := toolNameToActionType(tuResult.ToolsCalled[i]); at != "" {
 				actionType = at
@@ -268,13 +203,12 @@ func (a *Agent) processWithTools(ctx context.Context, groupJID types.JID, state 
 			}
 		}
 	} else if len(tuResult.ToolsCalled) > 0 {
-		// Use the first tool called as a rough action type for logging
 		if at := toolNameToActionType(tuResult.ToolsCalled[0]); at != "" {
 			actionType = at
 		}
 	}
 
-	return &bamlResult{ReplyText: tuResult.Reply, ActionType: actionType}, nil
+	return &agentResult{ReplyText: tuResult.Reply, ActionType: actionType}, nil
 }
 
 // buildClaudeMessages converts conversation history + current message into Claude API messages.
@@ -337,17 +271,17 @@ func toolNameToActionType(name string) string {
 	case "recent_activity":
 		return "STATUS_OVERVIEW"
 	case "create_customer":
-		return "CUSTOMER_CREATE"
+		return ActionCustomerCreate
 	case "update_customer":
-		return "CUSTOMER_UPDATE"
+		return ActionCustomerUpdate
 	case "pause_customer":
-		return "CUSTOMER_PAUSE"
+		return ActionCustomerPause
 	case "generate_post":
-		return "POST_GENERATE"
+		return ActionPostGenerate
 	case "approve_post":
-		return "POST_APPROVE"
+		return ActionPostApprove
 	case "reject_post":
-		return "POST_REJECT"
+		return ActionPostReject
 	default:
 		return ""
 	}
@@ -360,9 +294,7 @@ func (a *Agent) handleStatefulMessage(ctx context.Context, groupJID types.JID, m
 
 	switch {
 	case isConfirmation(message):
-		// Only hydrate for execution (needs business records for update/pause)
-		hydrated := HydrateContext(a.App, operatorName, operatorJID)
-		result, err := ExecuteConfirmed(a.App, hydrated, state, a.Generate)
+		result, err := ExecuteConfirmed(ctx, a.App, operatorName, state, a.Generate)
 		if err != nil {
 			a.Logger.Error("agent: confirmed action failed", "error", err, "action", actionType)
 			replyText = operatorName + ", algo deu errado. Tenta de novo?"
@@ -388,7 +320,7 @@ func (a *Agent) handleStatefulMessage(ctx context.Context, groupJID types.JID, m
 		actionType = result.ActionType
 	}
 
-	br := &bamlResult{ReplyText: replyText, ActionType: actionType}
+	br := &agentResult{ReplyText: replyText, ActionType: actionType}
 
 	if err := ReactThumbsUp(ctx, a.WAClient, groupJID, messageID, senderJID); err != nil {
 		a.Logger.Error("agent: react thumbs up", "error", err)
@@ -396,7 +328,7 @@ func (a *Agent) handleStatefulMessage(ctx context.Context, groupJID types.JID, m
 	a.sendAndLog(ctx, groupJID, operatorName, operatorJID, br, start)
 }
 
-func (a *Agent) sendAndLog(ctx context.Context, groupJID types.JID, operatorName, operatorJID string, result *bamlResult, start time.Time) {
+func (a *Agent) sendAndLog(ctx context.Context, groupJID types.JID, operatorName, operatorJID string, result *agentResult, start time.Time) {
 	if result.ReplyText == "" {
 		LogAction(a.App, operatorName, operatorJID, result.ActionType, nil, "empty reply", true, start)
 		return

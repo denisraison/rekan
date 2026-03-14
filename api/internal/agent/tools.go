@@ -6,7 +6,6 @@ import (
 	"strings"
 
 	"github.com/anthropics/anthropic-sdk-go"
-	"github.com/denisraison/rekan/api/internal/baml/baml_client/types"
 	content "github.com/denisraison/rekan/api/internal/content"
 	"github.com/denisraison/rekan/api/internal/domain"
 	"github.com/pocketbase/dbx"
@@ -159,12 +158,7 @@ func (te *ToolExecutor) loadBusinesses() []*core.Record {
 	if te.businesses != nil {
 		return te.businesses
 	}
-	if err := te.App.RecordQuery(domain.CollBusinesses).
-		AndWhere(dbx.NewExp("invite_status IN ('active', 'draft')")).
-		OrderBy("name ASC").
-		All(&te.businesses); err != nil {
-		return nil
-	}
+	te.businesses = loadActiveBusinesses(te.App)
 	return te.businesses
 }
 
@@ -271,8 +265,9 @@ func (te *ToolExecutor) findPost(input json.RawMessage) string {
 		return fmt.Sprintf("Post %s não encontrado.", args.PostID)
 	}
 
-	bizName := record.GetString("business")
-	if bizID := record.GetString("business"); bizID != "" {
+	bizID := record.GetString("business")
+	bizName := bizID
+	if bizID != "" {
 		if biz, err := te.App.FindRecordById(domain.CollBusinesses, bizID); err == nil {
 			bizName = biz.GetString("name")
 		}
@@ -417,7 +412,7 @@ func (te *ToolExecutor) createCustomer(input json.RawMessage, operatorName strin
 		return toolResult{Text: "Erro ao ler parâmetros.", ToolName: "create_customer", IsWrite: true}
 	}
 
-	p := &types.CustomerCreateParams{
+	p := &CustomerCreateParams{
 		Name: args.Name,
 		Type: args.Type,
 		City: args.City,
@@ -455,7 +450,7 @@ func (te *ToolExecutor) createCustomer(input json.RawMessage, operatorName strin
 		}
 	}
 
-	if err := SetConfirming(te.App, te.State, te.OperatorJID, "CUSTOMER_CREATE", p); err != nil {
+	if err := SetConfirming(te.App, te.State, te.OperatorJID, ActionCustomerCreate, p); err != nil {
 		return toolResult{Text: "Erro ao salvar estado.", ToolName: "create_customer", IsWrite: true}
 	}
 
@@ -480,7 +475,7 @@ func (te *ToolExecutor) updateCustomer(input json.RawMessage) toolResult {
 		return toolResult{Text: "Erro ao ler parâmetros.", ToolName: "update_customer", IsWrite: true}
 	}
 
-	p := &types.CustomerUpdateParams{Name: args.Name}
+	p := &CustomerUpdateParams{Name: args.Name}
 	if args.Type != "" {
 		p.Type = &args.Type
 	}
@@ -500,7 +495,7 @@ func (te *ToolExecutor) updateCustomer(input json.RawMessage) toolResult {
 		p.Quirks = &args.Quirks
 	}
 
-	if err := SetConfirming(te.App, te.State, te.OperatorJID, "CUSTOMER_UPDATE", p); err != nil {
+	if err := SetConfirming(te.App, te.State, te.OperatorJID, ActionCustomerUpdate, p); err != nil {
 		return toolResult{Text: "Erro ao salvar estado.", ToolName: "update_customer", IsWrite: true}
 	}
 
@@ -520,12 +515,12 @@ func (te *ToolExecutor) pauseCustomer(input json.RawMessage) toolResult {
 		return toolResult{Text: "Erro ao ler parâmetros.", ToolName: "pause_customer", IsWrite: true}
 	}
 
-	p := &types.CustomerPauseParams{Name: args.Name}
+	p := &CustomerPauseParams{Name: args.Name}
 	if args.Reason != "" {
 		p.Reason = &args.Reason
 	}
 
-	if err := SetConfirming(te.App, te.State, te.OperatorJID, "CUSTOMER_PAUSE", p); err != nil {
+	if err := SetConfirming(te.App, te.State, te.OperatorJID, ActionCustomerPause, p); err != nil {
 		return toolResult{Text: "Erro ao salvar estado.", ToolName: "pause_customer", IsWrite: true}
 	}
 
@@ -544,9 +539,9 @@ func (te *ToolExecutor) generatePost(input json.RawMessage) toolResult {
 		return toolResult{Text: "Erro ao ler parâmetros.", ToolName: "generate_post", IsWrite: true}
 	}
 
-	p := &types.PostGenerateParams{Name: args.CustomerName}
+	p := &PostGenerateParams{Name: args.CustomerName}
 
-	if err := SetConfirming(te.App, te.State, te.OperatorJID, "POST_GENERATE", p); err != nil {
+	if err := SetConfirming(te.App, te.State, te.OperatorJID, ActionPostGenerate, p); err != nil {
 		return toolResult{Text: "Erro ao salvar estado.", ToolName: "generate_post", IsWrite: true}
 	}
 
@@ -566,13 +561,13 @@ func (te *ToolExecutor) approvePost(input json.RawMessage, operatorName string) 
 		return toolResult{Text: "Erro ao ler parâmetros.", ToolName: "approve_post", IsWrite: true}
 	}
 
-	if err := validatePostApprove(&types.PostApproveParams{PostId: args.PostID}, operatorName); err != nil {
+	if err := validatePostApprove(&PostApproveParams{PostId: args.PostID}, operatorName); err != nil {
 		return toolResult{Text: err.Error(), ToolName: "approve_post", IsWrite: true}
 	}
 
-	p := &types.PostApproveParams{PostId: args.PostID, Name: args.CustomerName}
+	p := &PostApproveParams{PostId: args.PostID, Name: args.CustomerName}
 
-	if err := SetConfirming(te.App, te.State, te.OperatorJID, "POST_APPROVE", p); err != nil {
+	if err := SetConfirming(te.App, te.State, te.OperatorJID, ActionPostApprove, p); err != nil {
 		return toolResult{Text: "Erro ao salvar estado.", ToolName: "approve_post", IsWrite: true}
 	}
 
@@ -593,13 +588,13 @@ func (te *ToolExecutor) rejectPost(input json.RawMessage, operatorName string) t
 		return toolResult{Text: "Erro ao ler parâmetros.", ToolName: "reject_post", IsWrite: true}
 	}
 
-	if err := validatePostReject(&types.PostRejectParams{PostId: args.PostID, Feedback: args.Feedback}, operatorName); err != nil {
+	if err := validatePostReject(&PostRejectParams{PostId: args.PostID, Feedback: args.Feedback}, operatorName); err != nil {
 		return toolResult{Text: err.Error(), ToolName: "reject_post", IsWrite: true}
 	}
 
-	p := &types.PostRejectParams{PostId: args.PostID, Name: args.CustomerName, Feedback: args.Feedback}
+	p := &PostRejectParams{PostId: args.PostID, Name: args.CustomerName, Feedback: args.Feedback}
 
-	if err := SetConfirming(te.App, te.State, te.OperatorJID, "POST_REJECT", p); err != nil {
+	if err := SetConfirming(te.App, te.State, te.OperatorJID, ActionPostReject, p); err != nil {
 		return toolResult{Text: "Erro ao salvar estado.", ToolName: "reject_post", IsWrite: true}
 	}
 

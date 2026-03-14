@@ -2,6 +2,7 @@ package agent_test
 
 import (
 	"context"
+	"encoding/json"
 	"log/slog"
 	"strings"
 	"sync"
@@ -11,24 +12,14 @@ import (
 	"go.mau.fi/whatsmeow/proto/waE2E"
 	"go.mau.fi/whatsmeow/types"
 
-	bamltypes "github.com/denisraison/rekan/api/internal/baml/baml_client/types"
-	"github.com/denisraison/rekan/api/internal/domain"
-
 	"github.com/denisraison/rekan/api/internal/agent"
+	"github.com/denisraison/rekan/api/internal/domain"
 	_ "github.com/denisraison/rekan/api/migrations"
 	"github.com/pocketbase/pocketbase/core"
 	"github.com/pocketbase/pocketbase/tests"
 )
 
 var testGroupJID = types.JID{User: "120363000000000000", Server: "g.us"}
-
-// bamlCall records the arguments passed to a fake BAML function.
-type bamlCall struct {
-	OperatorName        string
-	Message             string
-	SystemContext       string
-	ConversationHistory string
-}
 
 // fakeWAClient implements agent.WAClient for testing.
 type fakeWAClient struct {
@@ -96,11 +87,9 @@ func seedBusiness(t *testing.T, app core.App, name, bizType, city string) *core.
 	return record
 }
 
-func newAgent(t *testing.T, app core.App, wa *fakeWAClient, bamlFn agent.BAMLFunc) *agent.Agent {
+func newAgent(t *testing.T, app core.App, wa *fakeWAClient) *agent.Agent {
 	t.Helper()
-	a := agent.New(app, wa, slog.Default(), nil, nil)
-	a.BAML = bamlFn
-	return a
+	return agent.New(app, wa, slog.Default(), nil, nil)
 }
 
 // send is a test helper that calls ProcessMessage with test defaults.
@@ -109,161 +98,15 @@ func send(a *agent.Agent, message, operatorName, operatorJID string) {
 	a.ProcessMessage(testGroupJID, "test-msg-id", senderJID, message, operatorName, operatorJID)
 }
 
-// TestConversationHistory_PassedToBAML verifies that previous messages
-// stored in agent_conversations are loaded and passed to the BAML function.
-func TestConversationHistory_PassedToBAML(t *testing.T) {
-	app := newTestApp(t)
-	seedBusiness(t, app, "Patricia", "Salão de Beleza", "Belo Horizonte")
-
-	wa := &fakeWAClient{}
-
-	var calls []bamlCall
-	var mu sync.Mutex
-
-	fakeBAML := func(_ context.Context, operatorName, message, systemContext, conversationHistory string) (bamltypes.AgentResponse, error) {
-		mu.Lock()
-		calls = append(calls, bamlCall{
-			OperatorName:        operatorName,
-			Message:             message,
-			SystemContext:       systemContext,
-			ConversationHistory: conversationHistory,
-		})
-		mu.Unlock()
-
-		reply := operatorName + ", tudo certo!"
-		return bamltypes.AgentResponse{Reply: &reply}, nil
-	}
-
-	a := newAgent(t, app, wa, fakeBAML)
-
-	// Pre-seed conversation history
-	if err := agent.StoreMessage(app, "Elenice", "5511999990000", "user", "oi, como tá tudo?", ""); err != nil {
-		t.Fatal(err)
-	}
-	if err := agent.StoreMessage(app, "Rekan", "", "assistant", "Elenice, temos 1 cliente ativa.", ""); err != nil {
-		t.Fatal(err)
-	}
-	if err := agent.StoreMessage(app, "Elenice", "5511999990000", "user", "quais são as clientes?", ""); err != nil {
-		t.Fatal(err)
-	}
-
-	// Process a new message through the full pipeline
-	send(a, "e a Patricia, como tá?", "Elenice", "5511999990000")
-
-	mu.Lock()
-	defer mu.Unlock()
-
-	if len(calls) != 1 {
-		t.Fatalf("expected 1 BAML call, got %d", len(calls))
-	}
-
-	call := calls[0]
-
-	if call.OperatorName != "Elenice" {
-		t.Errorf("operator name: got %q, want %q", call.OperatorName, "Elenice")
-	}
-	if call.Message != "e a Patricia, como tá?" {
-		t.Errorf("message: got %q, want %q", call.Message, "e a Patricia, como tá?")
-	}
-
-	// Conversation history must contain all previous messages
-	if call.ConversationHistory == "(sem histórico)" {
-		t.Fatal("conversation history is empty, expected previous messages")
-	}
-	if !strings.Contains(call.ConversationHistory, "oi, como tá tudo?") {
-		t.Errorf("history missing first user message, got:\n%s", call.ConversationHistory)
-	}
-	if !strings.Contains(call.ConversationHistory, "Elenice, temos 1 cliente ativa.") {
-		t.Errorf("history missing assistant reply, got:\n%s", call.ConversationHistory)
-	}
-	if !strings.Contains(call.ConversationHistory, "quais são as clientes?") {
-		t.Errorf("history missing second user message, got:\n%s", call.ConversationHistory)
-	}
-
-	// System context must contain the business
-	if !strings.Contains(call.SystemContext, "Patricia") {
-		t.Errorf("system context missing business, got:\n%s", call.SystemContext)
-	}
-}
-
-// TestConfirmationFlow_EndToEnd tests create -> confirm -> DB record.
-func TestConfirmationFlow_EndToEnd(t *testing.T) {
-	app := newTestApp(t)
-	wa := &fakeWAClient{}
-
-	fakeBAML := func(_ context.Context, operatorName, _, _, _ string) (bamltypes.AgentResponse, error) {
-		reply := operatorName + ", cadastrar Ana, Manicure em Goiânia. Confirma?"
-		return bamltypes.AgentResponse{
-			Reply: &reply,
-			Action: &bamltypes.AgentAction{
-				ActionType:   bamltypes.AgentActionTypeCUSTOMER_CREATE,
-				ActionStatus: bamltypes.AgentActionStatusNEEDS_CONFIRMATION,
-				CustomerCreate: &bamltypes.CustomerCreateParams{
-					Name: "Ana",
-					Type: "Manicure",
-					City: "Goiânia",
-				},
-			},
-		}, nil
-	}
-
-	a := newAgent(t, app, wa, fakeBAML)
-
-	// Step 1: creation request
-	send(a, "cria a Ana, manicure em Goiânia", "Elenice", "5511999990000")
-
-	sent := wa.sentMessages()
-	if len(sent) == 0 {
-		t.Fatal("expected a reply, got none")
-	}
-	if !strings.Contains(sent[len(sent)-1], "Confirma?") {
-		t.Errorf("expected confirmation prompt, got: %s", sent[len(sent)-1])
-	}
-
-	// Verify confirming state
-	state, err := agent.LoadState(app, "5511999990000")
+// setConfirmingState puts an operator into the confirming state with given params.
+func setConfirmingState(t *testing.T, app core.App, operatorJID, actionType string, params any) {
+	t.Helper()
+	state, err := agent.LoadState(app, operatorJID)
 	if err != nil {
 		t.Fatal(err)
 	}
-	if state.State != agent.StateConfirming {
-		t.Fatalf("expected confirming state, got %s", state.State)
-	}
-	if state.ActionType != "CUSTOMER_CREATE" {
-		t.Fatalf("expected CUSTOMER_CREATE, got %s", state.ActionType)
-	}
-
-	// Step 2: confirm
-	send(a, "sim", "Elenice", "5511999990000")
-
-	// Verify business in DB
-	allBiz, err := app.FindAllRecords(domain.CollBusinesses)
-	if err != nil {
+	if err := agent.SetConfirming(app, state, operatorJID, actionType, params); err != nil {
 		t.Fatal(err)
-	}
-	var biz *core.Record
-	for _, b := range allBiz {
-		if b.GetString("name") == "Ana" {
-			biz = b
-			break
-		}
-	}
-	if biz == nil {
-		t.Fatal("business 'Ana' not found in DB after confirmation")
-	}
-	if biz.GetString("type") != "Manicure" {
-		t.Errorf("business type: got %q, want %q", biz.GetString("type"), "Manicure")
-	}
-	if biz.GetString("city") != "Goiânia" {
-		t.Errorf("business city: got %q, want %q", biz.GetString("city"), "Goiânia")
-	}
-
-	// Verify state cleared
-	state, err = agent.LoadState(app, "5511999990000")
-	if err != nil {
-		t.Fatal(err)
-	}
-	if state.State != agent.StateIdle {
-		t.Errorf("expected idle state after confirmation, got %s", state.State)
 	}
 }
 
@@ -272,21 +115,14 @@ func TestCancellationFlow(t *testing.T) {
 	app := newTestApp(t)
 	wa := &fakeWAClient{}
 
-	fakeBAML := func(_ context.Context, operatorName, _, _, _ string) (bamltypes.AgentResponse, error) {
-		reply := operatorName + ", cadastrar Ana? Confirma?"
-		return bamltypes.AgentResponse{
-			Reply: &reply,
-			Action: &bamltypes.AgentAction{
-				ActionType:   bamltypes.AgentActionTypeCUSTOMER_CREATE,
-				ActionStatus: bamltypes.AgentActionStatusNEEDS_CONFIRMATION,
-				CustomerCreate: &bamltypes.CustomerCreateParams{Name: "Ana", Type: "Manicure", City: "Goiânia"},
-			},
-		}, nil
-	}
+	setConfirmingState(t, app, "5511999990000", agent.ActionCustomerCreate, &agent.CustomerCreateParams{
+		Name: "Ana",
+		Type: "Manicure",
+		City: "Goiania",
+	})
 
-	a := newAgent(t, app, wa, fakeBAML)
+	a := newAgent(t, app, wa)
 
-	send(a, "cria a Ana", "Elenice", "5511999990000")
 	send(a, "não", "Elenice", "5511999990000")
 
 	// Verify state cleared
@@ -328,38 +164,29 @@ func TestReplyStoredInConversation(t *testing.T) {
 	app := newTestApp(t)
 	wa := &fakeWAClient{}
 
-	fakeBAML := func(_ context.Context, operatorName, _, _, _ string) (bamltypes.AgentResponse, error) {
-		reply := operatorName + ", tudo certo!"
-		return bamltypes.AgentResponse{Reply: &reply}, nil
-	}
+	// Set up a confirmation that will produce a reply when confirmed
+	setConfirmingState(t, app, "5511999990000", agent.ActionCustomerCreate, &agent.CustomerCreateParams{
+		Name: "Ana",
+		Type: "Manicure",
+		City: "Goiania",
+	})
 
-	a := newAgent(t, app, wa, fakeBAML)
+	a := newAgent(t, app, wa)
 
-	send(a, "oi", "Elenice", "5511999990000")
+	send(a, "sim", "Elenice", "5511999990000")
 
 	msgs, err := agent.LoadRecent(app, 15)
 	if err != nil {
 		t.Fatal(err)
 	}
 
-	if len(msgs) < 2 {
-		t.Fatalf("expected at least 2 messages in conversation buffer, got %d", len(msgs))
-	}
-
-	foundUser := false
 	foundAssistant := false
 	for _, m := range msgs {
-		if m.Role == "user" && m.Content == "oi" {
-			foundUser = true
-		}
-		if m.Role == "assistant" && strings.Contains(m.Content, "tudo certo!") {
+		if m.Role == "assistant" && strings.Contains(m.Content, "cadastrada") {
 			foundAssistant = true
 		}
 	}
 
-	if !foundUser {
-		t.Error("user message not found in conversation buffer")
-	}
 	if !foundAssistant {
 		t.Error("assistant reply not found in conversation buffer")
 	}
@@ -370,14 +197,15 @@ func TestActionLog_Recorded(t *testing.T) {
 	app := newTestApp(t)
 	wa := &fakeWAClient{}
 
-	fakeBAML := func(_ context.Context, operatorName, _, _, _ string) (bamltypes.AgentResponse, error) {
-		reply := operatorName + ", resposta."
-		return bamltypes.AgentResponse{Reply: &reply}, nil
-	}
+	setConfirmingState(t, app, "5511999990000", agent.ActionCustomerCreate, &agent.CustomerCreateParams{
+		Name: "Ana",
+		Type: "Manicure",
+		City: "Goiania",
+	})
 
-	a := newAgent(t, app, wa, fakeBAML)
+	a := newAgent(t, app, wa)
 
-	send(a, "como tá tudo?", "Elenice", "5511999990000")
+	send(a, "sim", "Elenice", "5511999990000")
 
 	logs, err := app.FindAllRecords(domain.CollAgentActionLog)
 	if err != nil {
@@ -396,59 +224,33 @@ func TestActionLog_Recorded(t *testing.T) {
 	}
 }
 
-// TestMultiTurnConversation verifies that conversation accumulates across turns
-// and each BAML call sees the growing history.
-func TestMultiTurnConversation(t *testing.T) {
+// TestCollectedFieldsRoundTrip verifies params survive JSON roundtrip in state.
+func TestCollectedFieldsRoundTrip(t *testing.T) {
 	app := newTestApp(t)
-	seedBusiness(t, app, "Patricia", "Salão de Beleza", "Belo Horizonte")
 
-	wa := &fakeWAClient{}
-
-	var calls []bamlCall
-	var mu sync.Mutex
-
-	fakeBAML := func(_ context.Context, operatorName, message, systemContext, conversationHistory string) (bamltypes.AgentResponse, error) {
-		mu.Lock()
-		calls = append(calls, bamlCall{
-			OperatorName:        operatorName,
-			Message:             message,
-			SystemContext:       systemContext,
-			ConversationHistory: conversationHistory,
-		})
-		mu.Unlock()
-
-		reply := operatorName + ", resposta " + message
-		return bamltypes.AgentResponse{Reply: &reply}, nil
+	audience := "mulheres do bairro"
+	params := &agent.CustomerCreateParams{
+		Name:           "Ana",
+		Type:           "Manicure",
+		City:           "Goiania",
+		TargetAudience: &audience,
 	}
 
-	a := newAgent(t, app, wa, fakeBAML)
+	setConfirmingState(t, app, "5511999990000", agent.ActionCustomerCreate, params)
 
-	send(a, "como tá tudo?", "Elenice", "5511999990000")
-	send(a, "e a Patricia?", "Elenice", "5511999990000")
-	send(a, "gera post pra ela", "Elenice", "5511999990000")
-
-	mu.Lock()
-	defer mu.Unlock()
-
-	if len(calls) != 3 {
-		t.Fatalf("expected 3 BAML calls, got %d", len(calls))
+	state, err := agent.LoadState(app, "5511999990000")
+	if err != nil {
+		t.Fatal(err)
 	}
 
-	// Turn 2: should see turn 1's user message + assistant reply
-	hist2 := calls[1].ConversationHistory
-	if !strings.Contains(hist2, "como tá tudo?") {
-		t.Errorf("turn 2 missing turn 1 user message, got:\n%s", hist2)
+	var recovered agent.CustomerCreateParams
+	if err := json.Unmarshal(state.CollectedFields, &recovered); err != nil {
+		t.Fatal(err)
 	}
-	if !strings.Contains(hist2, "resposta como tá tudo?") {
-		t.Errorf("turn 2 missing turn 1 assistant reply, got:\n%s", hist2)
+	if recovered.Name != "Ana" {
+		t.Errorf("name: got %q, want %q", recovered.Name, "Ana")
 	}
-
-	// Turn 3: should see turns 1+2
-	hist3 := calls[2].ConversationHistory
-	if !strings.Contains(hist3, "e a Patricia?") {
-		t.Errorf("turn 3 missing turn 2 user message, got:\n%s", hist3)
-	}
-	if !strings.Contains(hist3, "resposta e a Patricia?") {
-		t.Errorf("turn 3 missing turn 2 assistant reply, got:\n%s", hist3)
+	if recovered.TargetAudience == nil || *recovered.TargetAudience != "mulheres do bairro" {
+		t.Errorf("target_audience: got %v, want %q", recovered.TargetAudience, "mulheres do bairro")
 	}
 }

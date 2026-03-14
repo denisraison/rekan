@@ -1,12 +1,8 @@
 package agent
 
-import (
-	"fmt"
+import "fmt"
 
-	"github.com/denisraison/rekan/api/internal/baml/baml_client/types"
-)
-
-func validateCustomerCreate(p *types.CustomerCreateParams, operatorName string) error {
+func validateCustomerCreate(p *CustomerCreateParams, operatorName string) error {
 	if p.Name == "" {
 		return fmt.Errorf("%s, faltou o nome da cliente, pode repetir?", operatorName)
 	}
@@ -19,14 +15,14 @@ func validateCustomerCreate(p *types.CustomerCreateParams, operatorName string) 
 	return nil
 }
 
-func validatePostApprove(p *types.PostApproveParams, operatorName string) error {
+func validatePostApprove(p *PostApproveParams, operatorName string) error {
 	if p.PostId == "" {
 		return fmt.Errorf("%s, qual post você quer aprovar?", operatorName)
 	}
 	return nil
 }
 
-func validatePostReject(p *types.PostRejectParams, operatorName string) error {
+func validatePostReject(p *PostRejectParams, operatorName string) error {
 	if p.PostId == "" {
 		return fmt.Errorf("%s, qual post você quer rejeitar?", operatorName)
 	}

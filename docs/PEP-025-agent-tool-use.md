@@ -267,12 +267,22 @@ Move write operations to tool use. Remove the BAML `AgentProcess` function entir
    - BAML inline tests for agent removed (content generation tests unaffected)
 
 **Gate:**
-- [ ] `cd api && go build ./...` compiles
-- [ ] Customer creation works end-to-end: tool call -> confirmation -> "sim" -> DB record
-- [ ] All existing write scenarios covered by new eval cases
-- [ ] `make eval-agent` passes all migrated tests
-- [ ] BAML agent code fully removed, no dead enum/class definitions
+- [x] `cd api && go build ./...` compiles
+- [x] Customer creation works end-to-end: tool call -> confirmation -> "sim" -> DB record
+- [x] All existing write scenarios covered by new eval cases
+- [x] `make eval-agent` passes all migrated tests
+- [x] BAML agent code fully removed, no dead enum/class definitions
 - [ ] No increase in failed operations vs current agent (monitor for 3 days)
+
+**Notes (Wave 2):**
+- `agent.baml` deleted entirely (AgentClient was only used by AgentProcess). BAML regenerated, content generation unaffected.
+- Own param types defined in `params.go`, replacing BAML-generated types. JSON field names match the tool schemas.
+- `HydrateContext` removed. Execute functions query businesses directly from DB via `loadActiveBusinesses()`. `ToolExecutor` caches businesses per-loop via the same function.
+- `RouteAction` removed entirely. `ExecuteConfirmed` kept, updated to use own types and action type constants.
+- `context.Context` now threaded through `ExecuteConfirmed` to `executePostGenerate`, so the 30s deadline from `ProcessMessage` applies to post generation.
+- Action type constants (`ActionCustomerCreate`, etc.) added to eliminate stringly-typed action type matching across tools, router, and tests.
+- Tests rewritten to set confirming state directly via `setConfirmingState` helper, bypassing the need for a BAML mock. Tests verify the confirmation/execution path independently of the Claude tool-use loop.
+- `BAMLFunc` type, `BAML` field on Agent, and `callBAML` method all removed. Agent struct no longer imports BAML.
 
 ## Open questions
 

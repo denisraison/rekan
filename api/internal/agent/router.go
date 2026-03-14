@@ -6,232 +6,86 @@ import (
 	"strings"
 	"time"
 
-	"github.com/denisraison/rekan/api/internal/baml/baml_client/types"
 	content "github.com/denisraison/rekan/api/internal/content"
 	"github.com/denisraison/rekan/api/internal/domain"
 	"github.com/denisraison/rekan/api/internal/service"
+	"github.com/pocketbase/dbx"
 	"github.com/pocketbase/pocketbase/core"
 )
 
-// RouteAction executes the action from an AgentResponse and returns the reply text.
-// For NEEDS_CONFIRMATION actions, it validates, stores state, and returns a structured confirmation.
-// For EXECUTE actions, it runs the action immediately.
-func RouteAction(app core.App, ctx HydratedContext, state *OperatorState, action types.AgentAction, gen content.GenerateFunc) (string, error) {
-	switch action.ActionType {
-	case types.AgentActionTypeSTATUS_OVERVIEW:
-		return fmt.Sprintf("%s, temos %d clientes ativas e %d posts gerados.",
-			ctx.OperatorName, len(ctx.Businesses), ctx.PostCount), nil
-
-	case types.AgentActionTypeCUSTOMER_LIST:
-		return customerList(ctx)
-
-	case types.AgentActionTypeCUSTOMER_INFO:
-		p := action.CustomerInfo
-		if p == nil {
-			return fmt.Sprintf("%s, qual cliente você quer saber?", ctx.OperatorName), nil
-		}
-		return customerInfo(ctx, p.Name)
-
-	case types.AgentActionTypeCUSTOMER_CREATE:
-		p := action.CustomerCreate
-		if p == nil {
-			return fmt.Sprintf("%s, faltam informações pra cadastrar. Diz nome, tipo e cidade.", ctx.OperatorName), nil
-		}
-		if action.ActionStatus == types.AgentActionStatusNEEDS_CONFIRMATION {
-			if err := validateCustomerCreate(p, ctx.OperatorName); err != nil {
-				return err.Error(), nil
-			}
-			if dup := findDuplicate(ctx.Businesses, p.Name); dup != nil {
-				return fmt.Sprintf("%s, a %s já existe (%s, %s).",
-					ctx.OperatorName, dup.GetString("name"),
-					dup.GetString("type"), dup.GetString("city")), nil
-			}
-			if who, conflict := HasPendingAction(app, ctx.OperatorJID, p.Name); conflict {
-				return fmt.Sprintf("%s, outro operador (%s) já tem uma ação pendente pra essa cliente.", ctx.OperatorName, who), nil
-			}
-			return storeAndConfirmCustomerCreate(app, state, ctx, p)
-		}
-		return executeCustomerCreate(app, ctx, p)
-
-	case types.AgentActionTypeCUSTOMER_UPDATE:
-		p := action.CustomerUpdate
-		if p == nil {
-			return fmt.Sprintf("%s, qual cliente você quer alterar?", ctx.OperatorName), nil
-		}
-		if action.ActionStatus == types.AgentActionStatusNEEDS_CONFIRMATION {
-			return storeAndConfirmTyped(app, state, ctx, string(action.ActionType), p)
-		}
-		return executeCustomerUpdate(app, ctx, p)
-
-	case types.AgentActionTypeCUSTOMER_PAUSE:
-		p := action.CustomerPause
-		if p == nil {
-			return fmt.Sprintf("%s, qual cliente você quer pausar?", ctx.OperatorName), nil
-		}
-		if action.ActionStatus == types.AgentActionStatusNEEDS_CONFIRMATION {
-			return storeAndConfirmTyped(app, state, ctx, string(action.ActionType), p)
-		}
-		return executeCustomerPause(app, ctx, p)
-
-	case types.AgentActionTypePOST_GENERATE:
-		p := action.PostGenerate
-		if p == nil {
-			return fmt.Sprintf("%s, pra qual cliente você quer gerar post?", ctx.OperatorName), nil
-		}
-		if action.ActionStatus == types.AgentActionStatusNEEDS_CONFIRMATION {
-			return storeAndConfirmTyped(app, state, ctx, string(action.ActionType), p)
-		}
-		return executePostGenerate(app, ctx, p, gen)
-
-	case types.AgentActionTypePOST_LIST_PENDING:
-		return postListPending(ctx)
-
-	case types.AgentActionTypePOST_APPROVE:
-		p := action.PostApprove
-		if p == nil {
-			return fmt.Sprintf("%s, qual post você quer aprovar?", ctx.OperatorName), nil
-		}
-		if action.ActionStatus == types.AgentActionStatusNEEDS_CONFIRMATION {
-			if err := validatePostApprove(p, ctx.OperatorName); err != nil {
-				return err.Error(), nil
-			}
-			return storeAndConfirmTyped(app, state, ctx, string(action.ActionType), p)
-		}
-		return executePostApprove(app, ctx, p)
-
-	case types.AgentActionTypePOST_REJECT:
-		p := action.PostReject
-		if p == nil {
-			return fmt.Sprintf("%s, qual post você quer rejeitar?", ctx.OperatorName), nil
-		}
-		if action.ActionStatus == types.AgentActionStatusNEEDS_CONFIRMATION {
-			if err := validatePostReject(p, ctx.OperatorName); err != nil {
-				return err.Error(), nil
-			}
-			return storeAndConfirmTyped(app, state, ctx, string(action.ActionType), p)
-		}
-		return executePostReject(app, ctx, p)
-
-	default:
-		return "", fmt.Errorf("unknown action type: %s", action.ActionType)
-	}
-}
-
-// storeAndConfirmCustomerCreate stores CUSTOMER_CREATE state and returns a structured confirmation message.
-func storeAndConfirmCustomerCreate(app core.App, state *OperatorState, ctx HydratedContext, p *types.CustomerCreateParams) (string, error) {
-	if err := SetConfirming(app, state, ctx.OperatorJID, string(types.AgentActionTypeCUSTOMER_CREATE), p); err != nil {
-		return "", fmt.Errorf("saving state: %w", err)
-	}
-	var b strings.Builder
-	fmt.Fprintf(&b, "%s, cadastrar:\n", ctx.OperatorName)
-	fmt.Fprintf(&b, "- Nome: %s\n", p.Name)
-	fmt.Fprintf(&b, "- Tipo: %s\n", p.Type)
-	fmt.Fprintf(&b, "- Cidade: %s\n", p.City)
-	if p.Phone != nil {
-		fmt.Fprintf(&b, "- Tel: %s\n", *p.Phone)
-	}
-	if p.TargetAudience != nil {
-		fmt.Fprintf(&b, "- Público: %s\n", *p.TargetAudience)
-	}
-	if p.BrandVibe != nil {
-		fmt.Fprintf(&b, "- Vibe: %s\n", *p.BrandVibe)
-	}
-	if p.Quirks != nil {
-		fmt.Fprintf(&b, "- Obs: %s\n", *p.Quirks)
-	}
-	b.WriteString("Confirma?")
-	return b.String(), nil
-}
-
-// storeAndConfirmTyped stores state for non-create actions and returns empty string (BAML reply carries the prompt).
-func storeAndConfirmTyped(app core.App, state *OperatorState, ctx HydratedContext, actionType string, params any) (string, error) {
-	if err := SetConfirming(app, state, ctx.OperatorJID, actionType, params); err != nil {
-		return "", fmt.Errorf("saving state: %w", err)
-	}
-	return "", nil
-}
+// Action type constants for the confirmation state machine.
+const (
+	ActionCustomerCreate = "CUSTOMER_CREATE"
+	ActionCustomerUpdate = "CUSTOMER_UPDATE"
+	ActionCustomerPause  = "CUSTOMER_PAUSE"
+	ActionPostGenerate   = "POST_GENERATE"
+	ActionPostApprove    = "POST_APPROVE"
+	ActionPostReject     = "POST_REJECT"
+)
 
 // ExecuteConfirmed runs the pending action after the operator said "sim".
-func ExecuteConfirmed(app core.App, ctx HydratedContext, state *OperatorState, gen content.GenerateFunc) (string, error) {
+func ExecuteConfirmed(ctx context.Context, app core.App, operatorName string, state *OperatorState, gen content.GenerateFunc) (string, error) {
 	defer func() {
-		if err := ClearState(app, state, ctx.OperatorJID); err != nil {
+		if err := ClearState(app, state, state.Record.GetString("operator_jid")); err != nil {
 			app.Logger().Error("agent: clear state after confirmed action", "error", err)
 		}
 	}()
 
 	switch state.ActionType {
-	case string(types.AgentActionTypeCUSTOMER_CREATE):
-		var p types.CustomerCreateParams
+	case ActionCustomerCreate:
+		var p CustomerCreateParams
 		if err := unmarshalCollectedFields(state.CollectedFields, &p); err != nil {
-			return fmt.Sprintf("%s, algo deu errado com os dados. Pode repetir?", ctx.OperatorName), nil
+			return fmt.Sprintf("%s, algo deu errado com os dados. Pode repetir?", operatorName), nil
 		}
-		return executeCustomerCreate(app, ctx, &p)
-	case string(types.AgentActionTypeCUSTOMER_UPDATE):
-		var p types.CustomerUpdateParams
+		return executeCustomerCreate(app, operatorName, &p)
+	case ActionCustomerUpdate:
+		var p CustomerUpdateParams
 		if err := unmarshalCollectedFields(state.CollectedFields, &p); err != nil {
-			return fmt.Sprintf("%s, algo deu errado com os dados. Pode repetir?", ctx.OperatorName), nil
+			return fmt.Sprintf("%s, algo deu errado com os dados. Pode repetir?", operatorName), nil
 		}
-		return executeCustomerUpdate(app, ctx, &p)
-	case string(types.AgentActionTypeCUSTOMER_PAUSE):
-		var p types.CustomerPauseParams
+		return executeCustomerUpdate(app, operatorName, &p)
+	case ActionCustomerPause:
+		var p CustomerPauseParams
 		if err := unmarshalCollectedFields(state.CollectedFields, &p); err != nil {
-			return fmt.Sprintf("%s, algo deu errado com os dados. Pode repetir?", ctx.OperatorName), nil
+			return fmt.Sprintf("%s, algo deu errado com os dados. Pode repetir?", operatorName), nil
 		}
-		return executeCustomerPause(app, ctx, &p)
-	case string(types.AgentActionTypePOST_GENERATE):
-		var p types.PostGenerateParams
+		return executeCustomerPause(app, operatorName, &p)
+	case ActionPostGenerate:
+		var p PostGenerateParams
 		if err := unmarshalCollectedFields(state.CollectedFields, &p); err != nil {
-			return fmt.Sprintf("%s, algo deu errado com os dados. Pode repetir?", ctx.OperatorName), nil
+			return fmt.Sprintf("%s, algo deu errado com os dados. Pode repetir?", operatorName), nil
 		}
-		return executePostGenerate(app, ctx, &p, gen)
-	case string(types.AgentActionTypePOST_APPROVE):
-		var p types.PostApproveParams
+		return executePostGenerate(ctx, app, operatorName, &p, gen)
+	case ActionPostApprove:
+		var p PostApproveParams
 		if err := unmarshalCollectedFields(state.CollectedFields, &p); err != nil {
-			return fmt.Sprintf("%s, algo deu errado com os dados. Pode repetir?", ctx.OperatorName), nil
+			return fmt.Sprintf("%s, algo deu errado com os dados. Pode repetir?", operatorName), nil
 		}
-		return executePostApprove(app, ctx, &p)
-	case string(types.AgentActionTypePOST_REJECT):
-		var p types.PostRejectParams
+		return executePostApprove(app, operatorName, &p)
+	case ActionPostReject:
+		var p PostRejectParams
 		if err := unmarshalCollectedFields(state.CollectedFields, &p); err != nil {
-			return fmt.Sprintf("%s, algo deu errado com os dados. Pode repetir?", ctx.OperatorName), nil
+			return fmt.Sprintf("%s, algo deu errado com os dados. Pode repetir?", operatorName), nil
 		}
-		return executePostReject(app, ctx, &p)
+		return executePostReject(app, operatorName, &p)
 	default:
 		return "", fmt.Errorf("unknown pending action: %s", state.ActionType)
 	}
 }
 
-func customerList(ctx HydratedContext) (string, error) {
-	if len(ctx.Businesses) == 0 {
-		return fmt.Sprintf("%s, nenhuma cliente ativa no momento.", ctx.OperatorName), nil
+// loadActiveBusinesses queries active and draft businesses.
+func loadActiveBusinesses(app core.App) []*core.Record {
+	var businesses []*core.Record
+	if err := app.RecordQuery(domain.CollBusinesses).
+		AndWhere(dbx.NewExp("invite_status IN ('active', 'draft')")).
+		OrderBy("name ASC").
+		All(&businesses); err != nil {
+		return nil
 	}
-
-	var b strings.Builder
-	fmt.Fprintf(&b, "%s, clientes ativas:\n", ctx.OperatorName)
-	for _, biz := range ctx.Businesses {
-		fmt.Fprintf(&b, "- %s (%s, %s)\n", biz.GetString("name"), biz.GetString("type"), biz.GetString("city"))
-	}
-	return b.String(), nil
+	return businesses
 }
 
-func customerInfo(ctx HydratedContext, name string) (string, error) {
-	if name == "" {
-		return fmt.Sprintf("%s, qual cliente você quer saber?", ctx.OperatorName), nil
-	}
-
-	matches := findBusinessRecords(ctx.Businesses, name)
-	if len(matches) == 0 {
-		return fmt.Sprintf("%s, não encontrei nenhuma cliente com esse nome.", ctx.OperatorName), nil
-	}
-	if len(matches) > 1 {
-		return disambiguate(ctx.OperatorName, matches), nil
-	}
-
-	m := matches[0]
-	return fmt.Sprintf("%s, %s: %s em %s.", ctx.OperatorName, m.GetString("name"), m.GetString("type"), m.GetString("city")), nil
-}
-
-func executeCustomerCreate(app core.App, ctx HydratedContext, p *types.CustomerCreateParams) (string, error) {
+func executeCustomerCreate(app core.App, operatorName string, p *CustomerCreateParams) (string, error) {
 	col, err := app.FindCachedCollectionByNameOrId(domain.CollBusinesses)
 	if err != nil {
 		return "", fmt.Errorf("businesses collection: %w", err)
@@ -259,16 +113,17 @@ func executeCustomerCreate(app core.App, ctx HydratedContext, p *types.CustomerC
 	}
 
 	return fmt.Sprintf("%s, %s cadastrada! (%s, %s)",
-		ctx.OperatorName, p.Name, p.Type, p.City), nil
+		operatorName, p.Name, p.Type, p.City), nil
 }
 
-func executeCustomerUpdate(app core.App, ctx HydratedContext, p *types.CustomerUpdateParams) (string, error) {
-	matches := findBusinessRecords(ctx.Businesses, p.Name)
+func executeCustomerUpdate(app core.App, operatorName string, p *CustomerUpdateParams) (string, error) {
+	businesses := loadActiveBusinesses(app)
+	matches := findBusinessRecords(businesses, p.Name)
 	if len(matches) == 0 {
-		return fmt.Sprintf("%s, não encontrei cliente '%s'.", ctx.OperatorName, p.Name), nil
+		return fmt.Sprintf("%s, não encontrei cliente '%s'.", operatorName, p.Name), nil
 	}
 	if len(matches) > 1 {
-		return disambiguate(ctx.OperatorName, matches), nil
+		return disambiguate(operatorName, matches), nil
 	}
 
 	record := matches[0]
@@ -299,7 +154,7 @@ func executeCustomerUpdate(app core.App, ctx HydratedContext, p *types.CustomerU
 	}
 
 	if len(updated) == 0 {
-		return fmt.Sprintf("%s, nenhum campo pra atualizar na %s.", ctx.OperatorName, p.Name), nil
+		return fmt.Sprintf("%s, nenhum campo pra atualizar na %s.", operatorName, p.Name), nil
 	}
 
 	if err := app.Save(record); err != nil {
@@ -307,16 +162,17 @@ func executeCustomerUpdate(app core.App, ctx HydratedContext, p *types.CustomerU
 	}
 
 	return fmt.Sprintf("%s, %s atualizada! Campos: %s.",
-		ctx.OperatorName, p.Name, strings.Join(updated, ", ")), nil
+		operatorName, p.Name, strings.Join(updated, ", ")), nil
 }
 
-func executeCustomerPause(app core.App, ctx HydratedContext, p *types.CustomerPauseParams) (string, error) {
-	matches := findBusinessRecords(ctx.Businesses, p.Name)
+func executeCustomerPause(app core.App, operatorName string, p *CustomerPauseParams) (string, error) {
+	businesses := loadActiveBusinesses(app)
+	matches := findBusinessRecords(businesses, p.Name)
 	if len(matches) == 0 {
-		return fmt.Sprintf("%s, não encontrei cliente '%s'.", ctx.OperatorName, p.Name), nil
+		return fmt.Sprintf("%s, não encontrei cliente '%s'.", operatorName, p.Name), nil
 	}
 	if len(matches) > 1 {
-		return disambiguate(ctx.OperatorName, matches), nil
+		return disambiguate(operatorName, matches), nil
 	}
 
 	record := matches[0]
@@ -326,64 +182,47 @@ func executeCustomerPause(app core.App, ctx HydratedContext, p *types.CustomerPa
 	}
 
 	if p.Reason != nil && *p.Reason != "" {
-		return fmt.Sprintf("%s, %s pausada. Motivo: %s.", ctx.OperatorName, p.Name, *p.Reason), nil
+		return fmt.Sprintf("%s, %s pausada. Motivo: %s.", operatorName, p.Name, *p.Reason), nil
 	}
-	return fmt.Sprintf("%s, %s pausada.", ctx.OperatorName, p.Name), nil
+	return fmt.Sprintf("%s, %s pausada.", operatorName, p.Name), nil
 }
 
-func executePostGenerate(app core.App, ctx HydratedContext, p *types.PostGenerateParams, gen content.GenerateFunc) (string, error) {
+func executePostGenerate(ctx context.Context, app core.App, operatorName string, p *PostGenerateParams, gen content.GenerateFunc) (string, error) {
 	if p.Name == "" {
-		return fmt.Sprintf("%s, pra qual cliente você quer gerar post?", ctx.OperatorName), nil
+		return fmt.Sprintf("%s, pra qual cliente você quer gerar post?", operatorName), nil
 	}
 
-	matches := findBusinessRecords(ctx.Businesses, p.Name)
+	businesses := loadActiveBusinesses(app)
+	matches := findBusinessRecords(businesses, p.Name)
 	if len(matches) == 0 {
-		return fmt.Sprintf("%s, não encontrei cliente '%s'.", ctx.OperatorName, p.Name), nil
+		return fmt.Sprintf("%s, não encontrei cliente '%s'.", operatorName, p.Name), nil
 	}
 	if len(matches) > 1 {
-		return disambiguate(ctx.OperatorName, matches), nil
+		return disambiguate(operatorName, matches), nil
 	}
 
 	biz := matches[0]
 	if gen == nil {
-		return fmt.Sprintf("%s, geração de posts não está configurada.", ctx.OperatorName), nil
+		return fmt.Sprintf("%s, geração de posts não está configurada.", operatorName), nil
 	}
 
-	result, err := service.GeneratePosts(context.Background(), app, gen, biz.Id)
+	result, err := service.GeneratePosts(ctx, app, gen, biz.Id)
 	if err != nil {
 		return "", fmt.Errorf("generating posts: %w", err)
 	}
 
 	if len(result.Posts) == 0 {
-		return fmt.Sprintf("%s, não consegui gerar post pra %s.", ctx.OperatorName, biz.GetString("name")), nil
+		return fmt.Sprintf("%s, não consegui gerar post pra %s.", operatorName, biz.GetString("name")), nil
 	}
 
 	post := result.Posts[0]
-	return fmt.Sprintf("%s, post gerado pra %s! \"%s\" (%s)", ctx.OperatorName, biz.GetString("name"), truncate(post.Caption, 80), post.ID), nil
+	return fmt.Sprintf("%s, post gerado pra %s! \"%s\" (%s)", operatorName, biz.GetString("name"), truncate(post.Caption, 80), post.ID), nil
 }
 
-func postListPending(ctx HydratedContext) (string, error) {
-	if len(ctx.PendingPosts) == 0 {
-		return fmt.Sprintf("%s, não tem posts pendentes no momento.", ctx.OperatorName), nil
-	}
-
-	var b strings.Builder
-	fmt.Fprintf(&b, "%s, posts pendentes:\n", ctx.OperatorName)
-	for _, p := range ctx.PendingPosts {
-		bizName := businessNameByID(ctx.Businesses, p.GetString("business"))
-		fmt.Fprintf(&b, "- %s: \"%s\" (%s)\n", bizName, truncate(p.GetString("caption"), 50), p.Id)
-	}
-	return b.String(), nil
-}
-
-func executePostApprove(app core.App, ctx HydratedContext, p *types.PostApproveParams) (string, error) {
-	record := findPendingPost(ctx.PendingPosts, p.PostId)
-	if record == nil {
-		var err error
-		record, err = app.FindRecordById(domain.CollPosts, p.PostId)
-		if err != nil {
-			return fmt.Sprintf("%s, não encontrei o post %s.", ctx.OperatorName, p.PostId), nil
-		}
+func executePostApprove(app core.App, operatorName string, p *PostApproveParams) (string, error) {
+	record, err := app.FindRecordById(domain.CollPosts, p.PostId)
+	if err != nil {
+		return fmt.Sprintf("%s, não encontrei o post %s.", operatorName, p.PostId), nil
 	}
 
 	record.Set("reviewed", true)
@@ -391,18 +230,14 @@ func executePostApprove(app core.App, ctx HydratedContext, p *types.PostApproveP
 		return "", fmt.Errorf("approving post: %w", err)
 	}
 
-	bizName := businessNameByID(ctx.Businesses, record.GetString("business"))
-	return fmt.Sprintf("%s, post da %s aprovado!", ctx.OperatorName, bizName), nil
+	bizName := resolveBusinessName(app, record, p.Name)
+	return fmt.Sprintf("%s, post da %s aprovado!", operatorName, bizName), nil
 }
 
-func executePostReject(app core.App, ctx HydratedContext, p *types.PostRejectParams) (string, error) {
-	record := findPendingPost(ctx.PendingPosts, p.PostId)
-	if record == nil {
-		var err error
-		record, err = app.FindRecordById(domain.CollPosts, p.PostId)
-		if err != nil {
-			return fmt.Sprintf("%s, não encontrei o post %s.", ctx.OperatorName, p.PostId), nil
-		}
+func executePostReject(app core.App, operatorName string, p *PostRejectParams) (string, error) {
+	record, err := app.FindRecordById(domain.CollPosts, p.PostId)
+	if err != nil {
+		return fmt.Sprintf("%s, não encontrei o post %s.", operatorName, p.PostId), nil
 	}
 
 	record.Set("reviewed", true)
@@ -411,11 +246,21 @@ func executePostReject(app core.App, ctx HydratedContext, p *types.PostRejectPar
 		return "", fmt.Errorf("rejecting post: %w", err)
 	}
 
-	bizName := businessNameByID(ctx.Businesses, record.GetString("business"))
+	bizName := resolveBusinessName(app, record, p.Name)
 	if p.Feedback != "" {
-		return fmt.Sprintf("%s, post da %s rejeitado. Feedback: %s.", ctx.OperatorName, bizName, p.Feedback), nil
+		return fmt.Sprintf("%s, post da %s rejeitado. Feedback: %s.", operatorName, bizName, p.Feedback), nil
 	}
-	return fmt.Sprintf("%s, post da %s rejeitado.", ctx.OperatorName, bizName), nil
+	return fmt.Sprintf("%s, post da %s rejeitado.", operatorName, bizName), nil
+}
+
+// resolveBusinessName looks up the business name from a post record, falling back to the given name.
+func resolveBusinessName(app core.App, postRecord *core.Record, fallback string) string {
+	if bizID := postRecord.GetString("business"); bizID != "" {
+		if biz, err := app.FindRecordById(domain.CollBusinesses, bizID); err == nil {
+			return biz.GetString("name")
+		}
+	}
+	return fallback
 }
 
 // findDuplicate checks if a business with the same name already exists.
@@ -427,27 +272,6 @@ func findDuplicate(businesses []*core.Record, name string) *core.Record {
 		}
 	}
 	return nil
-}
-
-// findPendingPost looks up a post by ID in the pre-loaded pending posts slice.
-func findPendingPost(posts []*core.Record, id string) *core.Record {
-	for _, p := range posts {
-		if p.Id == id {
-			return p
-		}
-	}
-	return nil
-}
-
-// businessNameByID returns the business name for a given record ID,
-// or the raw ID as fallback if not found.
-func businessNameByID(businesses []*core.Record, id string) string {
-	for _, biz := range businesses {
-		if biz.Id == id {
-			return biz.GetString("name")
-		}
-	}
-	return id
 }
 
 // findBusinessRecords returns matching business records for a name query.
