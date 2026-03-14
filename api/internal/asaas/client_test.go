@@ -29,7 +29,10 @@ func TestCreateCustomer(t *testing.T) {
 		}
 
 		w.Header().Set("Content-Type", "application/json")
-		_ = json.NewEncoder(w).Encode(map[string]string{"id": "cus_test123"})
+		if err := json.NewEncoder(w).Encode(map[string]string{"id": "cus_test123"}); err != nil {
+			http.Error(w, err.Error(), http.StatusInternalServerError)
+			return
+		}
 	}))
 	defer srv.Close()
 
@@ -53,7 +56,10 @@ func TestCreateCustomerWithCPF(t *testing.T) {
 			t.Errorf("expected cpfCnpj 12345678900, got %s", body["cpfCnpj"])
 		}
 		w.Header().Set("Content-Type", "application/json")
-		_ = json.NewEncoder(w).Encode(map[string]string{"id": "cus_cpf123"})
+		if err := json.NewEncoder(w).Encode(map[string]string{"id": "cus_cpf123"}); err != nil {
+			http.Error(w, err.Error(), http.StatusInternalServerError)
+			return
+		}
 	}))
 	defer srv.Close()
 
@@ -94,11 +100,14 @@ func TestCreateAuthorization(t *testing.T) {
 		}
 
 		w.Header().Set("Content-Type", "application/json")
-		_ = json.NewEncoder(w).Encode(map[string]any{
+		if err := json.NewEncoder(w).Encode(map[string]any{
 			"id":      "auth_test456",
 			"status":  "CREATED",
 			"payload": "00020126580014br.gov.bcb.pix0136test-payload-string",
-		})
+		}); err != nil {
+			http.Error(w, err.Error(), http.StatusInternalServerError)
+			return
+		}
 	}))
 	defer srv.Close()
 
@@ -170,10 +179,13 @@ func TestCreateCharge(t *testing.T) {
 		}
 
 		w.Header().Set("Content-Type", "application/json")
-		_ = json.NewEncoder(w).Encode(map[string]string{
+		if err := json.NewEncoder(w).Encode(map[string]string{
 			"id":     "pay_test789",
 			"status": "PENDING",
-		})
+		}); err != nil {
+			http.Error(w, err.Error(), http.StatusInternalServerError)
+			return
+		}
 	}))
 	defer srv.Close()
 
@@ -199,11 +211,14 @@ func TestErrorWithDescription(t *testing.T) {
 	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
 		w.Header().Set("Content-Type", "application/json")
 		w.WriteHeader(http.StatusBadRequest)
-		_ = json.NewEncoder(w).Encode(map[string]any{
+		if err := json.NewEncoder(w).Encode(map[string]any{
 			"errors": []map[string]string{
 				{"description": "CPF/CNPJ inválido"},
 			},
-		})
+		}); err != nil {
+			http.Error(w, err.Error(), http.StatusInternalServerError)
+			return
+		}
 	}))
 	defer srv.Close()
 

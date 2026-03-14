@@ -178,7 +178,10 @@ func TestWebhookAuthorizationActivated(t *testing.T) {
 		AfterTestFunc: func(t testing.TB, _ *tests.TestApp, _ *http.Response) {
 			assertBusinessStatus(t, app, "active")
 			// next_charge_date should be set (non-empty)
-			records, _ := app.FindAllRecords("businesses", nil)
+			records, err := app.FindAllRecords("businesses", nil)
+			if err != nil {
+				t.Fatal(err)
+			}
 			for _, r := range records {
 				if r.GetString("authorization_id") == testAuthorizationID {
 					ncd := r.GetString("next_charge_date")
@@ -271,12 +274,17 @@ func TestWebhookPaymentConfirmed(t *testing.T) {
 		TestAppFactory: func(tb testing.TB) *tests.TestApp {
 			app = newWebhookApp(tb)
 			// PAYMENT_CONFIRMED requires active status + charge_pending
-			records, _ := app.FindAllRecords("businesses", nil)
+			records, err := app.FindAllRecords("businesses", nil)
+			if err != nil {
+				tb.Fatal(err)
+			}
 			for _, r := range records {
 				if r.GetString("authorization_id") == testAuthorizationID {
 					r.Set("invite_status", "active")
 					r.Set("charge_pending", true)
-					_ = app.Save(r)
+					if err := app.Save(r); err != nil {
+						tb.Fatal(err)
+					}
 				}
 			}
 			return app
@@ -288,7 +296,10 @@ func TestWebhookPaymentConfirmed(t *testing.T) {
 			assertBusinessStatus(t, app, "active")
 			assertBusinessBool(t, app, "charge_pending", false)
 			// next_charge_date should be set
-			records, _ := app.FindAllRecords("businesses", nil)
+			records, err := app.FindAllRecords("businesses", nil)
+			if err != nil {
+				t.Fatal(err)
+			}
 			for _, r := range records {
 				if r.GetString("authorization_id") == testAuthorizationID {
 					ncd := r.GetString("next_charge_date")
@@ -320,12 +331,17 @@ func TestWebhookPaymentInstructionRefused(t *testing.T) {
 		},
 		TestAppFactory: func(tb testing.TB) *tests.TestApp {
 			app = newWebhookApp(tb)
-			records, _ := app.FindAllRecords("businesses", nil)
+			records, err := app.FindAllRecords("businesses", nil)
+			if err != nil {
+				tb.Fatal(err)
+			}
 			for _, r := range records {
 				if r.GetString("authorization_id") == testAuthorizationID {
 					r.Set("invite_status", "active")
 					r.Set("charge_pending", true)
-					_ = app.Save(r)
+					if err := app.Save(r); err != nil {
+						tb.Fatal(err)
+					}
 				}
 			}
 			return app
@@ -360,12 +376,17 @@ func TestWebhookAuthorizationActivatedIdempotent(t *testing.T) {
 		TestAppFactory: func(tb testing.TB) *tests.TestApp {
 			app = newWebhookApp(tb)
 			// Already active with a next_charge_date set
-			records, _ := app.FindAllRecords("businesses", nil)
+			records, err := app.FindAllRecords("businesses", nil)
+			if err != nil {
+				tb.Fatal(err)
+			}
 			for _, r := range records {
 				if r.GetString("authorization_id") == testAuthorizationID {
 					r.Set("invite_status", "active")
 					r.Set("next_charge_date", "2026-04-01 00:00:00.000Z")
-					_ = app.Save(r)
+					if err := app.Save(r); err != nil {
+						tb.Fatal(err)
+					}
 				}
 			}
 			return app
@@ -376,7 +397,10 @@ func TestWebhookAuthorizationActivatedIdempotent(t *testing.T) {
 		AfterTestFunc: func(t testing.TB, _ *tests.TestApp, _ *http.Response) {
 			assertBusinessStatus(t, app, "active")
 			// next_charge_date must NOT have changed
-			records, _ := app.FindAllRecords("businesses", nil)
+			records, err := app.FindAllRecords("businesses", nil)
+			if err != nil {
+				t.Fatal(err)
+			}
 			for _, r := range records {
 				if r.GetString("authorization_id") == testAuthorizationID {
 					ncd := r.GetString("next_charge_date")
@@ -409,13 +433,18 @@ func TestWebhookPaymentConfirmedNotPending(t *testing.T) {
 		TestAppFactory: func(tb testing.TB) *tests.TestApp {
 			app = newWebhookApp(tb)
 			// Active but charge_pending=false (duplicate webhook)
-			records, _ := app.FindAllRecords("businesses", nil)
+			records, err := app.FindAllRecords("businesses", nil)
+			if err != nil {
+				tb.Fatal(err)
+			}
 			for _, r := range records {
 				if r.GetString("authorization_id") == testAuthorizationID {
 					r.Set("invite_status", "active")
 					r.Set("charge_pending", false)
 					r.Set("next_charge_date", "2026-04-01 00:00:00.000Z")
-					_ = app.Save(r)
+					if err := app.Save(r); err != nil {
+						tb.Fatal(err)
+					}
 				}
 			}
 			return app
@@ -427,7 +456,10 @@ func TestWebhookPaymentConfirmedNotPending(t *testing.T) {
 			assertBusinessStatus(t, app, "active")
 			assertBusinessBool(t, app, "charge_pending", false)
 			// next_charge_date must NOT have advanced
-			records, _ := app.FindAllRecords("businesses", nil)
+			records, err := app.FindAllRecords("businesses", nil)
+			if err != nil {
+				t.Fatal(err)
+			}
 			for _, r := range records {
 				if r.GetString("authorization_id") == testAuthorizationID {
 					ncd := r.GetString("next_charge_date")

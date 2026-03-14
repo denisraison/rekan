@@ -53,7 +53,10 @@ func TestCustomerCreate_HappyPath(t *testing.T) {
 	send(a, "sim", "Elenice", "5511999990000")
 
 	// Verify DB record
-	allBiz, _ := app.FindAllRecords(domain.CollBusinesses)
+	allBiz, err := app.FindAllRecords(domain.CollBusinesses)
+	if err != nil {
+		t.Fatal(err)
+	}
 	var biz *core.Record
 	for _, b := range allBiz {
 		if b.GetString("name") == "Ana" {
@@ -120,7 +123,10 @@ func TestCustomerCreate_MissingRequiredField(t *testing.T) {
 	}
 
 	// Verify no business created
-	allBiz, _ := app.FindAllRecords(domain.CollBusinesses)
+	allBiz, err := app.FindAllRecords(domain.CollBusinesses)
+	if err != nil {
+		t.Fatal(err)
+	}
 	if len(allBiz) > 0 {
 		t.Error("no business should be created when validation fails")
 	}
@@ -188,7 +194,10 @@ func TestCustomerUpdate_HappyPath(t *testing.T) {
 	send(a, "muda a Patricia pra Contagem", "Bruna", "5511999991111")
 	send(a, "sim", "Bruna", "5511999991111")
 
-	allBiz, _ := app.FindAllRecords(domain.CollBusinesses)
+	allBiz, err := app.FindAllRecords(domain.CollBusinesses)
+	if err != nil {
+		t.Fatal(err)
+	}
 	for _, b := range allBiz {
 		if b.GetString("name") == "Patricia" {
 			if b.GetString("city") != "Contagem" {
@@ -261,7 +270,10 @@ func TestCustomerPause_HappyPath(t *testing.T) {
 	send(a, "pausa a Joana, vai viajar", "Bruna", "5511999991111")
 	send(a, "sim", "Bruna", "5511999991111")
 
-	allBiz, _ := app.FindAllRecords(domain.CollBusinesses)
+	allBiz, err := app.FindAllRecords(domain.CollBusinesses)
+	if err != nil {
+		t.Fatal(err)
+	}
 	for _, b := range allBiz {
 		if b.GetString("name") == "Joana" {
 			if b.GetString("invite_status") != domain.InviteStatusCancelled {
@@ -308,7 +320,10 @@ func TestPostGenerate_HappyPath(t *testing.T) {
 	send(a, "sim", "Elenice", "5511999990000")
 
 	// Verify a post was created
-	posts, _ := app.FindAllRecords(domain.CollPosts)
+	posts, err := app.FindAllRecords(domain.CollPosts)
+	if err != nil {
+		t.Fatal(err)
+	}
 	found := false
 	for _, p := range posts {
 		if strings.Contains(p.GetString("caption"), "Post gerado de teste") {
@@ -360,7 +375,10 @@ func TestPostApprove_HappyPath(t *testing.T) {
 	send(a, "aprova o post da Patricia", "Bruna", "5511999991111")
 	send(a, "sim", "Bruna", "5511999991111")
 
-	updated, _ := app.FindRecordById(domain.CollPosts, post.Id)
+	updated, err := app.FindRecordById(domain.CollPosts, post.Id)
+	if err != nil {
+		t.Fatal(err)
+	}
 	if !updated.GetBool("reviewed") {
 		t.Error("post should be reviewed=true after approval")
 	}
@@ -393,7 +411,10 @@ func TestPostReject_WithFeedback(t *testing.T) {
 	send(a, "rejeita o post da Maria, muito genérico", "Elenice", "5511999990000")
 	send(a, "sim", "Elenice", "5511999990000")
 
-	updated, _ := app.FindRecordById(domain.CollPosts, post.Id)
+	updated, err := app.FindRecordById(domain.CollPosts, post.Id)
+	if err != nil {
+		t.Fatal(err)
+	}
 	if !updated.GetBool("reviewed") {
 		t.Error("post should be reviewed=true after rejection")
 	}
@@ -510,7 +531,10 @@ func TestDoubleConfirmation_Idempotent(t *testing.T) {
 	send(a, "sim", "Elenice", "5511999990000")
 	send(a, "sim", "Elenice", "5511999990000") // second "sim" should not create duplicate
 
-	allBiz, _ := app.FindAllRecords(domain.CollBusinesses)
+	allBiz, err := app.FindAllRecords(domain.CollBusinesses)
+	if err != nil {
+		t.Fatal(err)
+	}
 	count := 0
 	for _, b := range allBiz {
 		if b.GetString("name") == "Ana" {

@@ -61,12 +61,18 @@ func TestDescribeImage(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			var capturedBody string
 			srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-				b, _ := io.ReadAll(r.Body)
+				b, err := io.ReadAll(r.Body)
+				if err != nil {
+					http.Error(w, err.Error(), http.StatusInternalServerError)
+					return
+				}
 				capturedBody = string(b)
 
 				w.WriteHeader(tt.serverCode)
 				if tt.serverCode == http.StatusOK {
-					_ = json.NewEncoder(w).Encode(geminiResponse(tt.serverReply))
+					if err := json.NewEncoder(w).Encode(geminiResponse(tt.serverReply)); err != nil {
+						return
+					}
 				}
 			}))
 			defer srv.Close()
@@ -136,12 +142,18 @@ func TestDescribeVideo(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			var capturedBody string
 			srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-				b, _ := io.ReadAll(r.Body)
+				b, err := io.ReadAll(r.Body)
+				if err != nil {
+					http.Error(w, err.Error(), http.StatusInternalServerError)
+					return
+				}
 				capturedBody = string(b)
 
 				w.WriteHeader(tt.serverCode)
 				if tt.serverCode == http.StatusOK {
-					_ = json.NewEncoder(w).Encode(geminiResponse(tt.serverReply))
+					if err := json.NewEncoder(w).Encode(geminiResponse(tt.serverReply)); err != nil {
+						return
+					}
 				}
 			}))
 			defer srv.Close()

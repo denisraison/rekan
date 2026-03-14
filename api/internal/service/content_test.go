@@ -103,7 +103,10 @@ func TestGenerateIdeas(t *testing.T) {
 	}
 
 	// GenerateIdeas should NOT persist to DB
-	dbPosts, _ := app.FindAllRecords(domain.CollPosts)
+	dbPosts, err := app.FindAllRecords(domain.CollPosts)
+	if err != nil {
+		t.Fatal(err)
+	}
 	if len(dbPosts) != 0 {
 		t.Errorf("expected 0 posts in DB (ideas are not saved), got %d", len(dbPosts))
 	}

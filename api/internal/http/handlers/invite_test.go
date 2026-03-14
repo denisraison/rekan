@@ -152,13 +152,19 @@ func TestInviteAcceptSuccess(t *testing.T) {
 		w.Header().Set("Content-Type", "application/json")
 		switch {
 		case strings.Contains(r.URL.Path, "/customers"):
-			_ = json.NewEncoder(w).Encode(map[string]string{"id": "cus_test"})
+			if err := json.NewEncoder(w).Encode(map[string]string{"id": "cus_test"}); err != nil {
+				http.Error(w, err.Error(), http.StatusInternalServerError)
+				return
+			}
 		case strings.Contains(r.URL.Path, "/pix/automatic/authorizations"):
-			_ = json.NewEncoder(w).Encode(map[string]any{
+			if err := json.NewEncoder(w).Encode(map[string]any{
 				"id":      "auth_accept_test",
 				"status":  "CREATED",
 				"payload": "00020126580014br.gov.bcb.pix0136test-payload",
-			})
+			}); err != nil {
+				http.Error(w, err.Error(), http.StatusInternalServerError)
+				return
+			}
 		}
 	}))
 	defer mockAsaas.Close()

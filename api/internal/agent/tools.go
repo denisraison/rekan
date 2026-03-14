@@ -159,10 +159,12 @@ func (te *ToolExecutor) loadBusinesses() []*core.Record {
 	if te.businesses != nil {
 		return te.businesses
 	}
-	te.App.RecordQuery(domain.CollBusinesses).
+	if err := te.App.RecordQuery(domain.CollBusinesses).
 		AndWhere(dbx.NewExp("invite_status IN ('active', 'draft')")).
 		OrderBy("name ASC").
-		All(&te.businesses)
+		All(&te.businesses); err != nil {
+		return nil
+	}
 	return te.businesses
 }
 
@@ -297,7 +299,9 @@ func (te *ToolExecutor) listPosts(input json.RawMessage) string {
 		Status       string `json:"status"`
 	}
 	if len(input) > 0 {
-		json.Unmarshal(input, &args)
+		if err := json.Unmarshal(input, &args); err != nil {
+			return "erro ao processar parâmetros: " + err.Error()
+		}
 	}
 
 	q := te.App.RecordQuery(domain.CollPosts).OrderBy("created DESC").Limit(20)

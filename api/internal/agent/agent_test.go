@@ -137,9 +137,15 @@ func TestConversationHistory_PassedToBAML(t *testing.T) {
 	a := newAgent(t, app, wa, fakeBAML)
 
 	// Pre-seed conversation history
-	_ = agent.StoreMessage(app, "Elenice", "5511999990000", "user", "oi, como tá tudo?", "")
-	_ = agent.StoreMessage(app, "Rekan", "", "assistant", "Elenice, temos 1 cliente ativa.", "")
-	_ = agent.StoreMessage(app, "Elenice", "5511999990000", "user", "quais são as clientes?", "")
+	if err := agent.StoreMessage(app, "Elenice", "5511999990000", "user", "oi, como tá tudo?", ""); err != nil {
+		t.Fatal(err)
+	}
+	if err := agent.StoreMessage(app, "Rekan", "", "assistant", "Elenice, temos 1 cliente ativa.", ""); err != nil {
+		t.Fatal(err)
+	}
+	if err := agent.StoreMessage(app, "Elenice", "5511999990000", "user", "quais são as clientes?", ""); err != nil {
+		t.Fatal(err)
+	}
 
 	// Process a new message through the full pipeline
 	send(a, "e a Patricia, como tá?", "Elenice", "5511999990000")
@@ -252,7 +258,10 @@ func TestConfirmationFlow_EndToEnd(t *testing.T) {
 	}
 
 	// Verify state cleared
-	state, _ = agent.LoadState(app, "5511999990000")
+	state, err = agent.LoadState(app, "5511999990000")
+	if err != nil {
+		t.Fatal(err)
+	}
 	if state.State != agent.StateIdle {
 		t.Errorf("expected idle state after confirmation, got %s", state.State)
 	}
@@ -281,13 +290,19 @@ func TestCancellationFlow(t *testing.T) {
 	send(a, "não", "Elenice", "5511999990000")
 
 	// Verify state cleared
-	state, _ := agent.LoadState(app, "5511999990000")
+	state, err := agent.LoadState(app, "5511999990000")
+	if err != nil {
+		t.Fatal(err)
+	}
 	if state.State != agent.StateIdle {
 		t.Errorf("expected idle after cancellation, got %s", state.State)
 	}
 
 	// Verify no business created
-	allBiz, _ := app.FindAllRecords(domain.CollBusinesses)
+	allBiz, err := app.FindAllRecords(domain.CollBusinesses)
+	if err != nil {
+		t.Fatal(err)
+	}
 	for _, b := range allBiz {
 		if b.GetString("name") == "Ana" {
 			t.Error("business 'Ana' should not exist after cancellation")

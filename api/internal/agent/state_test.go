@@ -36,13 +36,19 @@ func TestSetConfirming_And_ClearState(t *testing.T) {
 	app := setupTestApp(t)
 	jid := "5511999990000"
 
-	state, _ := LoadState(app, jid)
+	state, err := LoadState(app, jid)
+	if err != nil {
+		t.Fatal(err)
+	}
 	fields := map[string]string{"name": "Patricia", "type": "Salão de Beleza", "city": "Belo Horizonte"}
 	if err := SetConfirming(app, state, jid, "CUSTOMER_CREATE", fields); err != nil {
 		t.Fatal(err)
 	}
 
-	state, _ = LoadState(app, jid)
+	state, err = LoadState(app, jid)
+	if err != nil {
+		t.Fatal(err)
+	}
 	if state.State != StateConfirming {
 		t.Errorf("expected confirming, got %s", state.State)
 	}
@@ -56,7 +62,10 @@ func TestSetConfirming_And_ClearState(t *testing.T) {
 	if err := ClearState(app, state, jid); err != nil {
 		t.Fatal(err)
 	}
-	state, _ = LoadState(app, jid)
+	state, err = LoadState(app, jid)
+	if err != nil {
+		t.Fatal(err)
+	}
 	if state.State != StateIdle {
 		t.Errorf("expected idle after clear, got %s", state.State)
 	}
@@ -66,7 +75,10 @@ func TestState_AutoExpiry(t *testing.T) {
 	app := setupTestApp(t)
 	jid := "5511999990000"
 
-	col, _ := app.FindCachedCollectionByNameOrId("agent_state")
+	col, err := app.FindCachedCollectionByNameOrId("agent_state")
+	if err != nil {
+		t.Fatal(err)
+	}
 	record := core.NewRecord(col)
 	record.Set("operator_jid", jid)
 	record.Set("state", StateConfirming)
@@ -77,7 +89,10 @@ func TestState_AutoExpiry(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	state, _ := LoadState(app, jid)
+	state, err := LoadState(app, jid)
+	if err != nil {
+		t.Fatal(err)
+	}
 	if state.State != StateIdle {
 		t.Errorf("expected idle (auto-expired), got %s", state.State)
 	}
@@ -88,14 +103,30 @@ func TestPerOperatorIsolation(t *testing.T) {
 	jid1 := "5511999990000"
 	jid2 := "5511999991111"
 
-	state1, _ := LoadState(app, jid1)
-	_ = SetConfirming(app, state1, jid1, "CUSTOMER_CREATE", map[string]string{"name": "Patricia"})
+	state1, err := LoadState(app, jid1)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if err := SetConfirming(app, state1, jid1, "CUSTOMER_CREATE", map[string]string{"name": "Patricia"}); err != nil {
+		t.Fatal(err)
+	}
 
-	state2, _ := LoadState(app, jid2)
-	_ = SetConfirming(app, state2, jid2, "CUSTOMER_PAUSE", map[string]string{"name": "Maria"})
+	state2, err := LoadState(app, jid2)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if err := SetConfirming(app, state2, jid2, "CUSTOMER_PAUSE", map[string]string{"name": "Maria"}); err != nil {
+		t.Fatal(err)
+	}
 
-	state1, _ = LoadState(app, jid1)
-	state2, _ = LoadState(app, jid2)
+	state1, err = LoadState(app, jid1)
+	if err != nil {
+		t.Fatal(err)
+	}
+	state2, err = LoadState(app, jid2)
+	if err != nil {
+		t.Fatal(err)
+	}
 
 	if state1.ActionType != "CUSTOMER_CREATE" {
 		t.Errorf("operator 1 expected CUSTOMER_CREATE, got %s", state1.ActionType)
@@ -104,9 +135,17 @@ func TestPerOperatorIsolation(t *testing.T) {
 		t.Errorf("operator 2 expected CUSTOMER_PAUSE, got %s", state2.ActionType)
 	}
 
-	_ = ClearState(app, state1, jid1)
-	state1, _ = LoadState(app, jid1)
-	state2, _ = LoadState(app, jid2)
+	if err := ClearState(app, state1, jid1); err != nil {
+		t.Fatal(err)
+	}
+	state1, err = LoadState(app, jid1)
+	if err != nil {
+		t.Fatal(err)
+	}
+	state2, err = LoadState(app, jid2)
+	if err != nil {
+		t.Fatal(err)
+	}
 
 	if state1.State != StateIdle {
 		t.Errorf("operator 1 expected idle after clear, got %s", state1.State)
@@ -121,8 +160,13 @@ func TestHasPendingAction_Conflict(t *testing.T) {
 	jid1 := "5511999990000"
 	jid2 := "5511999991111"
 
-	state, _ := LoadState(app, jid1)
-	_ = SetConfirming(app, state, jid1, "CUSTOMER_CREATE", map[string]string{"name": "Patricia"})
+	state, err := LoadState(app, jid1)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if err := SetConfirming(app, state, jid1, "CUSTOMER_CREATE", map[string]string{"name": "Patricia"}); err != nil {
+		t.Fatal(err)
+	}
 
 	_, conflict := HasPendingAction(app, jid2, "Patricia")
 	if !conflict {

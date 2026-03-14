@@ -63,7 +63,10 @@ func TestDismissScheduledMessage(t *testing.T) {
 	}
 
 	// Should no longer appear in list
-	msgs, _ := service.ListScheduledMessages(app)
+	msgs, err := service.ListScheduledMessages(app)
+	if err != nil {
+		t.Fatal(err)
+	}
 	if len(msgs) != 0 {
 		t.Errorf("expected 0 messages after dismiss, got %d", len(msgs))
 	}

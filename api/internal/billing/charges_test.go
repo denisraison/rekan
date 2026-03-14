@@ -89,7 +89,10 @@ func TestCreatePendingCharges(t *testing.T) {
 		if r.URL.Path == "/payments" && r.Method == http.MethodPost {
 			chargeCreated = true
 			var body asaas.CreateChargeReq
-			_ = json.NewDecoder(r.Body).Decode(&body)
+			if err := json.NewDecoder(r.Body).Decode(&body); err != nil {
+				http.Error(w, err.Error(), http.StatusBadRequest)
+				return
+			}
 			if body.Customer != "cus_due_soon" {
 				t.Errorf("expected customer cus_due_soon, got %s", body.Customer)
 			}
@@ -102,7 +105,10 @@ func TestCreatePendingCharges(t *testing.T) {
 			}
 		}
 		w.Header().Set("Content-Type", "application/json")
-		_ = json.NewEncoder(w).Encode(map[string]string{"id": "pay_test", "status": "PENDING"})
+		if err := json.NewEncoder(w).Encode(map[string]string{"id": "pay_test", "status": "PENDING"}); err != nil {
+			http.Error(w, err.Error(), http.StatusInternalServerError)
+			return
+		}
 	}))
 	defer mockAsaas.Close()
 
@@ -137,7 +143,10 @@ func TestCreatePendingChargesSkipsPending(t *testing.T) {
 			chargeCreated = true
 		}
 		w.Header().Set("Content-Type", "application/json")
-		_ = json.NewEncoder(w).Encode(map[string]string{"id": "pay_test", "status": "PENDING"})
+		if err := json.NewEncoder(w).Encode(map[string]string{"id": "pay_test", "status": "PENDING"}); err != nil {
+			http.Error(w, err.Error(), http.StatusInternalServerError)
+			return
+		}
 	}))
 	defer mockAsaas.Close()
 
@@ -163,7 +172,10 @@ func TestCreatePendingChargesSkipsFarOut(t *testing.T) {
 			chargeCreated = true
 		}
 		w.Header().Set("Content-Type", "application/json")
-		_ = json.NewEncoder(w).Encode(map[string]string{"id": "pay_test", "status": "PENDING"})
+		if err := json.NewEncoder(w).Encode(map[string]string{"id": "pay_test", "status": "PENDING"}); err != nil {
+			http.Error(w, err.Error(), http.StatusInternalServerError)
+			return
+		}
 	}))
 	defer mockAsaas.Close()
 
@@ -189,7 +201,10 @@ func TestCreatePendingChargesSkipsNonActive(t *testing.T) {
 			chargeCreated = true
 		}
 		w.Header().Set("Content-Type", "application/json")
-		_ = json.NewEncoder(w).Encode(map[string]string{"id": "pay_test", "status": "PENDING"})
+		if err := json.NewEncoder(w).Encode(map[string]string{"id": "pay_test", "status": "PENDING"}); err != nil {
+			http.Error(w, err.Error(), http.StatusInternalServerError)
+			return
+		}
 	}))
 	defer mockAsaas.Close()
 
@@ -211,11 +226,13 @@ func TestCreatePendingChargesRollbackOnFailure(t *testing.T) {
 	mockAsaas := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
 		w.Header().Set("Content-Type", "application/json")
 		w.WriteHeader(http.StatusBadRequest)
-		_ = json.NewEncoder(w).Encode(map[string]any{
+		if err := json.NewEncoder(w).Encode(map[string]any{
 			"errors": []map[string]string{
 				{"description": "A autorização deve estar ativa"},
 			},
-		})
+		}); err != nil {
+			return
+		}
 	}))
 	defer mockAsaas.Close()
 

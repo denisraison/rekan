@@ -91,7 +91,12 @@ func TestBackupUploadsToS3(t *testing.T) {
 			mu.Lock()
 			defer mu.Unlock()
 			capturedPath = r.URL.Path
-			capturedBody, _ = io.ReadAll(r.Body)
+			var err error
+			capturedBody, err = io.ReadAll(r.Body)
+			if err != nil {
+				http.Error(w, err.Error(), http.StatusInternalServerError)
+				return
+			}
 		}
 		w.WriteHeader(http.StatusOK)
 	}))

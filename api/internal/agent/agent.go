@@ -221,7 +221,7 @@ func (a *Agent) ProcessMessage(groupJID types.JID, messageID string, senderJID t
 		a.Logger.Error("agent: react thumbs up", "error", err)
 	}
 
-	result, err := a.processWithTools(ctx, groupJID, state, operatorName, operatorJID, message, start)
+	result, err := a.processWithTools(ctx, groupJID, state, operatorName, operatorJID, message)
 	if err != nil {
 		a.Logger.Error("agent: tool-use loop failed", "error", err)
 		LogAction(a.App, operatorName, operatorJID, "ERROR", nil, err.Error(), false, start)
@@ -235,14 +235,14 @@ func (a *Agent) ProcessMessage(groupJID types.JID, messageID string, senderJID t
 }
 
 // processWithTools runs the Claude tool-use loop for a message.
-func (a *Agent) processWithTools(ctx context.Context, groupJID types.JID, state *OperatorState, operatorName, operatorJID, message string, start time.Time) (*bamlResult, error) {
+func (a *Agent) processWithTools(ctx context.Context, groupJID types.JID, state *OperatorState, operatorName, operatorJID, message string) (*bamlResult, error) {
 	history, err := LoadRecentAndPrune(a.App, 15)
 	if err != nil {
 		a.Logger.Error("agent: failed to load conversation history", "error", err)
 	}
 
 	// Build Claude messages from conversation history
-	messages := buildClaudeMessages(history, operatorName, message)
+	messages := buildClaudeMessages(history, message)
 
 	slowTimer := time.AfterFunc(5*time.Second, func() {
 		if err := SendReply(ctx, a.WAClient, groupJID, "Um momento..."); err != nil {
@@ -278,7 +278,7 @@ func (a *Agent) processWithTools(ctx context.Context, groupJID types.JID, state 
 }
 
 // buildClaudeMessages converts conversation history + current message into Claude API messages.
-func buildClaudeMessages(history []ConversationMessage, operatorName, currentMessage string) []anthropic.MessageParam {
+func buildClaudeMessages(history []ConversationMessage, currentMessage string) []anthropic.MessageParam {
 	var messages []anthropic.MessageParam
 
 	for _, msg := range history {
@@ -379,7 +379,7 @@ func (a *Agent) handleStatefulMessage(ctx context.Context, groupJID types.JID, m
 
 	default:
 		// Not confirmation or cancellation, process normally via tool-use
-		result, err := a.processWithTools(ctx, groupJID, state, operatorName, operatorJID, message, start)
+		result, err := a.processWithTools(ctx, groupJID, state, operatorName, operatorJID, message)
 		if err != nil {
 			a.Logger.Error("agent: tool-use in stateful context failed", "error", err)
 			return

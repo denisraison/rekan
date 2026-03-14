@@ -134,7 +134,7 @@ func runEvalCase(ctx context.Context, client anthropic.Client, tc TestCase) (*ev
 	// Build messages from conversation history
 	var messages []anthropic.MessageParam
 	if tc.ConversationHistory != "" {
-		messages = parseConversationHistory(tc.ConversationHistory, tc.Operator.Name)
+		messages = parseConversationHistory(tc.ConversationHistory)
 	}
 	messages = append(messages, anthropic.NewUserMessage(anthropic.NewTextBlock(tc.Message)))
 
@@ -193,7 +193,9 @@ func mockToolResult(name string, input json.RawMessage, testContext string) stri
 		var args struct {
 			Query string `json:"query"`
 		}
-		json.Unmarshal(input, &args)
+		if err := json.Unmarshal(input, &args); err != nil {
+			return "erro: " + err.Error()
+		}
 		return findInContext(testContext, args.Query)
 	case "list_customers":
 		return extractSection(testContext, "Clientes ativas")
@@ -201,13 +203,17 @@ func mockToolResult(name string, input json.RawMessage, testContext string) stri
 		var args struct {
 			PostID string `json:"post_id"`
 		}
-		json.Unmarshal(input, &args)
+		if err := json.Unmarshal(input, &args); err != nil {
+			return "erro: " + err.Error()
+		}
 		return findPostInContext(testContext, args.PostID)
 	case "list_posts":
 		var args struct {
 			CustomerName string `json:"customer_name"`
 		}
-		json.Unmarshal(input, &args)
+		if err := json.Unmarshal(input, &args); err != nil {
+			return "erro: " + err.Error()
+		}
 		if args.CustomerName != "" {
 			return findPostsForCustomer(testContext, args.CustomerName)
 		}
@@ -320,7 +326,7 @@ func extractSection(ctx, prefix string) string {
 }
 
 // parseConversationHistory converts a conversation history string into Claude messages.
-func parseConversationHistory(history, operatorName string) []anthropic.MessageParam {
+func parseConversationHistory(history string) []anthropic.MessageParam {
 	var messages []anthropic.MessageParam
 	for _, line := range strings.Split(strings.TrimSpace(history), "\n") {
 		line = strings.TrimSpace(line)

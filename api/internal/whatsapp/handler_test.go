@@ -171,7 +171,10 @@ func TestHandleMessageKnownSenderLinksExistingBusiness(t *testing.T) {
 	app := newHandlerTestApp(t)
 	deps := makeDeps(t, app)
 
-	businesses, _ := app.FindCollectionByNameOrId(domain.CollBusinesses)
+	businesses, err := app.FindCollectionByNameOrId(domain.CollBusinesses)
+	if err != nil {
+		t.Fatal(err)
+	}
 	biz := core.NewRecord(businesses)
 	biz.Set("name", "Padaria da Ana")
 	biz.Set("type", "padaria")
@@ -186,7 +189,10 @@ func TestHandleMessageKnownSenderLinksExistingBusiness(t *testing.T) {
 		t.Errorf("want 1 business, got %d (should not create placeholder)", got)
 	}
 
-	msg, _ := app.FindFirstRecordByFilter(domain.CollMessages, "wa_message_id = 'msg2'")
+	msg, err := app.FindFirstRecordByFilter(domain.CollMessages, "wa_message_id = 'msg2'")
+	if err != nil {
+		t.Fatal(err)
+	}
 	if msg.GetString("business") != biz.Id {
 		t.Errorf("message.business = %q, want %q", msg.GetString("business"), biz.Id)
 	}
