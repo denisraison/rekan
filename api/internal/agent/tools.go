@@ -499,7 +499,7 @@ func (te *ToolExecutor) createCustomer(input json.RawMessage, operatorName strin
 
 	if !args.Confirmed {
 		return toolResult{
-			Text:      fmt.Sprintf("Preview: cadastrar %s (%s, %s, tel %s). Aguardando confirmação.", p.Name, p.Type, p.City, p.Phone),
+			Text:      fmt.Sprintf("Preview: cadastrar %s (%s, %s, tel %s). Chame create_customer com os mesmos parâmetros e confirmed=true para executar.", p.Name, p.Type, p.City, p.Phone),
 			ToolName:  "create_customer",
 			IsWrite:   true,
 			IsPreview: true,
@@ -553,8 +553,31 @@ func (te *ToolExecutor) updateCustomer(input json.RawMessage, operatorName strin
 	}
 
 	if !args.Confirmed {
+		var changes []string
+		if args.NewName != "" {
+			changes = append(changes, "nome -> "+args.NewName)
+		}
+		if args.Type != "" {
+			changes = append(changes, "tipo -> "+args.Type)
+		}
+		if args.City != "" {
+			changes = append(changes, "cidade -> "+args.City)
+		}
+		if args.Phone != "" {
+			changes = append(changes, "tel -> "+args.Phone)
+		}
+		if args.TargetAudience != "" {
+			changes = append(changes, "público -> "+args.TargetAudience)
+		}
+		if args.BrandVibe != "" {
+			changes = append(changes, "vibe -> "+args.BrandVibe)
+		}
+		if args.Quirks != "" {
+			changes = append(changes, "obs -> "+args.Quirks)
+		}
+		detail := strings.Join(changes, ", ")
 		return toolResult{
-			Text:      fmt.Sprintf("Preview: alterar dados da %s. Aguardando confirmação.", args.Name),
+			Text:      fmt.Sprintf("Preview: alterar %s (%s). Chame update_customer com os mesmos parâmetros e confirmed=true para executar.", args.Name, detail),
 			ToolName:  "update_customer",
 			IsWrite:   true,
 			IsPreview: true,
@@ -585,7 +608,7 @@ func (te *ToolExecutor) pauseCustomer(input json.RawMessage, operatorName string
 
 	if !args.Confirmed {
 		return toolResult{
-			Text:      fmt.Sprintf("Preview: pausar %s. Aguardando confirmação.", args.Name),
+			Text:      fmt.Sprintf("Preview: pausar %s. Chame pause_customer com os mesmos parâmetros e confirmed=true para executar.", args.Name),
 			ToolName:  "pause_customer",
 			IsWrite:   true,
 			IsPreview: true,
@@ -612,7 +635,7 @@ func (te *ToolExecutor) generatePost(input json.RawMessage, operatorName string)
 
 	if !args.Confirmed {
 		return toolResult{
-			Text:      fmt.Sprintf("Preview: gerar posts para %s. Aguardando confirmação.", args.CustomerName),
+			Text:      fmt.Sprintf("Preview: gerar posts para %s. Chame generate_post com os mesmos parâmetros e confirmed=true para executar.", args.CustomerName),
 			ToolName:  "generate_post",
 			IsWrite:   true,
 			IsPreview: true,
@@ -648,7 +671,7 @@ func (te *ToolExecutor) approvePost(input json.RawMessage, operatorName string) 
 
 	if !args.Confirmed {
 		return toolResult{
-			Text:      fmt.Sprintf("Preview: aprovar post %s. O conteúdo será exibido automaticamente. Aguardando confirmação.", args.PostID),
+			Text:      fmt.Sprintf("Preview: aprovar post %s. Chame approve_post com os mesmos parâmetros e confirmed=true para executar.", args.PostID),
 			ToolName:  "approve_post",
 			IsWrite:   true,
 			IsPreview: true,
@@ -685,7 +708,7 @@ func (te *ToolExecutor) rejectPost(input json.RawMessage, operatorName string) t
 
 	if !args.Confirmed {
 		return toolResult{
-			Text:      fmt.Sprintf("Preview: rejeitar post %s. Feedback: %s. O conteúdo será exibido automaticamente. Aguardando confirmação.", args.PostID, args.Feedback),
+			Text:      fmt.Sprintf("Preview: rejeitar post %s. Feedback: %s. Chame reject_post com os mesmos parâmetros e confirmed=true para executar.", args.PostID, args.Feedback),
 			ToolName:  "reject_post",
 			IsWrite:   true,
 			IsPreview: true,

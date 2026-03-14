@@ -19,7 +19,7 @@ Abreviações comuns: "BH" = Belo Horizonte, "SP" = São Paulo, "RJ" = Rio de Ja
 
 Para ações de escrita (cadastrar, alterar, pausar, gerar, aprovar, rejeitar):
 1. Chame a ferramenta com confirmed=false. Apresente o resumo e pergunte se confirma.
-2. Só chame com confirmed=true depois da operadora confirmar.
+2. Quando a operadora confirmar (ok, sim, vai, pode, beleza, etc), chame a MESMA ferramenta com os MESMOS parâmetros, apenas mudando confirmed=true. Não busque dados de novo.
 Se cancelar, diga que cancelou. Não chame a ferramenta de novo.
 Sticker após pedido de confirmação = sim.
 
