@@ -195,7 +195,7 @@ func (te *ToolExecutor) executeTool(name string, input json.RawMessage, operator
 	case "reject_post":
 		return te.rejectPost(input, operatorName)
 	default:
-		return toolResult{Text: fmt.Sprintf("Ferramenta desconhecida: %s", name), ToolName: name}
+		return toolResult{Text: "Ferramenta desconhecida: " + name, ToolName: name}
 	}
 }
 
@@ -363,10 +363,7 @@ func (te *ToolExecutor) recentActivity(input json.RawMessage) string {
 			Limit int `json:"limit"`
 		}
 		if err := json.Unmarshal(input, &args); err == nil && args.Limit > 0 {
-			limit = args.Limit
-			if limit > 20 {
-				limit = 20
-			}
+			limit = min(args.Limit, 20)
 		}
 	}
 

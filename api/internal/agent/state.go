@@ -2,6 +2,7 @@ package agent
 
 import (
 	"encoding/json"
+	"errors"
 	"fmt"
 	"time"
 
@@ -115,7 +116,7 @@ func HasPendingAction(app core.App, excludeJID, entityName string) (string, bool
 			continue
 		}
 		if normalizeForMatch(nameHolder.Name) == normalizedEntity {
-			return fmt.Sprintf("operator %s", r.GetString("operator_jid")), true
+			return "operator " + r.GetString("operator_jid"), true
 		}
 	}
 	return "", false
@@ -124,7 +125,7 @@ func HasPendingAction(app core.App, excludeJID, entityName string) (string, bool
 // unmarshalCollectedFields deserializes the collected_fields JSON into a typed struct.
 func unmarshalCollectedFields(raw json.RawMessage, dst any) error {
 	if len(raw) == 0 {
-		return fmt.Errorf("empty collected_fields")
+		return errors.New("empty collected_fields")
 	}
 	return json.Unmarshal(raw, dst)
 }

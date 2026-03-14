@@ -2,7 +2,7 @@ package handlers_test
 
 import (
 	"context"
-	"fmt"
+	"errors"
 	"net/http"
 	"strings"
 	"testing"
@@ -90,7 +90,7 @@ func TestDemoSuccess(t *testing.T) {
 
 func TestDemoGenerateError(t *testing.T) {
 	failGenerate := func(_ context.Context, _ content.BusinessProfile, _ string, _ []string) (content.Post, error) {
-		return content.Post{}, fmt.Errorf("LLM unavailable")
+		return content.Post{}, errors.New("LLM unavailable")
 	}
 	app, s := demoScenario(t, `{"business_name":"Doces","business_type":"Confeitaria","city":"SP","message":"Bolo"}`, failGenerate)
 	defer app.Cleanup()

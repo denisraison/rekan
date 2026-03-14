@@ -52,7 +52,7 @@ func processVideo(ctx context.Context, deps HandlerDeps, evt *events.Message) (d
 		ext = ".3gp"
 	}
 
-	filename := string(evt.Info.ID) + ext
+	filename := evt.Info.ID + ext
 	f, err := filesystem.NewFileFromBytes(data, filename)
 	if err != nil {
 		deps.Logger.Error("whatsapp: failed to create file from bytes", "error", err)
@@ -95,7 +95,7 @@ func processImage(ctx context.Context, deps HandlerDeps, evt *events.Message) (d
 		ext = ".webp"
 	}
 
-	filename := string(evt.Info.ID) + ext
+	filename := evt.Info.ID + ext
 	f, err := filesystem.NewFileFromBytes(data, filename)
 	if err != nil {
 		deps.Logger.Error("whatsapp: failed to create file from bytes", "error", err)

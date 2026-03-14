@@ -2,6 +2,7 @@ package handlers
 
 import (
 	"encoding/json"
+	"errors"
 	"net/http"
 	"strings"
 
@@ -38,7 +39,7 @@ func SendMessage(deps Deps) func(*core.RequestEvent) error {
 			ProductionNote: body.ProductionNote,
 		})
 		if err != nil {
-			if err == service.ErrNoPhone {
+			if errors.Is(err, service.ErrNoPhone) {
 				return e.JSON(http.StatusBadRequest, map[string]string{"message": "Cliente sem telefone cadastrado"})
 			}
 			return e.JSON(http.StatusBadGateway, map[string]string{"message": "Erro ao enviar mensagem. Tente novamente."})

@@ -12,8 +12,6 @@ import (
 	"go.mau.fi/whatsmeow"
 	"go.mau.fi/whatsmeow/proto/waE2E"
 	"go.mau.fi/whatsmeow/types"
-	"google.golang.org/protobuf/proto"
-
 	"github.com/denisraison/rekan/api/internal/domain"
 	"github.com/denisraison/rekan/api/internal/postingtime"
 	wa "github.com/denisraison/rekan/api/internal/whatsapp"
@@ -175,8 +173,8 @@ func SendMediaMessage(ctx context.Context, app core.App, waClient *wa.Client, pa
 	if isVideo {
 		msg = &waE2E.Message{
 			VideoMessage: &waE2E.VideoMessage{
-				Caption:       proto.String(params.Caption),
-				Mimetype:      proto.String(params.ContentType),
+				Caption:       new(params.Caption),
+				Mimetype:      new(params.ContentType),
 				URL:           &resp.URL,
 				DirectPath:    &resp.DirectPath,
 				MediaKey:      resp.MediaKey,
@@ -188,8 +186,8 @@ func SendMediaMessage(ctx context.Context, app core.App, waClient *wa.Client, pa
 	} else {
 		msg = &waE2E.Message{
 			ImageMessage: &waE2E.ImageMessage{
-				Caption:       proto.String(params.Caption),
-				Mimetype:      proto.String(params.ContentType),
+				Caption:       new(params.Caption),
+				Mimetype:      new(params.ContentType),
 				URL:           &resp.URL,
 				DirectPath:    &resp.DirectPath,
 				MediaKey:      resp.MediaKey,

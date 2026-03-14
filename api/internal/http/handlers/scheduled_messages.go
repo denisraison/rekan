@@ -1,6 +1,7 @@
 package handlers
 
 import (
+	"errors"
 	"net/http"
 
 	"github.com/denisraison/rekan/api/internal/service"
@@ -41,7 +42,7 @@ func ApproveScheduledMessage(deps Deps) func(*core.RequestEvent) error {
 
 		msgID := e.Request.PathValue("id")
 		if err := service.ApproveScheduledMessage(e.Request.Context(), e.App, deps.WhatsApp, msgID); err != nil {
-			if err == service.ErrNoPhone {
+			if errors.Is(err, service.ErrNoPhone) {
 				return e.JSON(http.StatusBadRequest, map[string]string{"message": "cliente sem telefone cadastrado"})
 			}
 			return e.JSON(http.StatusBadGateway, map[string]string{"message": "Erro ao enviar mensagem. Tente novamente."})

@@ -1,6 +1,7 @@
 package handlers
 
 import (
+	"errors"
 	"net/http"
 	"strings"
 
@@ -35,7 +36,7 @@ func SendMedia(deps Deps) func(*core.RequestEvent) error {
 			Filename:    header.Filename,
 		})
 		if err != nil {
-			if err == service.ErrNoPhone {
+			if errors.Is(err, service.ErrNoPhone) {
 				return e.JSON(http.StatusBadRequest, map[string]string{"message": "Cliente sem telefone cadastrado"})
 			}
 			return e.JSON(http.StatusBadGateway, map[string]string{"message": "Erro ao enviar mídia. Tente novamente."})

@@ -141,7 +141,7 @@ func runEvalCase(ctx context.Context, client anthropic.Client, tc TestCase) (*ev
 	tools := agentTools
 	er := &evalResult{ToolArgs: make(map[string]json.RawMessage)}
 
-	for i := 0; i < maxToolRoundTrips; i++ {
+	for range maxToolRoundTrips {
 		resp, err := client.Messages.New(ctx, anthropic.MessageNewParams{
 			Model:     anthropic.ModelClaudeSonnet4_6,
 			MaxTokens: 1024,
@@ -164,10 +164,10 @@ func runEvalCase(ctx context.Context, client anthropic.Client, tc TestCase) (*ev
 				er.Reply = v.Text
 			case anthropic.ToolUseBlock:
 				er.ToolsCalled = append(er.ToolsCalled, v.Name)
-				er.ToolArgs[v.Name] = json.RawMessage(v.Input)
+				er.ToolArgs[v.Name] = v.Input
 
 				// Return mock data from context
-				mockResult := mockToolResult(v.Name, json.RawMessage(v.Input), tc.Context)
+				mockResult := mockToolResult(v.Name, v.Input, tc.Context)
 				toolResults = append(toolResults, anthropic.NewToolResultBlock(v.ID, mockResult, false))
 
 				if isWriteTool(v.Name) {
@@ -233,7 +233,7 @@ func findInContext(ctx, query string) string {
 	}
 	normalizedQuery := normalizeForMatch(query)
 	var found []string
-	for _, line := range strings.Split(ctx, "\n") {
+	for line := range strings.SplitSeq(ctx, "\n") {
 		trimmed := strings.TrimSpace(line)
 		if !strings.HasPrefix(trimmed, "- ") {
 			continue
@@ -259,7 +259,7 @@ func findInContext(ctx, query string) string {
 
 // findPostInContext searches test context for a post matching the ID.
 func findPostInContext(ctx, postID string) string {
-	for _, line := range strings.Split(ctx, "\n") {
+	for line := range strings.SplitSeq(ctx, "\n") {
 		trimmed := strings.TrimSpace(line)
 		if strings.Contains(trimmed, "("+postID+")") {
 			// Parse "- Name: "caption..." (post_id)" format
@@ -281,7 +281,7 @@ func findPostInContext(ctx, postID string) string {
 func findPostsForCustomer(ctx, customerName string) string {
 	normalizedName := normalizeForMatch(customerName)
 	var found []string
-	for _, line := range strings.Split(ctx, "\n") {
+	for line := range strings.SplitSeq(ctx, "\n") {
 		trimmed := strings.TrimSpace(line)
 		if !strings.HasPrefix(trimmed, "- ") {
 			continue
@@ -328,13 +328,13 @@ func extractSection(ctx, prefix string) string {
 // parseConversationHistory converts a conversation history string into Claude messages.
 func parseConversationHistory(history string) []anthropic.MessageParam {
 	var messages []anthropic.MessageParam
-	for _, line := range strings.Split(strings.TrimSpace(history), "\n") {
+	for line := range strings.SplitSeq(strings.TrimSpace(history), "\n") {
 		line = strings.TrimSpace(line)
 		if line == "" {
 			continue
 		}
-		if strings.HasPrefix(line, "[Rekan]:") {
-			text := strings.TrimSpace(strings.TrimPrefix(line, "[Rekan]:"))
+		if after, ok := strings.CutPrefix(line, "[Rekan]:"); ok {
+			text := strings.TrimSpace(after)
 			messages = append(messages, anthropic.MessageParam{
 				Role:    anthropic.MessageParamRoleAssistant,
 				Content: []anthropic.ContentBlockParamUnion{anthropic.NewTextBlock(text)},
@@ -364,7 +364,7 @@ func runGrader(g Grader, toolsCalled, reply, hasReply string, toolArgs map[strin
 	case "llm_judge":
 		return CheckResult{Grader: g, Passed: true, Reason: "llm judge (skipped in deterministic mode)"}
 	default:
-		return CheckResult{Grader: g, Passed: false, Reason: fmt.Sprintf("unknown grader type: %s", g.Type)}
+		return CheckResult{Grader: g, Passed: false, Reason: "unknown grader type: " + g.Type}
 	}
 }
 
@@ -411,7 +411,7 @@ func runDeterministicGrader(g Grader, toolsCalled, reply, hasReply string, toolA
 		}
 		return CheckResult{Grader: g, Passed: false, Reason: fmt.Sprintf("tool %q not called", g.Equals)}
 	default:
-		return CheckResult{Grader: g, Passed: false, Reason: fmt.Sprintf("unknown field: %s", g.Field)}
+		return CheckResult{Grader: g, Passed: false, Reason: "unknown field: " + g.Field}
 	}
 
 	if g.Equals != "" {

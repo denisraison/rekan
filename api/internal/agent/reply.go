@@ -7,7 +7,6 @@ import (
 	"go.mau.fi/whatsmeow/proto/waCommon"
 	"go.mau.fi/whatsmeow/proto/waE2E"
 	"go.mau.fi/whatsmeow/types"
-	"google.golang.org/protobuf/proto"
 )
 
 // WAClient is the subset of whatsmeow.Client used by the agent.
@@ -31,8 +30,8 @@ func SendImage(ctx context.Context, wa WAClient, to types.JID, imageData []byte,
 			MediaKey:      resp.MediaKey,
 			FileEncSHA256: resp.FileEncSHA256,
 			FileSHA256:    resp.FileSHA256,
-			FileLength:    proto.Uint64(uint64(len(imageData))),
-			Mimetype:      proto.String("image/jpeg"),
+			FileLength:    new(uint64(len(imageData))),
+			Mimetype:      new("image/jpeg"),
 			Caption:       &caption,
 		},
 	})
@@ -52,12 +51,12 @@ func ReactThumbsUp(ctx context.Context, waClient WAClient, chat types.JID, messa
 	_, err := waClient.SendMessage(ctx, chat, &waE2E.Message{
 		ReactionMessage: &waE2E.ReactionMessage{
 			Key: &waCommon.MessageKey{
-				RemoteJID:   proto.String(chat.String()),
-				FromMe:      proto.Bool(false),
+				RemoteJID:   new(chat.String()),
+				FromMe:      new(false),
 				ID:          &messageID,
-				Participant: proto.String(senderJID.String()),
+				Participant: new(senderJID.String()),
 			},
-			Text: proto.String("\U0001F44D"),
+			Text: new("\U0001F44D"),
 		},
 	})
 	return err

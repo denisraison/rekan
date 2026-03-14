@@ -2,7 +2,6 @@ package agent
 
 import (
 	"context"
-	"encoding/json"
 	"fmt"
 	"os"
 
@@ -31,9 +30,9 @@ func NewClaudeClient() *ClaudeClient {
 
 // toolUseResult is the output of a tool-use loop iteration.
 type toolUseResult struct {
-	Reply      string
+	Reply       string
 	ToolsCalled []string
-	WriteUsed  bool
+	WriteUsed   bool
 }
 
 // RunToolLoop runs the Claude tool-use loop until a final reply or max round trips.
@@ -49,7 +48,7 @@ func (cc *ClaudeClient) RunToolLoop(ctx context.Context, app core.App, state *Op
 
 	result := &toolUseResult{}
 
-	for i := 0; i < maxToolRoundTrips; i++ {
+	for range maxToolRoundTrips {
 		resp, err := cc.client.Messages.New(ctx, anthropic.MessageNewParams{
 			Model:     cc.model,
 			MaxTokens: 1024,
@@ -71,7 +70,7 @@ func (cc *ClaudeClient) RunToolLoop(ctx context.Context, app core.App, state *Op
 			case anthropic.TextBlock:
 				result.Reply = v.Text
 			case anthropic.ToolUseBlock:
-				tr := executor.executeTool(v.Name, json.RawMessage(v.Input), operatorName)
+				tr := executor.executeTool(v.Name, v.Input, operatorName)
 				result.ToolsCalled = append(result.ToolsCalled, v.Name)
 				if tr.IsWrite {
 					result.WriteUsed = true
@@ -96,7 +95,7 @@ func (cc *ClaudeClient) RunToolLoop(ctx context.Context, app core.App, state *Op
 
 	// Max round trips reached
 	if result.Reply == "" {
-		result.Reply = fmt.Sprintf("%s, não consegui processar. Tenta de novo?", operatorName)
+		result.Reply = operatorName + ", não consegui processar. Tenta de novo?"
 	}
 	return result, nil
 }

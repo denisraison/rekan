@@ -5,6 +5,7 @@ import (
 	"context"
 	"encoding/base64"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"image"
 	"image/jpeg"
@@ -184,7 +185,7 @@ func (c *Client) call(ctx context.Context, reqBody any) (string, error) {
 	}
 
 	if len(result.Candidates) == 0 || len(result.Candidates[0].Content.Parts) == 0 {
-		return "", fmt.Errorf("empty response from Gemini")
+		return "", errors.New("empty response from Gemini")
 	}
 
 	return result.Candidates[0].Content.Parts[0].Text, nil

@@ -94,7 +94,7 @@ func (a *Agent) HandleGroupMessage(evt *events.Message) {
 	}
 
 	groupJID := evt.Info.Chat
-	messageID := string(evt.Info.ID)
+	messageID := evt.Info.ID
 	sender := senderJID
 
 	a.Debouncer.Submit(operatorJID, text, func(combined string) {

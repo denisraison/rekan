@@ -5,8 +5,8 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/denisraison/rekan/api/internal/domain"
 	content "github.com/denisraison/rekan/api/internal/content"
+	"github.com/denisraison/rekan/api/internal/domain"
 	"github.com/pocketbase/pocketbase/core"
 )
 
@@ -36,7 +36,7 @@ func BusinessToProfile(record *core.Record) (content.BusinessProfile, error) {
 	}
 
 	var quirks []string
-	for _, line := range strings.Split(record.GetString("quirks"), "\n") {
+	for line := range strings.SplitSeq(record.GetString("quirks"), "\n") {
 		if line = strings.TrimSpace(line); line != "" {
 			quirks = append(quirks, line)
 		}

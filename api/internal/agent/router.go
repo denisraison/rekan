@@ -35,37 +35,37 @@ func ExecuteConfirmed(ctx context.Context, app core.App, operatorName string, st
 	case ActionCustomerCreate:
 		var p CustomerCreateParams
 		if err := unmarshalCollectedFields(state.CollectedFields, &p); err != nil {
-			return fmt.Sprintf("%s, algo deu errado com os dados. Pode repetir?", operatorName), nil
+			return operatorName + ", algo deu errado com os dados. Pode repetir?", nil
 		}
 		return executeCustomerCreate(app, operatorName, &p)
 	case ActionCustomerUpdate:
 		var p CustomerUpdateParams
 		if err := unmarshalCollectedFields(state.CollectedFields, &p); err != nil {
-			return fmt.Sprintf("%s, algo deu errado com os dados. Pode repetir?", operatorName), nil
+			return operatorName + ", algo deu errado com os dados. Pode repetir?", nil
 		}
 		return executeCustomerUpdate(app, operatorName, &p)
 	case ActionCustomerPause:
 		var p CustomerPauseParams
 		if err := unmarshalCollectedFields(state.CollectedFields, &p); err != nil {
-			return fmt.Sprintf("%s, algo deu errado com os dados. Pode repetir?", operatorName), nil
+			return operatorName + ", algo deu errado com os dados. Pode repetir?", nil
 		}
 		return executeCustomerPause(app, operatorName, &p)
 	case ActionPostGenerate:
 		var p PostGenerateParams
 		if err := unmarshalCollectedFields(state.CollectedFields, &p); err != nil {
-			return fmt.Sprintf("%s, algo deu errado com os dados. Pode repetir?", operatorName), nil
+			return operatorName + ", algo deu errado com os dados. Pode repetir?", nil
 		}
 		return executePostGenerate(ctx, app, operatorName, &p, gen)
 	case ActionPostApprove:
 		var p PostApproveParams
 		if err := unmarshalCollectedFields(state.CollectedFields, &p); err != nil {
-			return fmt.Sprintf("%s, algo deu errado com os dados. Pode repetir?", operatorName), nil
+			return operatorName + ", algo deu errado com os dados. Pode repetir?", nil
 		}
 		return executePostApprove(app, operatorName, &p)
 	case ActionPostReject:
 		var p PostRejectParams
 		if err := unmarshalCollectedFields(state.CollectedFields, &p); err != nil {
-			return fmt.Sprintf("%s, algo deu errado com os dados. Pode repetir?", operatorName), nil
+			return operatorName + ", algo deu errado com os dados. Pode repetir?", nil
 		}
 		return executePostReject(app, operatorName, &p)
 	default:
@@ -189,7 +189,7 @@ func executeCustomerPause(app core.App, operatorName string, p *CustomerPausePar
 
 func executePostGenerate(ctx context.Context, app core.App, operatorName string, p *PostGenerateParams, gen content.GenerateFunc) (string, error) {
 	if p.Name == "" {
-		return fmt.Sprintf("%s, pra qual cliente você quer gerar post?", operatorName), nil
+		return operatorName + ", pra qual cliente você quer gerar post?", nil
 	}
 
 	businesses := loadActiveBusinesses(app)
@@ -203,7 +203,7 @@ func executePostGenerate(ctx context.Context, app core.App, operatorName string,
 
 	biz := matches[0]
 	if gen == nil {
-		return fmt.Sprintf("%s, geração de posts não está configurada.", operatorName), nil
+		return operatorName + ", geração de posts não está configurada.", nil
 	}
 
 	result, err := service.GeneratePosts(ctx, app, gen, biz.Id)
@@ -222,7 +222,7 @@ func executePostGenerate(ctx context.Context, app core.App, operatorName string,
 func executePostApprove(app core.App, operatorName string, p *PostApproveParams) (string, error) {
 	record, err := app.FindRecordById(domain.CollPosts, p.PostId)
 	if err != nil {
-		return fmt.Sprintf("%s, não encontrei o post %s.", operatorName, p.PostId), nil
+		return fmt.Sprintf("%s, não encontrei o post %s.", operatorName, p.PostId), nil //nolint:nilerr // not-found is a user-facing reply, not an error
 	}
 
 	record.Set("reviewed", true)
@@ -237,7 +237,7 @@ func executePostApprove(app core.App, operatorName string, p *PostApproveParams)
 func executePostReject(app core.App, operatorName string, p *PostRejectParams) (string, error) {
 	record, err := app.FindRecordById(domain.CollPosts, p.PostId)
 	if err != nil {
-		return fmt.Sprintf("%s, não encontrei o post %s.", operatorName, p.PostId), nil
+		return fmt.Sprintf("%s, não encontrei o post %s.", operatorName, p.PostId), nil //nolint:nilerr // not-found is a user-facing reply, not an error
 	}
 
 	record.Set("reviewed", true)

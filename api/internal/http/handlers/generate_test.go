@@ -2,7 +2,7 @@ package handlers_test
 
 import (
 	"context"
-	"fmt"
+	"errors"
 	"net/http"
 	"testing"
 
@@ -64,7 +64,7 @@ func TestGenerateError(t *testing.T) {
 	defer app.Cleanup()
 
 	failGenerate := func(_ context.Context, _ content.BusinessProfile, _ []content.Role, _ []string) ([]content.Post, error) {
-		return nil, fmt.Errorf("LLM unavailable")
+		return nil, errors.New("LLM unavailable")
 	}
 
 	s := &tests.ApiScenario{

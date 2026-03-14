@@ -49,7 +49,7 @@ func handleDirectMessage(deps HandlerDeps, evt *events.Message) {
 		return
 	}
 
-	waMessageID := string(evt.Info.ID)
+	waMessageID := evt.Info.ID
 	if isDuplicate(deps, waMessageID) {
 		return
 	}

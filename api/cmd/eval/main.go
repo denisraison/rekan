@@ -141,7 +141,7 @@ func parseRoles(names string) ([]content.Role, error) {
 		pool[strings.ToLower(r.Name)] = r
 	}
 	var roles []content.Role
-	for _, name := range strings.Split(names, ",") {
+	for name := range strings.SplitSeq(names, ",") {
 		name = strings.TrimSpace(name)
 		if name == "" {
 			continue
@@ -364,9 +364,9 @@ func evaluateResults(ctx context.Context, results []result, withJudges, verbose 
 
 	// Run judges for all profiles in parallel.
 	type judgeOut struct {
-		idx     int
-		judges  []content.JudgeResult
-		err     error
+		idx    int
+		judges []content.JudgeResult
+		err    error
 	}
 
 	judgeCh := make(chan judgeOut, len(results))
@@ -423,11 +423,11 @@ type runRecord struct {
 }
 
 type businessRecord struct {
-	Business string        `json:"business"`
-	Content  string        `json:"content"`
-	Posts    []content.Post   `json:"posts,omitempty"`
-	Checks   []checkRecord `json:"checks"`
-	Judges   []judgeRecord `json:"judges,omitempty"`
+	Business string         `json:"business"`
+	Content  string         `json:"content"`
+	Posts    []content.Post `json:"posts,omitempty"`
+	Checks   []checkRecord  `json:"checks"`
+	Judges   []judgeRecord  `json:"judges,omitempty"`
 }
 
 type checkRecord struct {
@@ -568,7 +568,7 @@ func printDiff(beforePath, afterPath string) error {
 	}
 
 	type row struct {
-		name                     string
+		name                      string
 		beforeChecks, afterChecks string
 		beforeJudges, afterJudges map[string]bool
 	}
@@ -760,11 +760,11 @@ func printTable(results []result, showJudges bool) {
 
 	if showJudges {
 		judgeShorts := map[string]string{
-			"naturalidade":    "NAT",
-			"especificidade":  "ESP",
-			"acionavel":       "ACI",
-			"variedade":       "VAR",
-			"engajamento":     "ENG",
+			"naturalidade":   "NAT",
+			"especificidade": "ESP",
+			"acionavel":      "ACI",
+			"variedade":      "VAR",
+			"engajamento":    "ENG",
 		}
 
 		// Header

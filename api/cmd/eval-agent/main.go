@@ -73,7 +73,7 @@ func main() {
 					}
 					desc := fmt.Sprintf("%s.%s=%s", c.Grader.Type, c.Grader.Field, c.Grader.Equals)
 					if c.Grader.Type == "llm_judge" {
-						desc = fmt.Sprintf("llm_judge.%s", c.Grader.Judge)
+						desc = "llm_judge." + c.Grader.Judge
 					}
 					if c.Reason != "" {
 						fmt.Printf("    [%s] %s: %s\n", mark, desc, c.Reason)

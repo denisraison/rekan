@@ -1,6 +1,7 @@
 package operator
 
 import (
+	"slices"
 	"strings"
 	"time"
 
@@ -52,13 +53,7 @@ func QueueSeasonalMessages(app core.App) {
 
 			// Check niche eligibility.
 			if len(sd.Niches) > 0 {
-				eligible := false
-				for _, niche := range sd.Niches {
-					if niche == bizType {
-						eligible = true
-						break
-					}
-				}
+				eligible := slices.Contains(sd.Niches, bizType)
 				if !eligible {
 					continue
 				}

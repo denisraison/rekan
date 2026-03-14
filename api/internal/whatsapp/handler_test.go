@@ -10,7 +10,6 @@ import (
 	"go.mau.fi/whatsmeow/proto/waE2E"
 	"go.mau.fi/whatsmeow/types"
 	"go.mau.fi/whatsmeow/types/events"
-	"google.golang.org/protobuf/proto"
 )
 
 func newHandlerTestApp(t *testing.T) *tests.TestApp {
@@ -71,11 +70,11 @@ func incomingTextEvtWithName(msgID, senderPhone, pushName string) *events.Messag
 				Sender:   types.JID{User: senderPhone, Server: "s.whatsapp.net"},
 				Chat:     types.JID{User: senderPhone, Server: "s.whatsapp.net"},
 			},
-			ID:        types.MessageID(msgID),
+			ID:        msgID,
 			Timestamp: time.Now(),
 			PushName:  pushName,
 		},
-		Message: &waE2E.Message{Conversation: proto.String("Olá")},
+		Message: &waE2E.Message{Conversation: new("Olá")},
 	}
 }
 
@@ -88,10 +87,10 @@ func lidEvt(msgID string) *events.Message {
 				Sender:   types.JID{User: "me", Server: "s.whatsapp.net"},
 				Chat:     types.JID{User: "10235024560177", Server: "lid"},
 			},
-			ID:        types.MessageID(msgID),
+			ID:        msgID,
 			Timestamp: time.Now(),
 		},
-		Message: &waE2E.Message{Conversation: proto.String("Ola")},
+		Message: &waE2E.Message{Conversation: new("Ola")},
 	}
 }
 
@@ -104,10 +103,10 @@ func outgoingTextEvt(msgID, recipientPhone string) *events.Message {
 				Sender:   types.JID{User: "me", Server: "s.whatsapp.net"},
 				Chat:     types.JID{User: recipientPhone, Server: "s.whatsapp.net"},
 			},
-			ID:        types.MessageID(msgID),
+			ID:        msgID,
 			Timestamp: time.Now(),
 		},
-		Message: &waE2E.Message{Conversation: proto.String("Resposta")},
+		Message: &waE2E.Message{Conversation: new("Resposta")},
 	}
 }
 

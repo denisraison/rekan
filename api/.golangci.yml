@@ -12,10 +12,41 @@ linters:
     - revive
     - gocritic
     - errcheck
+    - modernize
+    - gosec
+    - errorlint
+    - nilerr
+    - bodyclose
+    - unconvert
+    - noctx
+    - durationcheck
+    - exhaustive
+    - fatcontext
+    - musttag
+    - perfsprint
+    - unused
 
   exclusions:
     paths:
       - internal/baml/baml_client  # generated code
+      - migrations                 # idempotent "skip if exists" pattern
+    rules:
+      # math/rand is fine for jitter delays and non-security randomness
+      - linters: [gosec]
+        text: "G404:"
+      # CLI tools reading user-supplied file paths is expected
+      - linters: [gosec]
+        text: "G304:"
+      # Internal HTTP clients making requests to configured endpoints
+      - linters: [gosec]
+        text: "G704:"
+      # Already covered by errcheck
+      - linters: [gosec]
+        text: "G104:"
+      # Eval CLI writing run artifacts
+      - linters: [gosec]
+        path: cmd/eval/
+        text: "G301:|G306:"
 
   settings:
     errcheck:

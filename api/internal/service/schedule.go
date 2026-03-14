@@ -26,7 +26,7 @@ func ListScheduledMessages(app core.App) ([]ScheduledMessage, error) {
 		0,
 	)
 	if err != nil {
-		return nil, nil
+		return nil, nil //nolint:nilerr // no records is not an error
 	}
 
 	result := make([]ScheduledMessage, 0, len(records))

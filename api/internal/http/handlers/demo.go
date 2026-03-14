@@ -30,7 +30,7 @@ func DemoGenerate(deps Deps) func(*core.RequestEvent) error {
 		}
 
 		var services []content.Service
-		for _, raw := range strings.Split(body.Services, ",") {
+		for raw := range strings.SplitSeq(body.Services, ",") {
 			name := strings.TrimSpace(raw)
 			if name == "" {
 				continue

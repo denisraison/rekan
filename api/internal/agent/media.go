@@ -119,12 +119,12 @@ func processContact(displayName, vcard string) MediaResult {
 
 	var parts []string
 	if displayName != "" {
-		parts = append(parts, fmt.Sprintf("Nome: %s", displayName))
+		parts = append(parts, "Nome: "+displayName)
 	}
 
 	// Extract phone from vCard TEL field
 	if phone := extractVCardPhone(vcard); phone != "" {
-		parts = append(parts, fmt.Sprintf("Tel: %s", phone))
+		parts = append(parts, "Tel: "+phone)
 	}
 
 	return MediaResult{
