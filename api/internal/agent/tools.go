@@ -371,8 +371,9 @@ func (te *ToolExecutor) listPosts(input json.RawMessage) string {
 		if p.GetBool("reviewed") {
 			status = "revisado"
 		}
-		caption := truncate(p.GetString("caption"), 300)
-		fmt.Fprintf(&b, "- %s: \"%s\" (%s) [%s]\n", name, caption, p.Id, status)
+		fmt.Fprintf(&b, "- %s: (%s) [%s]\n", name, p.Id, status)
+		appendPostFieldsJSON(&b, p.GetString("caption"), p.GetString("hashtags"), p.GetString("production_note"))
+		b.WriteString("---\n")
 	}
 	return b.String()
 }
