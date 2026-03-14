@@ -15,6 +15,7 @@ type CustomerCreateParams struct {
 
 type CustomerUpdateParams struct {
 	Name           string  `json:"name"`
+	NewName        *string `json:"new_name,omitempty"`
 	Type           *string `json:"type,omitempty"`
 	City           *string `json:"city,omitempty"`
 	Phone          *string `json:"phone,omitempty"`

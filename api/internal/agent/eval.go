@@ -140,6 +140,7 @@ func runEvalCase(ctx context.Context, client anthropic.Client, tc TestCase) (*ev
 
 	tools := agentTools
 	er := &evalResult{ToolArgs: make(map[string]json.RawMessage)}
+	writeUsed := false
 
 	for range maxToolRoundTrips {
 		resp, err := client.Messages.New(ctx, anthropic.MessageNewParams{
@@ -176,11 +177,20 @@ func runEvalCase(ctx context.Context, client anthropic.Client, tc TestCase) (*ev
 			}
 		}
 
+		if hasWrite {
+			writeUsed = true
+		}
+
 		if len(toolResults) == 0 || hasWrite {
 			break
 		}
 
 		messages = append(messages, anthropic.NewUserMessage(toolResults...))
+	}
+
+	// If a write tool was called but Claude produced no text, use a fallback
+	if er.Reply == "" && writeUsed {
+		er.Reply = tc.Operator.Name + fallbackWriteReply
 	}
 
 	return er, nil

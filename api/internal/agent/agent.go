@@ -2,6 +2,7 @@ package agent
 
 import (
 	"context"
+	"fmt"
 	"log/slog"
 	"slices"
 	"strings"
@@ -16,6 +17,8 @@ import (
 	wa "github.com/denisraison/rekan/api/internal/whatsapp"
 	"github.com/pocketbase/pocketbase/core"
 )
+
+const fallbackWriteReply = ", anotado! Aguardando sua confirmação."
 
 // Agent handles WhatsApp group messages for the operator chat.
 type Agent struct {
@@ -127,8 +130,9 @@ func isCancellation(msg string) bool {
 
 // agentResult holds the output of the tool-use loop.
 type agentResult struct {
-	ReplyText  string
-	ActionType string
+	ReplyText   string
+	ToolSummary string
+	ActionType  string
 }
 
 // ProcessMessage is the core message processing pipeline.
@@ -213,11 +217,19 @@ func (a *Agent) processWithTools(ctx context.Context, groupJID types.JID, state 
 	}
 
 	reply := tuResult.Reply
+	// If a write tool was called but Claude produced no text, use a fallback
+	if reply == "" && tuResult.WriteUsed && len(tuResult.ToolsCalled) > 0 {
+		reply = operatorName + fallbackWriteReply
+	}
 	if len(tuResult.Posts) > 0 {
 		reply += "\n\n" + formatPostDetails(tuResult.BizNames, tuResult.Posts)
 	}
 
-	return &agentResult{ReplyText: reply, ActionType: actionType}, nil
+	return &agentResult{
+		ReplyText:   reply,
+		ToolSummary: buildToolSummary(tuResult.ToolLog),
+		ActionType:  actionType,
+	}, nil
 }
 
 // buildClaudeMessages converts conversation history + current message into Claude API messages.
@@ -352,8 +364,26 @@ func (a *Agent) sendAndLog(ctx context.Context, groupJID types.JID, operatorName
 		return
 	}
 
-	if err := StoreMessage(a.App, "Rekan", "", "assistant", result.ReplyText, ""); err != nil {
+	// Store reply with tool summary for conversation context, but WhatsApp only gets the reply text
+	storedContent := result.ReplyText
+	if result.ToolSummary != "" {
+		storedContent += "\n\n" + result.ToolSummary
+	}
+
+	if err := StoreMessage(a.App, "Rekan", "", "assistant", storedContent, ""); err != nil {
 		a.Logger.Error("agent: failed to store assistant message", "error", err)
 	}
 	LogAction(a.App, operatorName, operatorJID, result.ActionType, nil, result.ReplyText, true, start)
+}
+
+// buildToolSummary formats tool calls into a bracketed summary for conversation history.
+func buildToolSummary(log []toolCallEntry) string {
+	if len(log) == 0 {
+		return ""
+	}
+	var parts []string
+	for _, e := range log {
+		parts = append(parts, fmt.Sprintf("%s(%s) -> %s", e.Name, e.Args, e.Result))
+	}
+	return "[Ferramentas: " + strings.Join(parts, ", ") + "]"
 }

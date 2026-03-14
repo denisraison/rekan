@@ -87,6 +87,7 @@ func buildToolDefs() []anthropic.ToolUnionParam {
 			InputSchema: anthropic.ToolInputSchemaParam{
 				Properties: map[string]any{
 					"name":            map[string]any{"type": "string", "description": "Nome da cliente (para identificação)"},
+					"new_name":        map[string]any{"type": "string", "description": "Novo nome do negócio (se quiser renomear)"},
 					"type":            map[string]any{"type": "string", "description": "Novo tipo de negócio"},
 					"city":            map[string]any{"type": "string", "description": "Nova cidade"},
 					"phone":           map[string]any{"type": "string", "description": "Novo telefone"},
@@ -513,6 +514,7 @@ func (te *ToolExecutor) createCustomer(input json.RawMessage, operatorName strin
 func (te *ToolExecutor) updateCustomer(input json.RawMessage) toolResult {
 	var args struct {
 		Name           string `json:"name"`
+		NewName        string `json:"new_name"`
 		Type           string `json:"type"`
 		City           string `json:"city"`
 		Phone          string `json:"phone"`
@@ -525,6 +527,9 @@ func (te *ToolExecutor) updateCustomer(input json.RawMessage) toolResult {
 	}
 
 	p := &CustomerUpdateParams{Name: args.Name}
+	if args.NewName != "" {
+		p.NewName = &args.NewName
+	}
 	if args.Type != "" {
 		p.Type = &args.Type
 	}

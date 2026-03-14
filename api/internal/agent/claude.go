@@ -28,10 +28,18 @@ func NewClaudeClient() *ClaudeClient {
 	}
 }
 
+// toolCallEntry records a single tool call for building summaries.
+type toolCallEntry struct {
+	Name   string
+	Args   string // abbreviated args
+	Result string // abbreviated result
+}
+
 // toolUseResult is the output of a tool-use loop iteration.
 type toolUseResult struct {
 	Reply       string
 	ToolsCalled []string
+	ToolLog     []toolCallEntry
 	WriteUsed   bool
 	Posts       []*core.Record    // posts referenced during execution, appended to reply
 	BizNames    map[string]string // business ID -> display name
@@ -81,6 +89,11 @@ func (cc *ClaudeClient) RunToolLoop(ctx context.Context, app core.App, state *Op
 			case anthropic.ToolUseBlock:
 				tr := executor.executeTool(v.Name, v.Input, operatorName)
 				result.ToolsCalled = append(result.ToolsCalled, v.Name)
+				result.ToolLog = append(result.ToolLog, toolCallEntry{
+					Name:   v.Name,
+					Args:   truncate(string(v.Input), 80),
+					Result: truncate(tr.Text, 60),
+				})
 				if tr.IsWrite {
 					result.WriteUsed = true
 				}

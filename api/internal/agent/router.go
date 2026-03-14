@@ -128,6 +128,10 @@ func executeCustomerUpdate(app core.App, operatorName string, p *CustomerUpdateP
 
 	record := matches[0]
 	var updated []string
+	if p.NewName != nil {
+		record.Set("name", *p.NewName)
+		updated = append(updated, "nome")
+	}
 	if p.Type != nil {
 		record.Set("type", *p.Type)
 		updated = append(updated, "tipo")
@@ -161,8 +165,12 @@ func executeCustomerUpdate(app core.App, operatorName string, p *CustomerUpdateP
 		return "", fmt.Errorf("updating business: %w", err)
 	}
 
+	displayName := p.Name
+	if p.NewName != nil {
+		displayName = *p.NewName
+	}
 	return fmt.Sprintf("%s, %s atualizada! Campos: %s.",
-		operatorName, p.Name, strings.Join(updated, ", ")), nil
+		operatorName, displayName, strings.Join(updated, ", ")), nil
 }
 
 func executeCustomerPause(app core.App, operatorName string, p *CustomerPauseParams) (string, error) {
