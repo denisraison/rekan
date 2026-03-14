@@ -2,6 +2,7 @@ package agent
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
 	"log/slog"
 	"slices"
@@ -118,14 +119,14 @@ func extractText(evt *events.Message) string {
 	}
 }
 
-func isConfirmation(msg string) bool {
+func IsConfirmation(msg string) bool {
 	lower := strings.ToLower(strings.TrimSpace(msg))
 	return slices.Contains([]string{"sim", "confirma", "isso", "pode fazer", "pode", "s"}, lower)
 }
 
-func isCancellation(msg string) bool {
+func IsCancellation(msg string) bool {
 	lower := strings.ToLower(strings.TrimSpace(msg))
-	return slices.Contains([]string{"não", "nao", "deixa", "cancela", "esquece", "n"}, lower)
+	return slices.Contains([]string{"não", "nao", "deixa", "cancela", "esquece", "n", "para"}, lower)
 }
 
 // agentResult holds the output of the tool-use loop.
@@ -308,6 +309,32 @@ func toolNameToActionType(name string) string {
 	}
 }
 
+// describeAction builds a human-readable description of the pending action for the LLM classifier.
+func describeAction(state *OperatorState) string {
+	var nameHolder struct {
+		Name string `json:"name"`
+	}
+	_ = json.Unmarshal(state.CollectedFields, &nameHolder)
+
+	labels := map[string]string{
+		ActionCustomerCreate: "Cadastrar cliente",
+		ActionCustomerUpdate: "Alterar cliente",
+		ActionCustomerPause:  "Pausar cliente",
+		ActionPostGenerate:   "Gerar post",
+		ActionPostApprove:    "Aprovar post",
+		ActionPostReject:     "Rejeitar post",
+	}
+
+	label := labels[state.ActionType]
+	if label == "" {
+		label = state.ActionType
+	}
+	if nameHolder.Name != "" {
+		return label + " " + nameHolder.Name
+	}
+	return label
+}
+
 func (a *Agent) handleStatefulMessage(ctx context.Context, groupJID types.JID, messageID string, senderJID types.JID, message, operatorName, operatorJID string, state *OperatorState, start time.Time) {
 	stop := wa.Typing(ctx, a.WAClient, groupJID)
 	defer stop()
@@ -316,8 +343,34 @@ func (a *Agent) handleStatefulMessage(ctx context.Context, groupJID types.JID, m
 
 	var replyText string
 
+	// Fast path: hardcoded word lists
+	confirmed := IsConfirmation(message)
+	cancelled := !confirmed && IsCancellation(message)
+
+	// LLM fallback for messages the word lists don't catch
+	if !confirmed && !cancelled {
+		desc := describeAction(state)
+		cls, err := a.Claude.ClassifyConfirmation(ctx, message, desc)
+		if err != nil {
+			a.Logger.Error("agent: classify confirmation", "error", err)
+			replyText = operatorName + ", não entendi. Pode confirmar ou cancelar?"
+			br := &agentResult{ReplyText: replyText, ActionType: actionType}
+			if reactErr := ReactThumbsUp(ctx, a.WAClient, groupJID, messageID, senderJID); reactErr != nil {
+				a.Logger.Error("agent: react thumbs up", "error", reactErr)
+			}
+			a.sendAndLog(ctx, groupJID, operatorName, operatorJID, br, start)
+			return
+		}
+		switch cls {
+		case ClassConfirm:
+			confirmed = true
+		case ClassCancel:
+			cancelled = true
+		}
+	}
+
 	switch {
-	case isConfirmation(message):
+	case confirmed:
 		result, err := ExecuteConfirmed(ctx, a.App, operatorName, state, a.Generate)
 		if err != nil {
 			a.Logger.Error("agent: confirmed action failed", "error", err, "action", actionType)
@@ -327,7 +380,7 @@ func (a *Agent) handleStatefulMessage(ctx context.Context, groupJID types.JID, m
 			replyText = result
 		}
 
-	case isCancellation(message):
+	case cancelled:
 		if err := ClearState(a.App, state, operatorJID); err != nil {
 			a.Logger.Error("agent: failed to clear state", "error", err)
 		}

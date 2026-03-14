@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"os"
+	"strings"
 
 	"github.com/anthropics/anthropic-sdk-go"
 	"github.com/anthropics/anthropic-sdk-go/option"
@@ -12,6 +13,15 @@ import (
 )
 
 const maxToolRoundTrips = 5
+
+// ConfirmationClass is the result of classifying a message as confirmation, cancellation, or other.
+type ConfirmationClass int
+
+const (
+	ClassOther  ConfirmationClass = iota
+	ClassConfirm
+	ClassCancel
+)
 
 // ClaudeClient wraps the Anthropic API for tool-use agent calls.
 type ClaudeClient struct {
@@ -120,4 +130,38 @@ func (cc *ClaudeClient) RunToolLoop(ctx context.Context, app core.App, state *Op
 		result.Reply = operatorName + ", não consegui processar. Tenta de novo?"
 	}
 	return result, nil
+}
+
+// ClassifyConfirmation uses Haiku to classify a message as confirmation, cancellation, or other.
+// Only called as fallback when the hardcoded word lists don't match.
+func (cc *ClaudeClient) ClassifyConfirmation(ctx context.Context, message, actionDescription string) (ConfirmationClass, error) {
+	prompt := fmt.Sprintf(`A operadora tem uma ação pendente: "%s"
+Ela respondeu: "%s"
+Classifique: CONFIRMA, CANCELA, ou OUTRO
+Responda apenas uma palavra.`, actionDescription, message)
+
+	resp, err := cc.client.Messages.New(ctx, anthropic.MessageNewParams{
+		Model:     anthropic.ModelClaudeHaiku4_5,
+		MaxTokens: 16,
+		System:    []anthropic.TextBlockParam{{Text: "Responda apenas uma palavra: CONFIRMA, CANCELA, ou OUTRO."}},
+		Messages:  []anthropic.MessageParam{anthropic.NewUserMessage(anthropic.NewTextBlock(prompt))},
+	})
+	if err != nil {
+		return ClassOther, fmt.Errorf("classify confirmation: %w", err)
+	}
+
+	for _, block := range resp.Content {
+		if tb, ok := block.AsAny().(anthropic.TextBlock); ok {
+			word := strings.ToUpper(strings.TrimSpace(tb.Text))
+			switch {
+			case strings.HasPrefix(word, "CONFIRMA"):
+				return ClassConfirm, nil
+			case strings.HasPrefix(word, "CANCELA"):
+				return ClassCancel, nil
+			default:
+				return ClassOther, nil
+			}
+		}
+	}
+	return ClassOther, nil
 }
