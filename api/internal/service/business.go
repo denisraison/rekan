@@ -1,6 +1,7 @@
 package service
 
 import (
+	"errors"
 	"fmt"
 	"strings"
 	"time"
@@ -65,6 +66,50 @@ func ListActiveBusinesses(app core.App) []*core.Record {
 	return businesses
 }
 
+// NormalizePhone strips non-digits and normalizes to an international format
+// suitable for WhatsApp (country code + number, no leading zeros).
+// Supports Brazil (+55) and Australia (+61), with preference for Brazil
+// when the input is ambiguous.
+func NormalizePhone(raw string) (string, error) {
+	var digits strings.Builder
+	for _, r := range raw {
+		if r >= '0' && r <= '9' {
+			digits.WriteRune(r)
+		}
+	}
+	phone := digits.String()
+	if phone == "" {
+		return "", errors.New("telefone vazio")
+	}
+
+	// Already valid BR: 55 + 10-11 digit number
+	if strings.HasPrefix(phone, "55") && (len(phone) == 12 || len(phone) == 13) {
+		return phone, nil
+	}
+
+	// AU local mobile: 04xx xxx xxx (10 digits) → 614xxxxxxxx
+	if strings.HasPrefix(phone, "04") && len(phone) == 10 {
+		return "61" + phone[1:], nil
+	}
+	// AU with stray zero: 610xxxxxxxx (12 digits) → 61xxxxxxxxx
+	if strings.HasPrefix(phone, "610") && len(phone) == 12 {
+		return "61" + phone[3:], nil
+	}
+	// AU international mobile: 614xxxxxxxx (11 digits)
+	if strings.HasPrefix(phone, "614") && len(phone) == 11 {
+		return phone, nil
+	}
+
+	// Default: assume BR, prepend 55
+	if !strings.HasPrefix(phone, "55") {
+		phone = "55" + phone
+	}
+	if len(phone) < 12 || len(phone) > 13 {
+		return "", fmt.Errorf("telefone inválido: %s", phone)
+	}
+	return phone, nil
+}
+
 // CreateBusinessParams holds fields for creating a new business.
 type CreateBusinessParams struct {
 	Name           string
@@ -86,7 +131,13 @@ func CreateBusiness(app core.App, p CreateBusinessParams) (*core.Record, error) 
 	record.Set("name", p.Name)
 	record.Set("type", p.Type)
 	record.Set("city", p.City)
-	record.Set("phone", p.Phone)
+	if p.Phone != "" {
+		normalized, err := NormalizePhone(p.Phone)
+		if err != nil {
+			return nil, err
+		}
+		record.Set("phone", normalized)
+	}
 	if p.TargetAudience != nil {
 		record.Set("target_audience", *p.TargetAudience)
 	}
@@ -132,7 +183,11 @@ func UpdateBusiness(app core.App, record *core.Record, p UpdateBusinessParams) (
 		updated = append(updated, "city")
 	}
 	if p.Phone != nil {
-		record.Set("phone", *p.Phone)
+		normalized, err := NormalizePhone(*p.Phone)
+		if err != nil {
+			return nil, err
+		}
+		record.Set("phone", normalized)
 		updated = append(updated, "phone")
 	}
 	if p.TargetAudience != nil {

@@ -510,6 +510,7 @@ func (te *ToolExecutor) createCustomer(input json.RawMessage, operatorName strin
 	if err != nil {
 		return toolResult{Text: "Erro ao cadastrar: " + err.Error(), IsWrite: true}
 	}
+	te.businesses = nil // invalidate cache so subsequent tools see the new customer
 	return toolResult{
 		Text:    fmt.Sprintf("%s, %s cadastrada! (%s, %s)", operatorName, record.GetString("name"), record.GetString("type"), record.GetString("city")),
 		IsWrite: true,
@@ -572,6 +573,8 @@ func (te *ToolExecutor) updateCustomer(input json.RawMessage, operatorName strin
 		labels[i] = fieldLabel(key)
 	}
 
+	te.businesses = nil // invalidate cache so subsequent tools see the update
+
 	displayName := args.Name
 	if args.NewName != "" {
 		displayName = args.NewName
@@ -599,6 +602,7 @@ func (te *ToolExecutor) pauseCustomer(input json.RawMessage, operatorName string
 	if err := service.PauseBusiness(te.App, record); err != nil {
 		return toolResult{Text: "Erro ao pausar: " + err.Error(), IsWrite: true}
 	}
+	te.businesses = nil // invalidate cache so subsequent tools see the pause
 
 	msg := fmt.Sprintf("%s, %s pausada.", operatorName, args.Name)
 	if args.Reason != "" {
