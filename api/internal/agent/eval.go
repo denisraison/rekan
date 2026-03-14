@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"os"
 	"regexp"
+	"slices"
 	"strings"
 	"sync"
 	"time"
@@ -134,13 +135,11 @@ func RunEval(ctx context.Context, cases []TestCase) []TestResult {
 	var wg sync.WaitGroup
 
 	for i, tc := range cases {
-		wg.Add(1)
-		go func() {
-			defer wg.Done()
+		wg.Go(func() {
 			sem <- struct{}{}
 			defer func() { <-sem }()
 			results[i] = runAndGrade(ctx, client, tc)
-		}()
+		})
 	}
 
 	wg.Wait()
@@ -515,26 +514,22 @@ func runAssertion(a Assertion, er *evalResult) CheckResult {
 }
 
 func assertToolCalled(name string, called []string) CheckResult {
-	for _, t := range called {
-		if t == name {
-			return CheckResult{Name: "tool_called:" + name, Passed: true}
-		}
+	if slices.Contains(called, name) {
+		return CheckResult{Name: "tool_called:" + name, Passed: true}
 	}
 	return CheckResult{
 		Name:   "tool_called:" + name,
 		Passed: false,
-		Reason: fmt.Sprintf("%s not called (called: %s)", name, strings.Join(called, ", ")),
+		Reason: name + " not called (called: " + strings.Join(called, ", ") + ")",
 	}
 }
 
 func assertToolNotCalled(name string, called []string) CheckResult {
-	for _, t := range called {
-		if t == name {
-			return CheckResult{
-				Name:   "tool_not_called:" + name,
-				Passed: false,
-				Reason: fmt.Sprintf("%s was called but shouldn't have been", name),
-			}
+	if slices.Contains(called, name) {
+		return CheckResult{
+			Name:   "tool_not_called:" + name,
+			Passed: false,
+			Reason: name + " was called but shouldn't have been",
 		}
 	}
 	return CheckResult{Name: "tool_not_called:" + name, Passed: true}

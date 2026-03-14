@@ -175,10 +175,14 @@ func main() {
 	}
 
 	runsDir := findRunsDir()
-	os.MkdirAll(runsDir, 0o755) //nolint:errcheck
+	os.MkdirAll(runsDir, 0o750) //nolint:errcheck
 	runPath := filepath.Join(runsDir, "agent-"+ts+".json")
-	data, _ := json.MarshalIndent(run, "", "  ")
-	if err := os.WriteFile(runPath, data, 0o644); err != nil {
+	data, err := json.MarshalIndent(run, "", "  ")
+	if err != nil {
+		fmt.Fprintf(os.Stderr, "warning: could not marshal run: %v\n", err)
+		return
+	}
+	if err := os.WriteFile(runPath, data, 0o600); err != nil {
 		fmt.Fprintf(os.Stderr, "warning: could not write run file: %v\n", err)
 	} else {
 		fmt.Printf("Run saved to %s\n", runPath)
