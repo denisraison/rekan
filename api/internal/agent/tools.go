@@ -151,6 +151,7 @@ type ToolExecutor struct {
 	OperatorJID string
 	Generate    content.GenerateFunc
 	businesses  []*core.Record // cached on first access
+	Posts       []*core.Record // posts referenced during execution, appended to reply programmatically
 }
 
 // loadBusinesses returns cached businesses, querying once per executor lifetime.
@@ -197,6 +198,31 @@ func (te *ToolExecutor) executeTool(name string, input json.RawMessage, operator
 	default:
 		return toolResult{Text: "Ferramenta desconhecida: " + name, ToolName: name}
 	}
+}
+
+// formatPostDetails builds a WhatsApp-friendly block with full post content.
+// Deduplicates by post ID in case the same post was referenced multiple times.
+func formatPostDetails(app core.App, posts []*core.Record) string {
+	seen := map[string]bool{}
+	var b strings.Builder
+	for _, p := range posts {
+		if seen[p.Id] {
+			continue
+		}
+		seen[p.Id] = true
+
+		bizName := p.GetString("business")
+		if biz, err := app.FindRecordById(domain.CollBusinesses, bizName); err == nil {
+			bizName = biz.GetString("name")
+		}
+
+		if b.Len() > 0 {
+			b.WriteString("\n")
+		}
+		fmt.Fprintf(&b, "*Post %s* (%s)\n", p.Id, bizName)
+		appendPostFieldsJSON(&b, p.GetString("caption"), p.GetString("hashtags"), p.GetString("production_note"))
+	}
+	return b.String()
 }
 
 // appendPostFields writes caption, hashtags, and production note to b.
@@ -294,19 +320,17 @@ func (te *ToolExecutor) findPost(input json.RawMessage) string {
 		}
 	}
 
-	var b strings.Builder
-	fmt.Fprintf(&b, "Post: %s\n", record.Id)
-	fmt.Fprintf(&b, "Cliente: %s\n", bizName)
-	appendPostFieldsJSON(&b, record.GetString("caption"), record.GetString("hashtags"), record.GetString("production_note"))
+	te.Posts = append(te.Posts, record)
+
+	status := "pendente"
 	if record.GetBool("reviewed") {
-		b.WriteString("Status: revisado\n")
-	} else {
-		b.WriteString("Status: pendente\n")
+		status = "revisado"
 	}
+	result := fmt.Sprintf("Post: %s | Cliente: %s | Status: %s", record.Id, bizName, status)
 	if note := record.GetString("review_note"); note != "" {
-		fmt.Fprintf(&b, "Nota: %s\n", note)
+		result += fmt.Sprintf(" | Nota: %s", note)
 	}
-	return b.String()
+	return result
 }
 
 func (te *ToolExecutor) listPosts(input json.RawMessage) string {
@@ -360,6 +384,8 @@ func (te *ToolExecutor) listPosts(input json.RawMessage) string {
 		bizNames[biz.Id] = biz.GetString("name")
 	}
 
+	te.Posts = append(te.Posts, posts...)
+
 	var b strings.Builder
 	fmt.Fprintf(&b, "Posts: %d\n", len(posts))
 	for _, p := range posts {
@@ -371,10 +397,9 @@ func (te *ToolExecutor) listPosts(input json.RawMessage) string {
 		if p.GetBool("reviewed") {
 			status = "revisado"
 		}
-		fmt.Fprintf(&b, "- %s: (%s) [%s]\n", name, p.Id, status)
-		appendPostFieldsJSON(&b, p.GetString("caption"), p.GetString("hashtags"), p.GetString("production_note"))
-		b.WriteString("---\n")
+		fmt.Fprintf(&b, "- %s (%s) [%s]\n", name, p.Id, status)
 	}
+	b.WriteString("O conteúdo completo dos posts será exibido automaticamente. Não inclua legendas, hashtags ou notas de produção na sua resposta.")
 	return b.String()
 }
 
@@ -590,15 +615,12 @@ func (te *ToolExecutor) approvePost(input json.RawMessage, operatorName string) 
 		return toolResult{Text: "Erro ao salvar estado.", ToolName: "approve_post", IsWrite: true}
 	}
 
-	var b strings.Builder
-	fmt.Fprintf(&b, "Confirmação necessária. Aprovar post %s.\n\n", args.PostID)
 	if record, err := te.App.FindRecordById(domain.CollPosts, args.PostID); err == nil {
-		appendPostFieldsJSON(&b, record.GetString("caption"), record.GetString("hashtags"), record.GetString("production_note"))
+		te.Posts = append(te.Posts, record)
 	}
-	b.WriteString("\nAguardando resposta da operadora.")
 
 	return toolResult{
-		Text:     b.String(),
+		Text:     fmt.Sprintf("Confirmação necessária. Aprovar post %s. O conteúdo será exibido automaticamente. Aguardando resposta da operadora.", args.PostID),
 		ToolName: "approve_post",
 		IsWrite:  true,
 	}
@@ -624,15 +646,12 @@ func (te *ToolExecutor) rejectPost(input json.RawMessage, operatorName string) t
 		return toolResult{Text: "Erro ao salvar estado.", ToolName: "reject_post", IsWrite: true}
 	}
 
-	var b strings.Builder
-	fmt.Fprintf(&b, "Confirmação necessária. Rejeitar post %s. Feedback: %s.\n\n", args.PostID, args.Feedback)
 	if record, err := te.App.FindRecordById(domain.CollPosts, args.PostID); err == nil {
-		appendPostFieldsJSON(&b, record.GetString("caption"), record.GetString("hashtags"), record.GetString("production_note"))
+		te.Posts = append(te.Posts, record)
 	}
-	b.WriteString("\nAguardando resposta da operadora.")
 
 	return toolResult{
-		Text:     b.String(),
+		Text:     fmt.Sprintf("Confirmação necessária. Rejeitar post %s. Feedback: %s. O conteúdo será exibido automaticamente. Aguardando resposta da operadora.", args.PostID, args.Feedback),
 		ToolName: "reject_post",
 		IsWrite:  true,
 	}

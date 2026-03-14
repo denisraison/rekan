@@ -33,6 +33,7 @@ type toolUseResult struct {
 	Reply       string
 	ToolsCalled []string
 	WriteUsed   bool
+	Posts       []*core.Record // posts referenced during execution, appended to reply
 }
 
 // RunToolLoop runs the Claude tool-use loop until a final reply or max round trips.
@@ -81,11 +82,13 @@ func (cc *ClaudeClient) RunToolLoop(ctx context.Context, app core.App, state *Op
 
 		// No tool calls means we're done
 		if len(toolResults) == 0 {
+			result.Posts = executor.Posts
 			return result, nil
 		}
 
 		// If a write tool was called, stop the loop (wait for confirmation)
 		if result.WriteUsed {
+			result.Posts = executor.Posts
 			return result, nil
 		}
 
@@ -97,5 +100,6 @@ func (cc *ClaudeClient) RunToolLoop(ctx context.Context, app core.App, state *Op
 	if result.Reply == "" {
 		result.Reply = operatorName + ", não consegui processar. Tenta de novo?"
 	}
+	result.Posts = executor.Posts
 	return result, nil
 }
