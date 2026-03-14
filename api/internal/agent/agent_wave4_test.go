@@ -382,7 +382,6 @@ func TestBuildClaudeMessages_DuplicateCurrentMessage(t *testing.T) {
 // TestBuildClaudeMessages_OrphanedToolResult verifies that tool_result blocks
 // without a matching tool_use (e.g. from history pruning) are stripped.
 func TestBuildClaudeMessages_OrphanedToolResult(t *testing.T) {
-	// Simulate pruning that cut the assistant tool_use but kept the tool_result
 	history := []ConversationMessage{
 		{Role: "user", Structured: `{"role":"user","content":[{"tool_use_id":"toolu_orphan","is_error":false,"content":[{"text":"result","type":"text"}],"type":"tool_result"}]}`},
 		{Role: "assistant", Structured: `{"role":"assistant","content":[{"text":"ok","type":"text"}]}`},
@@ -395,6 +394,35 @@ func TestBuildClaudeMessages_OrphanedToolResult(t *testing.T) {
 			if block.OfToolResult != nil {
 				t.Errorf("messages[%d] still has orphaned tool_result for %q", i, block.OfToolResult.ToolUseID)
 			}
+		}
+	}
+}
+
+// TestBuildClaudeMessages_OrphanedToolUse verifies that tool_use blocks
+// without a matching tool_result in the next message are stripped.
+func TestBuildClaudeMessages_OrphanedToolUse(t *testing.T) {
+	// tool_use in assistant but the following user message is plain text (no tool_result)
+	history := []ConversationMessage{
+		{Role: "user", Structured: `{"role":"user","content":[{"text":"busca","type":"text"}]}`},
+		{Role: "assistant", Structured: `{"role":"assistant","content":[{"id":"toolu_orphan","input":{},"name":"find_customer","type":"tool_use"}]}`},
+		{Role: "user", Structured: `{"role":"user","content":[{"text":"esquece","type":"text"}]}`},
+		{Role: "assistant", Structured: `{"role":"assistant","content":[{"text":"ok","type":"text"}]}`},
+	}
+
+	msgs := buildClaudeMessages(history, "oi")
+
+	for i, msg := range msgs {
+		for _, block := range msg.Content {
+			if block.OfToolUse != nil {
+				t.Errorf("messages[%d] still has orphaned tool_use %q", i, block.OfToolUse.ID)
+			}
+		}
+	}
+
+	// Should still have user/assistant/user messages (without the empty assistant)
+	for i := 1; i < len(msgs); i++ {
+		if msgs[i].Role == msgs[i-1].Role {
+			t.Errorf("consecutive same role at index %d and %d: both %q", i-1, i, msgs[i].Role)
 		}
 	}
 }

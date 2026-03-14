@@ -234,8 +234,9 @@ func buildClaudeMessages(history []ConversationMessage, currentMessage string) [
 	// Ensure messages alternate roles (Claude API requirement)
 	messages = mergeConsecutiveRoles(messages)
 
-	// Remove orphaned tool_result blocks (e.g. when pruning cut a tool_use/tool_result pair)
-	messages = sanitizeToolPairs(messages)
+	// Remove unpaired tool_use/tool_result blocks (e.g. from history pruning)
+	// then re-merge since stripping can create new consecutive same-role messages
+	messages = mergeConsecutiveRoles(sanitizeToolPairs(messages))
 
 	// Add current message (may already be in history since ProcessMessage stores it before loading)
 	messages = appendOrMergeUser(messages, currentMessage)
@@ -243,36 +244,47 @@ func buildClaudeMessages(history []ConversationMessage, currentMessage string) [
 	return messages
 }
 
-// sanitizeToolPairs removes tool_result blocks whose tool_use_id has no matching
-// tool_use in the preceding assistant message. This happens when history pruning
-// deletes the assistant message but keeps the tool_result.
+// sanitizeToolPairs strips unpaired tool_use and tool_result blocks.
+// The Claude API requires every tool_use in an assistant message to have a
+// matching tool_result in the immediately following user message, and vice versa.
+// History pruning can break these pairs.
 func sanitizeToolPairs(messages []anthropic.MessageParam) []anthropic.MessageParam {
-	var result []anthropic.MessageParam
+	// Collect all paired IDs: a tool_use at index i must have a tool_result at i+1
+	paired := map[string]bool{}
 	for i, msg := range messages {
-		if msg.Role != anthropic.MessageParamRoleUser {
-			result = append(result, msg)
+		if msg.Role != anthropic.MessageParamRoleAssistant || i+1 >= len(messages) {
 			continue
 		}
-
-		// Collect tool_use IDs from the preceding assistant message
-		toolUseIDs := map[string]bool{}
-		if i > 0 && messages[i-1].Role == anthropic.MessageParamRoleAssistant {
-			for _, block := range messages[i-1].Content {
-				if block.OfToolUse != nil {
-					toolUseIDs[block.OfToolUse.ID] = true
-				}
+		next := messages[i+1]
+		if next.Role != anthropic.MessageParamRoleUser {
+			continue
+		}
+		resultIDs := map[string]bool{}
+		for _, block := range next.Content {
+			if block.OfToolResult != nil {
+				resultIDs[block.OfToolResult.ToolUseID] = true
 			}
 		}
+		for _, block := range msg.Content {
+			if block.OfToolUse != nil && resultIDs[block.OfToolUse.ID] {
+				paired[block.OfToolUse.ID] = true
+			}
+		}
+	}
 
-		// Keep only blocks that are not orphaned tool_results
+	// Filter out unpaired tool_use and tool_result blocks
+	var result []anthropic.MessageParam
+	for _, msg := range messages {
 		var kept []anthropic.ContentBlockParamUnion
 		for _, block := range msg.Content {
-			if block.OfToolResult != nil && !toolUseIDs[block.OfToolResult.ToolUseID] {
+			switch {
+			case block.OfToolUse != nil && !paired[block.OfToolUse.ID]:
+				continue
+			case block.OfToolResult != nil && !paired[block.OfToolResult.ToolUseID]:
 				continue
 			}
 			kept = append(kept, block)
 		}
-
 		if len(kept) > 0 {
 			result = append(result, anthropic.MessageParam{Role: msg.Role, Content: kept})
 		}
