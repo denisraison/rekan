@@ -4,7 +4,6 @@ import (
 	"context"
 	"fmt"
 	"os"
-	"strings"
 
 	"github.com/anthropics/anthropic-sdk-go"
 	"github.com/anthropics/anthropic-sdk-go/option"
@@ -13,15 +12,6 @@ import (
 )
 
 const maxToolRoundTrips = 5
-
-// ConfirmationClass is the result of classifying a message as confirmation, cancellation, or other.
-type ConfirmationClass int
-
-const (
-	ClassOther  ConfirmationClass = iota
-	ClassConfirm
-	ClassCancel
-)
 
 // ClaudeClient wraps the Anthropic API for tool-use agent calls.
 type ClaudeClient struct {
@@ -51,6 +41,7 @@ type toolUseResult struct {
 	ToolsCalled []string
 	ToolLog     []toolCallEntry
 	WriteUsed   bool
+	PreviewUsed bool // true when a write tool returned a preview (confirmed=false)
 	LoopMsgs    []anthropic.MessageParam // intermediate messages (tool_use + tool_result) for structured storage
 	FinalMsg    anthropic.MessageParam   // the actual final assistant response from Claude
 	Posts       []*core.Record           // posts referenced during execution, appended to reply
@@ -58,21 +49,22 @@ type toolUseResult struct {
 }
 
 // RunToolLoop runs the Claude tool-use loop until a final reply or max round trips.
-func (cc *ClaudeClient) RunToolLoop(ctx context.Context, app core.App, state *OperatorState, operatorName, operatorJID string, gen content.GenerateFunc, messages []anthropic.MessageParam, systemPrompt string) (result *toolUseResult, err error) {
+func (cc *ClaudeClient) RunToolLoop(ctx context.Context, app core.App, operatorName string, gen content.GenerateFunc, messages []anthropic.MessageParam, systemPrompt string) (result *toolUseResult, err error) {
 	tools := agentTools
 
 	executor := &ToolExecutor{
-		App:         app,
-		State:       state,
-		OperatorJID: operatorJID,
-		Generate:    gen,
+		Ctx:      ctx,
+		App:      app,
+		Generate: gen,
 	}
 
 	result = &toolUseResult{}
 	defer func() {
 		if err == nil {
 			result.Posts = executor.Posts
-			result.BizNames = executor.bizNameMap()
+			if len(executor.Posts) > 0 {
+				result.BizNames = executor.bizNameMap()
+			}
 		}
 	}()
 
@@ -95,6 +87,7 @@ func (cc *ClaudeClient) RunToolLoop(ctx context.Context, app core.App, state *Op
 
 		// Collect tool calls and text
 		var toolResults []anthropic.ContentBlockParamUnion
+		previewInRound := false
 		for _, block := range resp.Content {
 			switch v := block.AsAny().(type) {
 			case anthropic.TextBlock:
@@ -109,6 +102,10 @@ func (cc *ClaudeClient) RunToolLoop(ctx context.Context, app core.App, state *Op
 				})
 				if tr.IsWrite {
 					result.WriteUsed = true
+				}
+				if tr.IsPreview {
+					previewInRound = true
+					result.PreviewUsed = true
 				}
 				toolResults = append(toolResults, anthropic.NewToolResultBlock(v.ID, tr.Text, false))
 			}
@@ -125,8 +122,8 @@ func (cc *ClaudeClient) RunToolLoop(ctx context.Context, app core.App, state *Op
 		toolResultMsg := anthropic.NewUserMessage(toolResults...)
 		result.LoopMsgs = append(result.LoopMsgs, toolResultMsg)
 
-		// If a write tool was called, stop the loop (wait for confirmation)
-		if result.WriteUsed {
+		// If a preview was returned, stop the loop so Claude can ask for confirmation
+		if previewInRound {
 			return result, nil
 		}
 
@@ -139,38 +136,4 @@ func (cc *ClaudeClient) RunToolLoop(ctx context.Context, app core.App, state *Op
 		result.Reply = operatorName + ", não consegui processar. Tenta de novo?"
 	}
 	return result, nil
-}
-
-// ClassifyConfirmation uses Haiku to classify a message as confirmation, cancellation, or other.
-// Only called as fallback when the hardcoded word lists don't match.
-func (cc *ClaudeClient) ClassifyConfirmation(ctx context.Context, message, actionDescription string) (ConfirmationClass, error) {
-	prompt := fmt.Sprintf(`A operadora tem uma ação pendente: "%s"
-Ela respondeu: "%s"
-Classifique: CONFIRMA, CANCELA, ou OUTRO
-Responda apenas uma palavra.`, actionDescription, message)
-
-	resp, err := cc.client.Messages.New(ctx, anthropic.MessageNewParams{
-		Model:     anthropic.ModelClaudeHaiku4_5,
-		MaxTokens: 16,
-		System:    []anthropic.TextBlockParam{{Text: "Responda apenas uma palavra: CONFIRMA, CANCELA, ou OUTRO."}},
-		Messages:  []anthropic.MessageParam{anthropic.NewUserMessage(anthropic.NewTextBlock(prompt))},
-	})
-	if err != nil {
-		return ClassOther, fmt.Errorf("classify confirmation: %w", err)
-	}
-
-	for _, block := range resp.Content {
-		if tb, ok := block.AsAny().(anthropic.TextBlock); ok {
-			word := strings.ToUpper(strings.TrimSpace(tb.Text))
-			switch {
-			case strings.HasPrefix(word, "CONFIRMA"):
-				return ClassConfirm, nil
-			case strings.HasPrefix(word, "CANCELA"):
-				return ClassCancel, nil
-			default:
-				return ClassOther, nil
-			}
-		}
-	}
-	return ClassOther, nil
 }

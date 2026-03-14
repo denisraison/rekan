@@ -5,7 +5,6 @@ import (
 	"encoding/json"
 	"fmt"
 	"log/slog"
-	"slices"
 	"strings"
 	"time"
 
@@ -19,7 +18,7 @@ import (
 	"github.com/pocketbase/pocketbase/core"
 )
 
-const fallbackWriteReply = ", anotado! Aguardando sua confirmação."
+const fallbackPreviewReply = ", anotado! Aguardando sua confirmação."
 
 // Agent handles WhatsApp group messages for the operator chat.
 type Agent struct {
@@ -77,18 +76,8 @@ func (a *Agent) HandleGroupMessage(evt *events.Message) {
 			return
 		}
 
-		// Sticker with pending confirmation = "sim"
 		if media.MediaType == "sticker" {
-			state, err := LoadState(a.App, operatorJID)
-			if err != nil {
-				a.Logger.Error("agent: load state for sticker", "error", err)
-				return
-			}
-			if state.State == StateConfirming {
-				text = "sim"
-			} else {
-				return
-			}
+			text = "[Sticker]"
 		} else {
 			text = media.Text
 		}
@@ -119,16 +108,6 @@ func extractText(evt *events.Message) string {
 	}
 }
 
-func IsConfirmation(msg string) bool {
-	lower := strings.ToLower(strings.TrimSpace(msg))
-	return slices.Contains([]string{"sim", "confirma", "isso", "pode fazer", "pode", "s"}, lower)
-}
-
-func IsCancellation(msg string) bool {
-	lower := strings.ToLower(strings.TrimSpace(msg))
-	return slices.Contains([]string{"não", "nao", "deixa", "cancela", "esquece", "n", "para"}, lower)
-}
-
 // agentResult holds the output of the tool-use loop.
 type agentResult struct {
 	ReplyText   string
@@ -151,17 +130,6 @@ func (a *Agent) ProcessMessage(groupJID types.JID, messageID string, senderJID t
 		a.Logger.Error("agent: failed to store message", "error", err)
 	}
 
-	state, err := LoadState(a.App, operatorJID)
-	if err != nil {
-		a.Logger.Error("agent: load state", "error", err)
-	}
-
-	// Handle confirmation/cancellation of pending actions
-	if state.State == StateConfirming {
-		a.handleStatefulMessage(ctx, groupJID, messageID, senderJID, message, operatorName, operatorJID, state, start)
-		return
-	}
-
 	if err := ReactThumbsUp(ctx, a.WAClient, groupJID, messageID, senderJID); err != nil {
 		a.Logger.Error("agent: react thumbs up", "error", err)
 	}
@@ -169,7 +137,7 @@ func (a *Agent) ProcessMessage(groupJID types.JID, messageID string, senderJID t
 	stop := wa.Typing(ctx, a.WAClient, groupJID)
 	defer stop()
 
-	result, err := a.processWithTools(ctx, groupJID, state, operatorName, operatorJID, message)
+	result, err := a.processWithTools(ctx, groupJID, operatorName, message)
 	if err != nil {
 		a.Logger.Error("agent: tool-use loop failed", "error", err)
 		LogAction(a.App, operatorName, operatorJID, "ERROR", nil, err.Error(), false, start)
@@ -183,7 +151,7 @@ func (a *Agent) ProcessMessage(groupJID types.JID, messageID string, senderJID t
 }
 
 // processWithTools runs the Claude tool-use loop for a message.
-func (a *Agent) processWithTools(ctx context.Context, groupJID types.JID, state *OperatorState, operatorName, operatorJID, message string) (*agentResult, error) {
+func (a *Agent) processWithTools(ctx context.Context, groupJID types.JID, operatorName, message string) (*agentResult, error) {
 	history, err := LoadRecentAndPrune(a.App, 15)
 	if err != nil {
 		a.Logger.Error("agent: failed to load conversation history", "error", err)
@@ -199,7 +167,7 @@ func (a *Agent) processWithTools(ctx context.Context, groupJID types.JID, state 
 	})
 
 	systemPrompt := buildSystemPrompt(operatorName)
-	tuResult, err := a.Claude.RunToolLoop(ctx, a.App, state, operatorName, operatorJID, a.Generate, messages, systemPrompt)
+	tuResult, err := a.Claude.RunToolLoop(ctx, a.App, operatorName, a.Generate, messages, systemPrompt)
 	slowTimer.Stop()
 
 	if err != nil {
@@ -221,9 +189,8 @@ func (a *Agent) processWithTools(ctx context.Context, groupJID types.JID, state 
 	}
 
 	reply := tuResult.Reply
-	// If a write tool was called but Claude produced no text, use a fallback
-	if reply == "" && tuResult.WriteUsed && len(tuResult.ToolsCalled) > 0 {
-		reply = operatorName + fallbackWriteReply
+	if reply == "" && tuResult.PreviewUsed && len(tuResult.ToolsCalled) > 0 {
+		reply = operatorName + fallbackPreviewReply
 	}
 	if len(tuResult.Posts) > 0 {
 		reply += "\n\n" + formatPostDetails(tuResult.BizNames, tuResult.Posts)
@@ -322,106 +289,6 @@ func toolNameToActionType(name string) string {
 	default:
 		return ""
 	}
-}
-
-// describeAction builds a human-readable description of the pending action for the LLM classifier.
-func describeAction(state *OperatorState) string {
-	var nameHolder struct {
-		Name string `json:"name"`
-	}
-	if err := json.Unmarshal(state.CollectedFields, &nameHolder); err != nil {
-		return state.ActionType
-	}
-
-	labels := map[string]string{
-		ActionCustomerCreate: "Cadastrar cliente",
-		ActionCustomerUpdate: "Alterar cliente",
-		ActionCustomerPause:  "Pausar cliente",
-		ActionPostGenerate:   "Gerar post",
-		ActionPostApprove:    "Aprovar post",
-		ActionPostReject:     "Rejeitar post",
-	}
-
-	label := labels[state.ActionType]
-	if label == "" {
-		label = state.ActionType
-	}
-	if nameHolder.Name != "" {
-		return label + " " + nameHolder.Name
-	}
-	return label
-}
-
-func (a *Agent) handleStatefulMessage(ctx context.Context, groupJID types.JID, messageID string, senderJID types.JID, message, operatorName, operatorJID string, state *OperatorState, start time.Time) {
-	stop := wa.Typing(ctx, a.WAClient, groupJID)
-	defer stop()
-
-	actionType := state.ActionType
-
-	var replyText string
-
-	// Fast path: hardcoded word lists
-	confirmed := IsConfirmation(message)
-	cancelled := !confirmed && IsCancellation(message)
-
-	// LLM fallback for messages the word lists don't catch
-	if !confirmed && !cancelled {
-		desc := describeAction(state)
-		cls, err := a.Claude.ClassifyConfirmation(ctx, message, desc)
-		if err != nil {
-			a.Logger.Error("agent: classify confirmation", "error", err)
-			replyText = operatorName + ", não entendi. Pode confirmar ou cancelar?"
-			br := &agentResult{ReplyText: replyText, ActionType: actionType}
-			if reactErr := ReactThumbsUp(ctx, a.WAClient, groupJID, messageID, senderJID); reactErr != nil {
-				a.Logger.Error("agent: react thumbs up", "error", reactErr)
-			}
-			a.sendAndLog(ctx, groupJID, operatorName, operatorJID, br, start)
-			return
-		}
-		switch cls {
-		case ClassConfirm:
-			confirmed = true
-		case ClassCancel:
-			cancelled = true
-		case ClassOther:
-			// treated as neither confirmation nor cancellation
-		}
-	}
-
-	switch {
-	case confirmed:
-		result, err := ExecuteConfirmed(ctx, a.App, operatorName, state, a.Generate)
-		if err != nil {
-			a.Logger.Error("agent: confirmed action failed", "error", err, "action", actionType)
-			replyText = operatorName + ", algo deu errado. Tenta de novo?"
-			LogAction(a.App, operatorName, operatorJID, actionType, state.CollectedFields, err.Error(), false, start)
-		} else {
-			replyText = result
-		}
-
-	case cancelled:
-		if err := ClearState(a.App, state, operatorJID); err != nil {
-			a.Logger.Error("agent: failed to clear state", "error", err)
-		}
-		replyText = operatorName + ", cancelado!"
-
-	default:
-		// Not confirmation or cancellation, process normally via tool-use
-		result, err := a.processWithTools(ctx, groupJID, state, operatorName, operatorJID, message)
-		if err != nil {
-			a.Logger.Error("agent: tool-use in stateful context failed", "error", err)
-			return
-		}
-		replyText = result.ReplyText
-		actionType = result.ActionType
-	}
-
-	br := &agentResult{ReplyText: replyText, ActionType: actionType}
-
-	if err := ReactThumbsUp(ctx, a.WAClient, groupJID, messageID, senderJID); err != nil {
-		a.Logger.Error("agent: react thumbs up", "error", err)
-	}
-	a.sendAndLog(ctx, groupJID, operatorName, operatorJID, br, start)
 }
 
 func (a *Agent) sendAndLog(ctx context.Context, groupJID types.JID, operatorName, operatorJID string, result *agentResult, start time.Time) {

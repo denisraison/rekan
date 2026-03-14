@@ -1,6 +1,7 @@
 package agent
 
 import (
+	"context"
 	"encoding/json"
 	"fmt"
 	"strings"
@@ -67,7 +68,7 @@ func buildToolDefs() []anthropic.ToolUnionParam {
 		// Write tools
 		{OfTool: &anthropic.ToolParam{
 			Name:        "create_customer",
-			Description: anthropic.String("Cadastra nova cliente. Requer confirmação da operadora. Campos obrigatórios: name, type, city, phone."),
+			Description: anthropic.String("Cadastra nova cliente. Campos obrigatórios: name, type, city, phone. Use confirmed=false para preview, confirmed=true para executar."),
 			InputSchema: anthropic.ToolInputSchemaParam{
 				Properties: map[string]any{
 					"name":            map[string]any{"type": "string", "description": "Nome da cliente"},
@@ -77,13 +78,14 @@ func buildToolDefs() []anthropic.ToolUnionParam {
 					"target_audience": map[string]any{"type": "string", "description": "Público-alvo (opcional)"},
 					"brand_vibe":      map[string]any{"type": "string", "description": "Vibe da marca (opcional)"},
 					"quirks":          map[string]any{"type": "string", "description": "Observações especiais (opcional)"},
+					"confirmed":       map[string]any{"type": "boolean", "description": "true para executar, false para preview"},
 				},
 				Required: []string{"name", "type", "city", "phone"},
 			},
 		}},
 		{OfTool: &anthropic.ToolParam{
 			Name:        "update_customer",
-			Description: anthropic.String("Altera dados de uma cliente existente. Requer confirmação. Apenas name é obrigatório (identifica a cliente)."),
+			Description: anthropic.String("Altera dados de uma cliente existente. Apenas name é obrigatório (identifica a cliente). Use confirmed=false para preview, confirmed=true para executar."),
 			InputSchema: anthropic.ToolInputSchemaParam{
 				Properties: map[string]any{
 					"name":            map[string]any{"type": "string", "description": "Nome da cliente (para identificação)"},
@@ -94,50 +96,55 @@ func buildToolDefs() []anthropic.ToolUnionParam {
 					"target_audience": map[string]any{"type": "string", "description": "Novo público-alvo"},
 					"brand_vibe":      map[string]any{"type": "string", "description": "Nova vibe da marca"},
 					"quirks":          map[string]any{"type": "string", "description": "Novas observações"},
+					"confirmed":       map[string]any{"type": "boolean", "description": "true para executar, false para preview"},
 				},
 				Required: []string{"name"},
 			},
 		}},
 		{OfTool: &anthropic.ToolParam{
 			Name:        "pause_customer",
-			Description: anthropic.String("Pausa uma cliente. Requer confirmação."),
+			Description: anthropic.String("Pausa uma cliente. Use confirmed=false para preview, confirmed=true para executar."),
 			InputSchema: anthropic.ToolInputSchemaParam{
 				Properties: map[string]any{
-					"name":   map[string]any{"type": "string", "description": "Nome da cliente"},
-					"reason": map[string]any{"type": "string", "description": "Motivo da pausa (opcional)"},
+					"name":      map[string]any{"type": "string", "description": "Nome da cliente"},
+					"reason":    map[string]any{"type": "string", "description": "Motivo da pausa (opcional)"},
+					"confirmed": map[string]any{"type": "boolean", "description": "true para executar, false para preview"},
 				},
 				Required: []string{"name"},
 			},
 		}},
 		{OfTool: &anthropic.ToolParam{
 			Name:        "generate_post",
-			Description: anthropic.String("Gera posts para uma cliente. Requer confirmação."),
+			Description: anthropic.String("Gera posts para uma cliente. Use confirmed=false para preview, confirmed=true para executar."),
 			InputSchema: anthropic.ToolInputSchemaParam{
 				Properties: map[string]any{
 					"customer_name": map[string]any{"type": "string", "description": "Nome da cliente"},
+					"confirmed":     map[string]any{"type": "boolean", "description": "true para executar, false para preview"},
 				},
 				Required: []string{"customer_name"},
 			},
 		}},
 		{OfTool: &anthropic.ToolParam{
 			Name:        "approve_post",
-			Description: anthropic.String("Aprova um post pendente. Requer confirmação."),
+			Description: anthropic.String("Aprova um post pendente. Use confirmed=false para preview, confirmed=true para executar."),
 			InputSchema: anthropic.ToolInputSchemaParam{
 				Properties: map[string]any{
 					"post_id":       map[string]any{"type": "string", "description": "ID do post"},
 					"customer_name": map[string]any{"type": "string", "description": "Nome da cliente"},
+					"confirmed":     map[string]any{"type": "boolean", "description": "true para executar, false para preview"},
 				},
 				Required: []string{"post_id"},
 			},
 		}},
 		{OfTool: &anthropic.ToolParam{
 			Name:        "reject_post",
-			Description: anthropic.String("Rejeita um post com feedback. Requer confirmação."),
+			Description: anthropic.String("Rejeita um post com feedback. Use confirmed=false para preview, confirmed=true para executar."),
 			InputSchema: anthropic.ToolInputSchemaParam{
 				Properties: map[string]any{
 					"post_id":       map[string]any{"type": "string", "description": "ID do post"},
 					"customer_name": map[string]any{"type": "string", "description": "Nome da cliente"},
 					"feedback":      map[string]any{"type": "string", "description": "Feedback sobre o que melhorar"},
+					"confirmed":     map[string]any{"type": "boolean", "description": "true para executar, false para preview"},
 				},
 				Required: []string{"post_id", "feedback"},
 			},
@@ -147,12 +154,11 @@ func buildToolDefs() []anthropic.ToolUnionParam {
 
 // ToolExecutor handles tool call execution for the agent loop.
 type ToolExecutor struct {
-	App         core.App
-	State       *OperatorState
-	OperatorJID string
-	Generate    content.GenerateFunc
-	businesses  []*core.Record // cached on first access
-	Posts       []*core.Record // posts referenced during execution, appended to reply programmatically
+	Ctx        context.Context
+	App        core.App
+	Generate   content.GenerateFunc
+	businesses []*core.Record // cached on first access
+	Posts      []*core.Record // posts referenced during execution, appended to reply programmatically
 }
 
 // loadBusinesses returns cached businesses, querying once per executor lifetime.
@@ -175,9 +181,10 @@ func (te *ToolExecutor) bizNameMap() map[string]string {
 
 // toolResult is returned by executeTool to signal both the result text and whether a write was triggered.
 type toolResult struct {
-	Text     string
-	ToolName string
-	IsWrite  bool
+	Text      string
+	ToolName  string
+	IsWrite   bool
+	IsPreview bool // true when confirmed=false (preview only, stop loop for confirmation)
 }
 
 // executeTool dispatches a tool call and returns the result.
@@ -196,11 +203,11 @@ func (te *ToolExecutor) executeTool(name string, input json.RawMessage, operator
 	case "create_customer":
 		return te.createCustomer(input, operatorName)
 	case "update_customer":
-		return te.updateCustomer(input)
+		return te.updateCustomer(input, operatorName)
 	case "pause_customer":
-		return te.pauseCustomer(input)
+		return te.pauseCustomer(input, operatorName)
 	case "generate_post":
-		return te.generatePost(input)
+		return te.generatePost(input, operatorName)
 	case "approve_post":
 		return te.approvePost(input, operatorName)
 	case "reject_post":
@@ -445,8 +452,7 @@ func (te *ToolExecutor) recentActivity(input json.RawMessage) string {
 }
 
 // --- Write tool implementations ---
-// These validate, store confirmation state, and return a confirmation message.
-// The actual execution happens via handleStatefulMessage when the operator confirms.
+// confirmed=false returns a preview, confirmed=true executes the action.
 
 func (te *ToolExecutor) createCustomer(input json.RawMessage, operatorName string) toolResult {
 	var args struct {
@@ -457,6 +463,7 @@ func (te *ToolExecutor) createCustomer(input json.RawMessage, operatorName strin
 		TargetAudience string `json:"target_audience"`
 		BrandVibe      string `json:"brand_vibe"`
 		Quirks         string `json:"quirks"`
+		Confirmed      bool   `json:"confirmed"`
 	}
 	if err := json.Unmarshal(input, &args); err != nil {
 		return toolResult{Text: "Erro ao ler parâmetros.", ToolName: "create_customer", IsWrite: true}
@@ -490,26 +497,23 @@ func (te *ToolExecutor) createCustomer(input json.RawMessage, operatorName strin
 		}
 	}
 
-	if who, conflict := HasPendingAction(te.App, te.OperatorJID, p.Name); conflict {
+	if !args.Confirmed {
 		return toolResult{
-			Text:     fmt.Sprintf("Outro operador (%s) já tem uma ação pendente pra essa cliente.", who),
-			ToolName: "create_customer",
-			IsWrite:  true,
+			Text:      fmt.Sprintf("Preview: cadastrar %s (%s, %s, tel %s). Aguardando confirmação.", p.Name, p.Type, p.City, p.Phone),
+			ToolName:  "create_customer",
+			IsWrite:   true,
+			IsPreview: true,
 		}
 	}
 
-	if err := SetConfirming(te.App, te.State, te.OperatorJID, ActionCustomerCreate, p); err != nil {
-		return toolResult{Text: "Erro ao salvar estado.", ToolName: "create_customer", IsWrite: true}
+	result, err := executeCustomerCreate(te.App, operatorName, p)
+	if err != nil {
+		return toolResult{Text: "Erro ao cadastrar: " + err.Error(), ToolName: "create_customer", IsWrite: true}
 	}
-
-	return toolResult{
-		Text:     fmt.Sprintf("Confirmação necessária. Dados: %s (%s, %s). Aguardando resposta da operadora.", p.Name, p.Type, p.City),
-		ToolName: "create_customer",
-		IsWrite:  true,
-	}
+	return toolResult{Text: result, ToolName: "create_customer", IsWrite: true}
 }
 
-func (te *ToolExecutor) updateCustomer(input json.RawMessage) toolResult {
+func (te *ToolExecutor) updateCustomer(input json.RawMessage, operatorName string) toolResult {
 	var args struct {
 		Name           string `json:"name"`
 		NewName        string `json:"new_name"`
@@ -519,6 +523,7 @@ func (te *ToolExecutor) updateCustomer(input json.RawMessage) toolResult {
 		TargetAudience string `json:"target_audience"`
 		BrandVibe      string `json:"brand_vibe"`
 		Quirks         string `json:"quirks"`
+		Confirmed      bool   `json:"confirmed"`
 	}
 	if err := json.Unmarshal(input, &args); err != nil {
 		return toolResult{Text: "Erro ao ler parâmetros.", ToolName: "update_customer", IsWrite: true}
@@ -547,21 +552,27 @@ func (te *ToolExecutor) updateCustomer(input json.RawMessage) toolResult {
 		p.Quirks = &args.Quirks
 	}
 
-	if err := SetConfirming(te.App, te.State, te.OperatorJID, ActionCustomerUpdate, p); err != nil {
-		return toolResult{Text: "Erro ao salvar estado.", ToolName: "update_customer", IsWrite: true}
+	if !args.Confirmed {
+		return toolResult{
+			Text:      fmt.Sprintf("Preview: alterar dados da %s. Aguardando confirmação.", args.Name),
+			ToolName:  "update_customer",
+			IsWrite:   true,
+			IsPreview: true,
+		}
 	}
 
-	return toolResult{
-		Text:     fmt.Sprintf("Confirmação necessária. Alterar dados da %s. Aguardando resposta da operadora.", args.Name),
-		ToolName: "update_customer",
-		IsWrite:  true,
+	result, err := executeCustomerUpdate(te.App, operatorName, p)
+	if err != nil {
+		return toolResult{Text: "Erro ao alterar: " + err.Error(), ToolName: "update_customer", IsWrite: true}
 	}
+	return toolResult{Text: result, ToolName: "update_customer", IsWrite: true}
 }
 
-func (te *ToolExecutor) pauseCustomer(input json.RawMessage) toolResult {
+func (te *ToolExecutor) pauseCustomer(input json.RawMessage, operatorName string) toolResult {
 	var args struct {
-		Name   string `json:"name"`
-		Reason string `json:"reason"`
+		Name      string `json:"name"`
+		Reason    string `json:"reason"`
+		Confirmed bool   `json:"confirmed"`
 	}
 	if err := json.Unmarshal(input, &args); err != nil {
 		return toolResult{Text: "Erro ao ler parâmetros.", ToolName: "pause_customer", IsWrite: true}
@@ -572,20 +583,26 @@ func (te *ToolExecutor) pauseCustomer(input json.RawMessage) toolResult {
 		p.Reason = &args.Reason
 	}
 
-	if err := SetConfirming(te.App, te.State, te.OperatorJID, ActionCustomerPause, p); err != nil {
-		return toolResult{Text: "Erro ao salvar estado.", ToolName: "pause_customer", IsWrite: true}
+	if !args.Confirmed {
+		return toolResult{
+			Text:      fmt.Sprintf("Preview: pausar %s. Aguardando confirmação.", args.Name),
+			ToolName:  "pause_customer",
+			IsWrite:   true,
+			IsPreview: true,
+		}
 	}
 
-	return toolResult{
-		Text:     fmt.Sprintf("Confirmação necessária. Pausar %s. Aguardando resposta da operadora.", args.Name),
-		ToolName: "pause_customer",
-		IsWrite:  true,
+	result, err := executeCustomerPause(te.App, operatorName, p)
+	if err != nil {
+		return toolResult{Text: "Erro ao pausar: " + err.Error(), ToolName: "pause_customer", IsWrite: true}
 	}
+	return toolResult{Text: result, ToolName: "pause_customer", IsWrite: true}
 }
 
-func (te *ToolExecutor) generatePost(input json.RawMessage) toolResult {
+func (te *ToolExecutor) generatePost(input json.RawMessage, operatorName string) toolResult {
 	var args struct {
 		CustomerName string `json:"customer_name"`
+		Confirmed    bool   `json:"confirmed"`
 	}
 	if err := json.Unmarshal(input, &args); err != nil {
 		return toolResult{Text: "Erro ao ler parâmetros.", ToolName: "generate_post", IsWrite: true}
@@ -593,21 +610,27 @@ func (te *ToolExecutor) generatePost(input json.RawMessage) toolResult {
 
 	p := &PostGenerateParams{Name: args.CustomerName}
 
-	if err := SetConfirming(te.App, te.State, te.OperatorJID, ActionPostGenerate, p); err != nil {
-		return toolResult{Text: "Erro ao salvar estado.", ToolName: "generate_post", IsWrite: true}
+	if !args.Confirmed {
+		return toolResult{
+			Text:      fmt.Sprintf("Preview: gerar posts para %s. Aguardando confirmação.", args.CustomerName),
+			ToolName:  "generate_post",
+			IsWrite:   true,
+			IsPreview: true,
+		}
 	}
 
-	return toolResult{
-		Text:     fmt.Sprintf("Confirmação necessária. Gerar posts para %s. Aguardando resposta da operadora.", args.CustomerName),
-		ToolName: "generate_post",
-		IsWrite:  true,
+	result, err := executePostGenerate(te.Ctx, te.App, operatorName, p, te.Generate)
+	if err != nil {
+		return toolResult{Text: "Erro ao gerar: " + err.Error(), ToolName: "generate_post", IsWrite: true}
 	}
+	return toolResult{Text: result, ToolName: "generate_post", IsWrite: true}
 }
 
 func (te *ToolExecutor) approvePost(input json.RawMessage, operatorName string) toolResult {
 	var args struct {
 		PostID       string `json:"post_id"`
 		CustomerName string `json:"customer_name"`
+		Confirmed    bool   `json:"confirmed"`
 	}
 	if err := json.Unmarshal(input, &args); err != nil {
 		return toolResult{Text: "Erro ao ler parâmetros.", ToolName: "approve_post", IsWrite: true}
@@ -619,19 +642,24 @@ func (te *ToolExecutor) approvePost(input json.RawMessage, operatorName string) 
 
 	p := &PostApproveParams{PostId: args.PostID, Name: args.CustomerName}
 
-	if err := SetConfirming(te.App, te.State, te.OperatorJID, ActionPostApprove, p); err != nil {
-		return toolResult{Text: "Erro ao salvar estado.", ToolName: "approve_post", IsWrite: true}
-	}
-
 	if record, err := te.App.FindRecordById(domain.CollPosts, args.PostID); err == nil {
 		te.Posts = append(te.Posts, record)
 	}
 
-	return toolResult{
-		Text:     fmt.Sprintf("Confirmação necessária. Aprovar post %s. O conteúdo será exibido automaticamente. Aguardando resposta da operadora.", args.PostID),
-		ToolName: "approve_post",
-		IsWrite:  true,
+	if !args.Confirmed {
+		return toolResult{
+			Text:      fmt.Sprintf("Preview: aprovar post %s. O conteúdo será exibido automaticamente. Aguardando confirmação.", args.PostID),
+			ToolName:  "approve_post",
+			IsWrite:   true,
+			IsPreview: true,
+		}
 	}
+
+	result, err := executePostApprove(te.App, operatorName, p)
+	if err != nil {
+		return toolResult{Text: "Erro ao aprovar: " + err.Error(), ToolName: "approve_post", IsWrite: true}
+	}
+	return toolResult{Text: result, ToolName: "approve_post", IsWrite: true}
 }
 
 func (te *ToolExecutor) rejectPost(input json.RawMessage, operatorName string) toolResult {
@@ -639,6 +667,7 @@ func (te *ToolExecutor) rejectPost(input json.RawMessage, operatorName string) t
 		PostID       string `json:"post_id"`
 		CustomerName string `json:"customer_name"`
 		Feedback     string `json:"feedback"`
+		Confirmed    bool   `json:"confirmed"`
 	}
 	if err := json.Unmarshal(input, &args); err != nil {
 		return toolResult{Text: "Erro ao ler parâmetros.", ToolName: "reject_post", IsWrite: true}
@@ -650,17 +679,22 @@ func (te *ToolExecutor) rejectPost(input json.RawMessage, operatorName string) t
 
 	p := &PostRejectParams{PostId: args.PostID, Name: args.CustomerName, Feedback: args.Feedback}
 
-	if err := SetConfirming(te.App, te.State, te.OperatorJID, ActionPostReject, p); err != nil {
-		return toolResult{Text: "Erro ao salvar estado.", ToolName: "reject_post", IsWrite: true}
-	}
-
 	if record, err := te.App.FindRecordById(domain.CollPosts, args.PostID); err == nil {
 		te.Posts = append(te.Posts, record)
 	}
 
-	return toolResult{
-		Text:     fmt.Sprintf("Confirmação necessária. Rejeitar post %s. Feedback: %s. O conteúdo será exibido automaticamente. Aguardando resposta da operadora.", args.PostID, args.Feedback),
-		ToolName: "reject_post",
-		IsWrite:  true,
+	if !args.Confirmed {
+		return toolResult{
+			Text:      fmt.Sprintf("Preview: rejeitar post %s. Feedback: %s. O conteúdo será exibido automaticamente. Aguardando confirmação.", args.PostID, args.Feedback),
+			ToolName:  "reject_post",
+			IsWrite:   true,
+			IsPreview: true,
+		}
 	}
+
+	result, err := executePostReject(te.App, operatorName, p)
+	if err != nil {
+		return toolResult{Text: "Erro ao rejeitar: " + err.Error(), ToolName: "reject_post", IsWrite: true}
+	}
+	return toolResult{Text: result, ToolName: "reject_post", IsWrite: true}
 }

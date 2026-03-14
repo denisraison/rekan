@@ -140,7 +140,7 @@ func runEvalCase(ctx context.Context, client anthropic.Client, tc TestCase) (*ev
 
 	tools := agentTools
 	er := &evalResult{ToolArgs: make(map[string]json.RawMessage)}
-	writeUsed := false
+	previewUsed := false
 
 	for range maxToolRoundTrips {
 		resp, err := client.Messages.New(ctx, anthropic.MessageNewParams{
@@ -157,7 +157,7 @@ func runEvalCase(ctx context.Context, client anthropic.Client, tc TestCase) (*ev
 		messages = append(messages, resp.ToParam())
 
 		var toolResults []anthropic.ContentBlockParamUnion
-		hasWrite := false
+		hasPreview := false
 
 		for _, block := range resp.Content {
 			switch v := block.AsAny().(type) {
@@ -171,29 +171,40 @@ func runEvalCase(ctx context.Context, client anthropic.Client, tc TestCase) (*ev
 				mockResult := mockToolResult(v.Name, v.Input, tc.Context)
 				toolResults = append(toolResults, anthropic.NewToolResultBlock(v.ID, mockResult, false))
 
-				if isWriteTool(v.Name) {
-					hasWrite = true
+				if isWriteTool(v.Name) && isPreviewCall(v.Input) {
+					hasPreview = true
 				}
 			}
 		}
 
-		if hasWrite {
-			writeUsed = true
+		if hasPreview {
+			previewUsed = true
 		}
 
-		if len(toolResults) == 0 || hasWrite {
+		if len(toolResults) == 0 || hasPreview {
 			break
 		}
 
 		messages = append(messages, anthropic.NewUserMessage(toolResults...))
 	}
 
-	// If a write tool was called but Claude produced no text, use a fallback
-	if er.Reply == "" && writeUsed {
-		er.Reply = tc.Operator.Name + fallbackWriteReply
+	// If a preview was returned but Claude produced no text, use a fallback
+	if er.Reply == "" && previewUsed {
+		er.Reply = tc.Operator.Name + fallbackPreviewReply
 	}
 
 	return er, nil
+}
+
+// isPreviewCall checks if a tool call input has confirmed=false (or absent, which defaults to false).
+func isPreviewCall(input json.RawMessage) bool {
+	var args struct {
+		Confirmed bool `json:"confirmed"`
+	}
+	if err := json.Unmarshal(input, &args); err != nil {
+		return true
+	}
+	return !args.Confirmed
 }
 
 // mockToolResult returns mock data for a tool call based on the test context.
@@ -231,8 +242,11 @@ func mockToolResult(name string, input json.RawMessage, testContext string) stri
 	case "recent_activity":
 		return extractSection(testContext, "Últimas ações")
 	default:
-		// Write tools in eval just confirm
-		return "Confirmação necessária. Aguardando resposta da operadora."
+		// Write tools: return preview or success based on confirmed flag
+		if isPreviewCall(input) {
+			return "Preview da ação. Aguardando confirmação."
+		}
+		return "Ação executada com sucesso."
 	}
 }
 

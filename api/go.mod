@@ -8,7 +8,7 @@ require (
 	github.com/pocketbase/pocketbase v0.36.4
 	go.mau.fi/whatsmeow v0.0.0-20260219150138-7ae702b1eed4
 	golang.org/x/image v0.35.0
-	google.golang.org/protobuf v1.36.11
+	google.golang.org/protobuf v1.36.11 // indirect
 )
 
 require (

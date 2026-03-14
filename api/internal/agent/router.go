@@ -13,7 +13,7 @@ import (
 	"github.com/pocketbase/pocketbase/core"
 )
 
-// Action type constants for the confirmation state machine.
+// Action type constants for logging.
 const (
 	ActionCustomerCreate = "CUSTOMER_CREATE"
 	ActionCustomerUpdate = "CUSTOMER_UPDATE"
@@ -22,56 +22,6 @@ const (
 	ActionPostApprove    = "POST_APPROVE"
 	ActionPostReject     = "POST_REJECT"
 )
-
-// ExecuteConfirmed runs the pending action after the operator said "sim".
-func ExecuteConfirmed(ctx context.Context, app core.App, operatorName string, state *OperatorState, gen content.GenerateFunc) (string, error) {
-	defer func() {
-		if err := ClearState(app, state, state.Record.GetString("operator_jid")); err != nil {
-			app.Logger().Error("agent: clear state after confirmed action", "error", err)
-		}
-	}()
-
-	switch state.ActionType {
-	case ActionCustomerCreate:
-		var p CustomerCreateParams
-		if err := unmarshalCollectedFields(state.CollectedFields, &p); err != nil {
-			return operatorName + ", algo deu errado com os dados. Pode repetir?", nil
-		}
-		return executeCustomerCreate(app, operatorName, &p)
-	case ActionCustomerUpdate:
-		var p CustomerUpdateParams
-		if err := unmarshalCollectedFields(state.CollectedFields, &p); err != nil {
-			return operatorName + ", algo deu errado com os dados. Pode repetir?", nil
-		}
-		return executeCustomerUpdate(app, operatorName, &p)
-	case ActionCustomerPause:
-		var p CustomerPauseParams
-		if err := unmarshalCollectedFields(state.CollectedFields, &p); err != nil {
-			return operatorName + ", algo deu errado com os dados. Pode repetir?", nil
-		}
-		return executeCustomerPause(app, operatorName, &p)
-	case ActionPostGenerate:
-		var p PostGenerateParams
-		if err := unmarshalCollectedFields(state.CollectedFields, &p); err != nil {
-			return operatorName + ", algo deu errado com os dados. Pode repetir?", nil
-		}
-		return executePostGenerate(ctx, app, operatorName, &p, gen)
-	case ActionPostApprove:
-		var p PostApproveParams
-		if err := unmarshalCollectedFields(state.CollectedFields, &p); err != nil {
-			return operatorName + ", algo deu errado com os dados. Pode repetir?", nil
-		}
-		return executePostApprove(app, operatorName, &p)
-	case ActionPostReject:
-		var p PostRejectParams
-		if err := unmarshalCollectedFields(state.CollectedFields, &p); err != nil {
-			return operatorName + ", algo deu errado com os dados. Pode repetir?", nil
-		}
-		return executePostReject(app, operatorName, &p)
-	default:
-		return "", fmt.Errorf("unknown pending action: %s", state.ActionType)
-	}
-}
 
 // loadActiveBusinesses queries active and draft businesses.
 func loadActiveBusinesses(app core.App) []*core.Record {
