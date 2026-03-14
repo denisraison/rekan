@@ -659,7 +659,7 @@ func (te *ToolExecutor) approvePost(input json.RawMessage, operatorName string) 
 	}
 
 	if args.PostID == "" {
-		return toolResult{Text: fmt.Sprintf("%s, qual post você quer aprovar?", operatorName), IsWrite: true}
+		return toolResult{Text: operatorName + ", qual post você quer aprovar?", IsWrite: true}
 	}
 
 	record, err := service.ApprovePost(te.App, args.PostID)
@@ -692,7 +692,7 @@ func (te *ToolExecutor) rejectPost(input json.RawMessage, operatorName string) t
 	}
 
 	if args.PostID == "" {
-		return toolResult{Text: fmt.Sprintf("%s, qual post você quer rejeitar?", operatorName), IsWrite: true}
+		return toolResult{Text: operatorName + ", qual post você quer rejeitar?", IsWrite: true}
 	}
 
 	record, err := service.RejectPost(te.App, args.PostID, args.Feedback)
