@@ -6,6 +6,7 @@ import (
 	"strings"
 	"testing"
 
+	"github.com/anthropics/anthropic-sdk-go"
 	content "github.com/denisraison/rekan/api/internal/content"
 	"github.com/denisraison/rekan/api/internal/domain"
 
@@ -423,6 +424,79 @@ func TestBuildClaudeMessages_OrphanedToolUse(t *testing.T) {
 	for i := 1; i < len(msgs); i++ {
 		if msgs[i].Role == msgs[i-1].Role {
 			t.Errorf("consecutive same role at index %d and %d: both %q", i-1, i, msgs[i].Role)
+		}
+	}
+}
+
+// TestPreviewFlow_NoExtraAssistantMessage verifies that after a preview (loop stopped
+// for confirmation), the conversation context lets Claude see the pending tool_use
+// so it can follow up with confirmed=true.
+func TestPreviewFlow_NoExtraAssistantMessage(t *testing.T) {
+	// Simulate the DB state after a preview flow where sendAndLog stored
+	// only the loop messages (no extra text-only assistant message).
+	history := []ConversationMessage{
+		{Role: "user", Structured: `{"role":"user","content":[{"text":"rejeita o post da Nika, muito genérico","type":"text"}]}`},
+		{Role: "assistant", Structured: `{"role":"assistant","content":[{"text":"Vou mostrar o preview.","type":"text"},{"id":"toolu_preview","input":{"post_id":"p1","feedback":"genérico","confirmed":false},"name":"reject_post","type":"tool_use"}]}`},
+		{Role: "user", Structured: `{"role":"user","content":[{"tool_use_id":"toolu_preview","is_error":false,"content":[{"text":"Preview: rejeitar post p1. Aguardando confirmação.","type":"text"}],"type":"tool_result"}]}`},
+		// NO extra assistant text message (this is the fix)
+		// User confirmation stored by ProcessMessage:
+		{Role: "user", Structured: `{"role":"user","content":[{"text":"sim","type":"text"}]}`},
+	}
+
+	msgs := buildClaudeMessages(history, "sim")
+
+	// The last assistant message should contain the tool_use block,
+	// so Claude knows there's a pending confirmation
+	var lastAssistant anthropic.MessageParam
+	for _, msg := range msgs {
+		if msg.Role == anthropic.MessageParamRoleAssistant {
+			lastAssistant = msg
+		}
+	}
+
+	hasToolUse := false
+	for _, block := range lastAssistant.Content {
+		if block.OfToolUse != nil && block.OfToolUse.Name == "reject_post" {
+			hasToolUse = true
+		}
+	}
+	if !hasToolUse {
+		t.Error("last assistant message should contain reject_post tool_use for confirmation context")
+		for i, msg := range msgs {
+			out, _ := json.Marshal(msg)
+			t.Logf("messages[%d]: %s", i, out)
+		}
+	}
+
+	// The last user message should contain the confirmation text
+	lastUser := msgs[len(msgs)-1]
+	hasConfirmText := false
+	for _, block := range lastUser.Content {
+		if block.OfText != nil && block.OfText.Text == "sim" {
+			hasConfirmText = true
+		}
+	}
+	if !hasConfirmText {
+		t.Error("last user message should contain confirmation text")
+	}
+
+	// Verify the broken case: if an extra assistant text message were stored
+	// (the old behavior), the tool_use context would be lost
+	historyWithExtra := append(history[:3:3],
+		ConversationMessage{Role: "assistant", Structured: `{"role":"assistant","content":[{"text":"Post da Nika sobre costura...","type":"text"}]}`},
+		history[3],
+	)
+	msgsWithExtra := buildClaudeMessages(historyWithExtra, "sim")
+
+	var lastAssistantExtra anthropic.MessageParam
+	for _, msg := range msgsWithExtra {
+		if msg.Role == anthropic.MessageParamRoleAssistant {
+			lastAssistantExtra = msg
+		}
+	}
+	for _, block := range lastAssistantExtra.Content {
+		if block.OfToolUse != nil {
+			t.Error("with extra assistant message, tool_use should have been sanitized (proving the old behavior was broken)")
 		}
 	}
 }

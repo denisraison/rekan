@@ -382,23 +382,26 @@ func (a *Agent) sendAndLog(ctx context.Context, groupJID types.JID, operatorName
 		}
 	}
 
-	// Store final assistant reply with structured data
-	storedContent := result.ReplyText
-	if result.ToolSummary != "" {
-		storedContent += "\n\n" + result.ToolSummary
-	}
-	// Use the actual final message from Claude when available (preserves all content blocks)
-	finalMsg := result.FinalMsg
-	if len(finalMsg.Content) == 0 {
-		finalMsg = anthropic.MessageParam{
-			Role:    anthropic.MessageParamRoleAssistant,
-			Content: []anthropic.ContentBlockParamUnion{anthropic.NewTextBlock(result.ReplyText)},
+	// Store final assistant reply with structured data.
+	// Skip when loop stopped for preview: the loop messages already capture the
+	// tool_use+tool_result exchange. Adding another text-only assistant message
+	// would break the conversation context for the confirmation follow-up.
+	if len(result.FinalMsg.Content) > 0 || len(result.LoopMsgs) == 0 {
+		storedContent := result.ReplyText
+		if result.ToolSummary != "" {
+			storedContent += "\n\n" + result.ToolSummary
 		}
-	}
-	replyStructured := marshalMessageParam(finalMsg)
-
-	if err := StoreMessage(a.App, "Rekan", "", "assistant", storedContent, "", replyStructured); err != nil {
-		a.Logger.Error("agent: failed to store assistant message", "error", err)
+		finalMsg := result.FinalMsg
+		if len(finalMsg.Content) == 0 {
+			finalMsg = anthropic.MessageParam{
+				Role:    anthropic.MessageParamRoleAssistant,
+				Content: []anthropic.ContentBlockParamUnion{anthropic.NewTextBlock(result.ReplyText)},
+			}
+		}
+		replyStructured := marshalMessageParam(finalMsg)
+		if err := StoreMessage(a.App, "Rekan", "", "assistant", storedContent, "", replyStructured); err != nil {
+			a.Logger.Error("agent: failed to store assistant message", "error", err)
+		}
 	}
 	LogAction(a.App, operatorName, operatorJID, result.ActionType, nil, result.ReplyText, true, start)
 }
