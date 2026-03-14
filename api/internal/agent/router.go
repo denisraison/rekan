@@ -94,9 +94,7 @@ func executeCustomerCreate(app core.App, operatorName string, p *CustomerCreateP
 	record.Set("name", p.Name)
 	record.Set("type", p.Type)
 	record.Set("city", p.City)
-	if p.Phone != nil {
-		record.Set("phone", *p.Phone)
-	}
+	record.Set("phone", p.Phone)
 	if p.TargetAudience != nil {
 		record.Set("target_audience", *p.TargetAudience)
 	}

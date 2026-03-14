@@ -67,18 +67,18 @@ func buildToolDefs() []anthropic.ToolUnionParam {
 		// Write tools
 		{OfTool: &anthropic.ToolParam{
 			Name:        "create_customer",
-			Description: anthropic.String("Cadastra nova cliente. Requer confirmação da operadora. Campos obrigatórios: name, type, city."),
+			Description: anthropic.String("Cadastra nova cliente. Requer confirmação da operadora. Campos obrigatórios: name, type, city, phone."),
 			InputSchema: anthropic.ToolInputSchemaParam{
 				Properties: map[string]any{
 					"name":            map[string]any{"type": "string", "description": "Nome da cliente"},
 					"type":            map[string]any{"type": "string", "description": "Tipo de negócio (ex: Salão de Beleza, Confeitaria)"},
 					"city":            map[string]any{"type": "string", "description": "Cidade"},
-					"phone":           map[string]any{"type": "string", "description": "Telefone (opcional)"},
+					"phone":           map[string]any{"type": "string", "description": "Telefone da cliente"},
 					"target_audience": map[string]any{"type": "string", "description": "Público-alvo (opcional)"},
 					"brand_vibe":      map[string]any{"type": "string", "description": "Vibe da marca (opcional)"},
 					"quirks":          map[string]any{"type": "string", "description": "Observações especiais (opcional)"},
 				},
-				Required: []string{"name", "type", "city"},
+				Required: []string{"name", "type", "city", "phone"},
 			},
 		}},
 		{OfTool: &anthropic.ToolParam{
@@ -463,12 +463,10 @@ func (te *ToolExecutor) createCustomer(input json.RawMessage, operatorName strin
 	}
 
 	p := &CustomerCreateParams{
-		Name: args.Name,
-		Type: args.Type,
-		City: args.City,
-	}
-	if args.Phone != "" {
-		p.Phone = &args.Phone
+		Name:  args.Name,
+		Type:  args.Type,
+		City:  args.City,
+		Phone: args.Phone,
 	}
 	if args.TargetAudience != "" {
 		p.TargetAudience = &args.TargetAudience

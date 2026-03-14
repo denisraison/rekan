@@ -7,7 +7,7 @@ type CustomerCreateParams struct {
 	Name           string  `json:"name"`
 	Type           string  `json:"type"`
 	City           string  `json:"city"`
-	Phone          *string `json:"phone,omitempty"`
+	Phone          string  `json:"phone"`
 	TargetAudience *string `json:"target_audience,omitempty"`
 	BrandVibe      *string `json:"brand_vibe,omitempty"`
 	Quirks         *string `json:"quirks,omitempty"`

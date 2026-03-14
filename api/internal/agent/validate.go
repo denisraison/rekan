@@ -12,6 +12,9 @@ func validateCustomerCreate(p *CustomerCreateParams, operatorName string) error 
 	if p.City == "" {
 		return fmt.Errorf("%s, faltou a cidade, pode repetir?", operatorName)
 	}
+	if p.Phone == "" {
+		return fmt.Errorf("%s, faltou o telefone da cliente, pode repetir?", operatorName)
+	}
 	return nil
 }
 

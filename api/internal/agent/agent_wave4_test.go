@@ -19,9 +19,10 @@ func TestCustomerCreate_HappyPath(t *testing.T) {
 	wa := &fakeWAClient{}
 
 	setConfirmingState(t, app, "5511999990000", agent.ActionCustomerCreate, &agent.CustomerCreateParams{
-		Name: "Ana",
-		Type: "Manicure",
-		City: "Goiania",
+		Name:  "Ana",
+		Type:  "Manicure",
+		City:  "Goiania",
+		Phone: "62999990000",
 	})
 
 	a := newAgent(t, app, wa)
@@ -263,9 +264,10 @@ func TestDoubleConfirmation_Idempotent(t *testing.T) {
 	wa := &fakeWAClient{}
 
 	setConfirmingState(t, app, "5511999990000", agent.ActionCustomerCreate, &agent.CustomerCreateParams{
-		Name: "Ana",
-		Type: "Manicure",
-		City: "SP",
+		Name:  "Ana",
+		Type:  "Manicure",
+		City:  "SP",
+		Phone: "11999990000",
 	})
 
 	a := newAgent(t, app, wa)
