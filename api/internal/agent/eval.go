@@ -9,6 +9,7 @@ import (
 
 	"github.com/anthropics/anthropic-sdk-go"
 	"github.com/anthropics/anthropic-sdk-go/option"
+	"github.com/denisraison/rekan/api/internal/service"
 	"gopkg.in/yaml.v3"
 )
 
@@ -224,7 +225,7 @@ func findInContext(ctx, query string) string {
 	if query == "" {
 		return "Nenhuma cliente encontrada."
 	}
-	normalizedQuery := normalizeForMatch(query)
+	normalizedQuery := service.NormalizeForMatch(query)
 	var found []string
 	for line := range strings.SplitSeq(ctx, "\n") {
 		trimmed := strings.TrimSpace(line)
@@ -232,7 +233,7 @@ func findInContext(ctx, query string) string {
 			continue
 		}
 		entry := strings.TrimPrefix(trimmed, "- ")
-		if strings.Contains(normalizeForMatch(entry), normalizedQuery) {
+		if strings.Contains(service.NormalizeForMatch(entry), normalizedQuery) {
 			// Parse "Name (Type, City)" format
 			if idx := strings.Index(entry, " ("); idx > 0 {
 				name := entry[:idx]
@@ -272,7 +273,7 @@ func findPostInContext(ctx, postID string) string {
 
 // findPostsForCustomer returns posts matching a customer name from context.
 func findPostsForCustomer(ctx, customerName string) string {
-	normalizedName := normalizeForMatch(customerName)
+	normalizedName := service.NormalizeForMatch(customerName)
 	var found []string
 	for line := range strings.SplitSeq(ctx, "\n") {
 		trimmed := strings.TrimSpace(line)
@@ -282,7 +283,7 @@ func findPostsForCustomer(ctx, customerName string) string {
 		entry := strings.TrimPrefix(trimmed, "- ")
 		if colonIdx := strings.Index(entry, ": \""); colonIdx > 0 {
 			name := entry[:colonIdx]
-			if strings.Contains(normalizeForMatch(name), normalizedName) {
+			if strings.Contains(service.NormalizeForMatch(name), normalizedName) {
 				found = append(found, trimmed)
 			}
 		}

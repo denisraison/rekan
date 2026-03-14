@@ -3,11 +3,13 @@ package service
 import (
 	"context"
 	"fmt"
+	"strings"
 
+	content "github.com/denisraison/rekan/api/internal/content"
 	"github.com/denisraison/rekan/api/internal/domain"
 	"github.com/denisraison/rekan/api/internal/operator"
-	content "github.com/denisraison/rekan/api/internal/content"
 	"github.com/google/uuid"
+	"github.com/pocketbase/dbx"
 	"github.com/pocketbase/pocketbase/core"
 )
 
@@ -201,4 +203,80 @@ func SaveProactivePost(app core.App, params SaveProactiveParams) (string, error)
 	}
 
 	return record.Id, nil
+}
+
+// ListPostsFilter controls which posts to return.
+type ListPostsFilter struct {
+	BusinessIDs []string // empty means all
+	Status      string   // "pending", "reviewed", or "" for all
+}
+
+// ListPosts returns posts matching the filter, ordered by creation date descending.
+func ListPosts(app core.App, filter ListPostsFilter) ([]*core.Record, error) {
+	q := app.RecordQuery(domain.CollPosts).OrderBy("created DESC").Limit(20)
+
+	switch filter.Status {
+	case "pending":
+		q = q.AndWhere(dbx.NewExp("reviewed = FALSE OR reviewed = ''"))
+	case "reviewed":
+		q = q.AndWhere(dbx.NewExp("reviewed = TRUE"))
+	}
+
+	if len(filter.BusinessIDs) > 0 {
+		params := dbx.Params{}
+		placeholders := make([]string, len(filter.BusinessIDs))
+		for i, id := range filter.BusinessIDs {
+			key := fmt.Sprintf("bid%d", i)
+			placeholders[i] = fmt.Sprintf("{:%s}", key)
+			params[key] = id
+		}
+		q = q.AndWhere(dbx.NewExp("business IN ("+strings.Join(placeholders, ",")+") ", params))
+	}
+
+	var posts []*core.Record
+	if err := q.All(&posts); err != nil {
+		return nil, fmt.Errorf("listing posts: %w", err)
+	}
+	return posts, nil
+}
+
+// ApprovePost marks a post as reviewed.
+func ApprovePost(app core.App, postID string) (*core.Record, error) {
+	record, err := app.FindRecordById(domain.CollPosts, postID)
+	if err != nil {
+		return nil, wrapNotFound(err, "post não encontrado")
+	}
+
+	record.Set("reviewed", true)
+	if err := app.Save(record); err != nil {
+		return nil, fmt.Errorf("approving post: %w", err)
+	}
+	return record, nil
+}
+
+// RejectPost marks a post as reviewed with feedback.
+func RejectPost(app core.App, postID, feedback string) (*core.Record, error) {
+	record, err := app.FindRecordById(domain.CollPosts, postID)
+	if err != nil {
+		return nil, wrapNotFound(err, "post não encontrado")
+	}
+
+	record.Set("reviewed", true)
+	record.Set("review_note", feedback)
+	if err := app.Save(record); err != nil {
+		return nil, fmt.Errorf("rejecting post: %w", err)
+	}
+	return record, nil
+}
+
+// RecentActions returns the most recent entries from the action log.
+func RecentActions(app core.App, limit int) ([]*core.Record, error) {
+	var actions []*core.Record
+	if err := app.RecordQuery(domain.CollAgentActionLog).
+		OrderBy("created DESC").
+		Limit(int64(limit)).
+		All(&actions); err != nil {
+		return nil, fmt.Errorf("listing actions: %w", err)
+	}
+	return actions, nil
 }

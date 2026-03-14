@@ -1,8 +1,12 @@
 package agent
 
-import "fmt"
+import (
+	"fmt"
 
-func validateCustomerCreate(p *CustomerCreateParams, operatorName string) error {
+	"github.com/denisraison/rekan/api/internal/service"
+)
+
+func validateCustomerCreate(p service.CreateBusinessParams, operatorName string) error {
 	if p.Name == "" {
 		return fmt.Errorf("%s, faltou o nome da cliente, pode repetir?", operatorName)
 	}
@@ -14,20 +18,6 @@ func validateCustomerCreate(p *CustomerCreateParams, operatorName string) error 
 	}
 	if p.Phone == "" {
 		return fmt.Errorf("%s, faltou o telefone da cliente, pode repetir?", operatorName)
-	}
-	return nil
-}
-
-func validatePostApprove(p *PostApproveParams, operatorName string) error {
-	if p.PostId == "" {
-		return fmt.Errorf("%s, qual post você quer aprovar?", operatorName)
-	}
-	return nil
-}
-
-func validatePostReject(p *PostRejectParams, operatorName string) error {
-	if p.PostId == "" {
-		return fmt.Errorf("%s, qual post você quer rejeitar?", operatorName)
 	}
 	return nil
 }

@@ -10,7 +10,6 @@ import (
 	content "github.com/denisraison/rekan/api/internal/content"
 	"github.com/denisraison/rekan/api/internal/domain"
 	"github.com/denisraison/rekan/api/internal/service"
-	"github.com/pocketbase/dbx"
 	"github.com/pocketbase/pocketbase/core"
 )
 
@@ -162,7 +161,7 @@ func (te *ToolExecutor) loadBusinesses() []*core.Record {
 	if te.businesses != nil {
 		return te.businesses
 	}
-	te.businesses = loadActiveBusinesses(te.App)
+	te.businesses = service.ListActiveBusinesses(te.App)
 	return te.businesses
 }
 
@@ -265,6 +264,44 @@ func appendPostFieldsJSON(b *strings.Builder, caption, hashtagsJSON, productionN
 	appendPostFields(b, caption, decodeHashtags(hashtagsJSON), productionNote)
 }
 
+var fieldLabels = map[string]string{
+	"name":            "nome",
+	"type":            "tipo",
+	"city":            "cidade",
+	"phone":           "telefone",
+	"target_audience": "público",
+	"brand_vibe":      "vibe",
+	"quirks":          "obs",
+}
+
+func fieldLabel(key string) string {
+	if label, ok := fieldLabels[key]; ok {
+		return label
+	}
+	return key
+}
+
+// resolveBizName returns the business display name for a post record, using the cached businesses.
+func (te *ToolExecutor) resolveBizName(postRecord *core.Record) string {
+	bizID := postRecord.GetString("business")
+	if name := te.bizNameMap()[bizID]; name != "" {
+		return name
+	}
+	return bizID
+}
+
+// resolveCustomer finds exactly one business by name, returning an error toolResult on 0 or 2+ matches.
+func (te *ToolExecutor) resolveCustomer(name, operatorName string) (*core.Record, *toolResult) {
+	matches := service.FindBusinessByName(te.loadBusinesses(), name)
+	if len(matches) == 0 {
+		return nil, &toolResult{Text: fmt.Sprintf("%s, não encontrei cliente '%s'.", operatorName, name), IsWrite: true}
+	}
+	if len(matches) > 1 {
+		return nil, &toolResult{Text: disambiguate(operatorName, matches), IsWrite: true}
+	}
+	return matches[0], nil
+}
+
 // --- Read tool implementations ---
 
 func (te *ToolExecutor) findCustomer(input json.RawMessage) string {
@@ -275,7 +312,7 @@ func (te *ToolExecutor) findCustomer(input json.RawMessage) string {
 		return "Parâmetro 'query' obrigatório."
 	}
 
-	matches := findBusinessRecords(te.loadBusinesses(), args.Query)
+	matches := service.FindBusinessByName(te.loadBusinesses(), args.Query)
 	if len(matches) == 0 {
 		return fmt.Sprintf("Nenhuma cliente encontrada com '%s'.", args.Query)
 	}
@@ -305,7 +342,6 @@ func (te *ToolExecutor) findCustomer(input json.RawMessage) string {
 
 func (te *ToolExecutor) listCustomers() string {
 	businesses := te.loadBusinesses()
-
 	if len(businesses) == 0 {
 		return "Nenhuma cliente ativa no momento."
 	}
@@ -331,8 +367,7 @@ func (te *ToolExecutor) findPost(input json.RawMessage) string {
 		return fmt.Sprintf("Post %s não encontrado.", args.PostID)
 	}
 
-	bizName := resolveBusinessName(te.App, record, record.GetString("business"))
-
+	bizName := te.resolveBizName(record)
 	te.Posts = append(te.Posts, record)
 
 	status := "pendente"
@@ -357,48 +392,29 @@ func (te *ToolExecutor) listPosts(input json.RawMessage) string {
 		}
 	}
 
-	q := te.App.RecordQuery(domain.CollPosts).OrderBy("created DESC").Limit(20)
-
-	switch args.Status {
-	case "pending":
-		q = q.AndWhere(dbx.NewExp("reviewed = FALSE OR reviewed = ''"))
-	case "reviewed":
-		q = q.AndWhere(dbx.NewExp("reviewed = TRUE"))
-	}
-
-	businesses := te.loadBusinesses()
+	filter := service.ListPostsFilter{Status: args.Status}
 
 	if args.CustomerName != "" {
-		matches := findBusinessRecords(businesses, args.CustomerName)
+		matches := service.FindBusinessByName(te.loadBusinesses(), args.CustomerName)
 		if len(matches) == 0 {
 			return fmt.Sprintf("Nenhuma cliente encontrada com '%s'.", args.CustomerName)
 		}
-		params := dbx.Params{}
-		placeholders := make([]string, len(matches))
-		for i, m := range matches {
-			key := fmt.Sprintf("bid%d", i)
-			placeholders[i] = fmt.Sprintf("{:%s}", key)
-			params[key] = m.Id
+		for _, m := range matches {
+			filter.BusinessIDs = append(filter.BusinessIDs, m.Id)
 		}
-		q = q.AndWhere(dbx.NewExp("business IN ("+strings.Join(placeholders, ",")+") ", params))
 	}
 
-	var posts []*core.Record
-	if err := q.All(&posts); err != nil {
+	posts, err := service.ListPosts(te.App, filter)
+	if err != nil {
 		return "Erro ao buscar posts."
 	}
-
 	if len(posts) == 0 {
 		return "Nenhum post encontrado."
 	}
 
-	bizNames := map[string]string{}
-	for _, biz := range businesses {
-		bizNames[biz.Id] = biz.GetString("name")
-	}
-
 	te.Posts = append(te.Posts, posts...)
 
+	bizNames := te.bizNameMap()
 	var b strings.Builder
 	fmt.Fprintf(&b, "Posts: %d\n", len(posts))
 	for _, p := range posts {
@@ -427,14 +443,10 @@ func (te *ToolExecutor) recentActivity(input json.RawMessage) string {
 		}
 	}
 
-	var actions []*core.Record
-	if err := te.App.RecordQuery(domain.CollAgentActionLog).
-		OrderBy("created DESC").
-		Limit(int64(limit)).
-		All(&actions); err != nil {
+	actions, err := service.RecentActions(te.App, limit)
+	if err != nil {
 		return "Erro ao buscar ações recentes."
 	}
-
 	if len(actions) == 0 {
 		return "Nenhuma ação recente."
 	}
@@ -467,7 +479,7 @@ func (te *ToolExecutor) createCustomer(input json.RawMessage, operatorName strin
 		return toolResult{Text: "Erro ao ler parâmetros.", IsWrite: true}
 	}
 
-	p := &CustomerCreateParams{
+	p := service.CreateBusinessParams{
 		Name:  args.Name,
 		Type:  args.Type,
 		City:  args.City,
@@ -487,18 +499,21 @@ func (te *ToolExecutor) createCustomer(input json.RawMessage, operatorName strin
 		return toolResult{Text: err.Error(), IsWrite: true}
 	}
 
-	if dup := findDuplicate(te.loadBusinesses(), p.Name); dup != nil {
+	if dup := service.FindDuplicate(te.loadBusinesses(), p.Name); dup != nil {
 		return toolResult{
 			Text:    fmt.Sprintf("%s já existe (%s, %s).", dup.GetString("name"), dup.GetString("type"), dup.GetString("city")),
 			IsWrite: true,
 		}
 	}
 
-	result, err := executeCustomerCreate(te.App, operatorName, p)
+	record, err := service.CreateBusiness(te.App, p)
 	if err != nil {
 		return toolResult{Text: "Erro ao cadastrar: " + err.Error(), IsWrite: true}
 	}
-	return toolResult{Text: result, IsWrite: true}
+	return toolResult{
+		Text:    fmt.Sprintf("%s, %s cadastrada! (%s, %s)", operatorName, record.GetString("name"), record.GetString("type"), record.GetString("city")),
+		IsWrite: true,
+	}
 }
 
 func (te *ToolExecutor) updateCustomer(input json.RawMessage, operatorName string) toolResult {
@@ -516,7 +531,12 @@ func (te *ToolExecutor) updateCustomer(input json.RawMessage, operatorName strin
 		return toolResult{Text: "Erro ao ler parâmetros.", IsWrite: true}
 	}
 
-	p := &CustomerUpdateParams{Name: args.Name}
+	record, errResult := te.resolveCustomer(args.Name, operatorName)
+	if errResult != nil {
+		return *errResult
+	}
+
+	p := service.UpdateBusinessParams{}
 	if args.NewName != "" {
 		p.NewName = &args.NewName
 	}
@@ -539,11 +559,27 @@ func (te *ToolExecutor) updateCustomer(input json.RawMessage, operatorName strin
 		p.Quirks = &args.Quirks
 	}
 
-	result, err := executeCustomerUpdate(te.App, operatorName, p)
+	updatedKeys, err := service.UpdateBusiness(te.App, record, p)
 	if err != nil {
 		return toolResult{Text: "Erro ao alterar: " + err.Error(), IsWrite: true}
 	}
-	return toolResult{Text: result, IsWrite: true}
+	if len(updatedKeys) == 0 {
+		return toolResult{Text: fmt.Sprintf("%s, nenhum campo pra atualizar na %s.", operatorName, args.Name), IsWrite: true}
+	}
+
+	labels := make([]string, len(updatedKeys))
+	for i, key := range updatedKeys {
+		labels[i] = fieldLabel(key)
+	}
+
+	displayName := args.Name
+	if args.NewName != "" {
+		displayName = args.NewName
+	}
+	return toolResult{
+		Text:    fmt.Sprintf("%s, %s atualizada! Campos: %s.", operatorName, displayName, strings.Join(labels, ", ")),
+		IsWrite: true,
+	}
 }
 
 func (te *ToolExecutor) pauseCustomer(input json.RawMessage, operatorName string) toolResult {
@@ -555,16 +591,20 @@ func (te *ToolExecutor) pauseCustomer(input json.RawMessage, operatorName string
 		return toolResult{Text: "Erro ao ler parâmetros.", IsWrite: true}
 	}
 
-	p := &CustomerPauseParams{Name: args.Name}
-	if args.Reason != "" {
-		p.Reason = &args.Reason
+	record, errResult := te.resolveCustomer(args.Name, operatorName)
+	if errResult != nil {
+		return *errResult
 	}
 
-	result, err := executeCustomerPause(te.App, operatorName, p)
-	if err != nil {
+	if err := service.PauseBusiness(te.App, record); err != nil {
 		return toolResult{Text: "Erro ao pausar: " + err.Error(), IsWrite: true}
 	}
-	return toolResult{Text: result, IsWrite: true}
+
+	msg := fmt.Sprintf("%s, %s pausada.", operatorName, args.Name)
+	if args.Reason != "" {
+		msg = fmt.Sprintf("%s, %s pausada. Motivo: %s.", operatorName, args.Name, args.Reason)
+	}
+	return toolResult{Text: msg, IsWrite: true}
 }
 
 func (te *ToolExecutor) generatePost(input json.RawMessage, operatorName string) toolResult {
@@ -575,18 +615,38 @@ func (te *ToolExecutor) generatePost(input json.RawMessage, operatorName string)
 		return toolResult{Text: "Erro ao ler parâmetros.", IsWrite: true}
 	}
 
-	p := &PostGenerateParams{Name: args.CustomerName}
+	if args.CustomerName == "" {
+		return toolResult{Text: operatorName + ", pra qual cliente você quer gerar post?", IsWrite: true}
+	}
 
-	result, postIDs, err := executePostGenerate(te.Ctx, te.App, operatorName, p, te.Generate)
+	biz, errResult := te.resolveCustomer(args.CustomerName, operatorName)
+	if errResult != nil {
+		return *errResult
+	}
+	if te.Generate == nil {
+		return toolResult{Text: operatorName + ", geração de posts não está configurada.", IsWrite: true}
+	}
+
+	result, err := service.GeneratePosts(te.Ctx, te.App, te.Generate, biz.Id)
 	if err != nil {
 		return toolResult{Text: "Erro ao gerar: " + err.Error(), IsWrite: true}
 	}
-	for _, id := range postIDs {
-		if record, err := te.App.FindRecordById(domain.CollPosts, id); err == nil {
+	if len(result.Posts) == 0 {
+		return toolResult{Text: fmt.Sprintf("%s, não consegui gerar post pra %s.", operatorName, biz.GetString("name")), IsWrite: true}
+	}
+
+	post := result.Posts[0]
+	var b strings.Builder
+	fmt.Fprintf(&b, "%s, post gerado pra %s!\n\n", operatorName, biz.GetString("name"))
+	appendPostFields(&b, post.Caption, post.Hashtags, post.ProductionNote)
+	fmt.Fprintf(&b, "ID: %s", post.ID)
+
+	for _, p := range result.Posts {
+		if record, findErr := te.App.FindRecordById(domain.CollPosts, p.ID); findErr == nil {
 			te.Posts = append(te.Posts, record)
 		}
 	}
-	return toolResult{Text: result, IsWrite: true}
+	return toolResult{Text: b.String(), IsWrite: true}
 }
 
 func (te *ToolExecutor) approvePost(input json.RawMessage, operatorName string) toolResult {
@@ -598,26 +658,24 @@ func (te *ToolExecutor) approvePost(input json.RawMessage, operatorName string) 
 		return toolResult{Text: "Erro ao ler parâmetros.", IsWrite: true}
 	}
 
-	if err := validatePostApprove(&PostApproveParams{PostId: args.PostID}, operatorName); err != nil {
-		return toolResult{Text: err.Error(), IsWrite: true}
+	if args.PostID == "" {
+		return toolResult{Text: fmt.Sprintf("%s, qual post você quer aprovar?", operatorName), IsWrite: true}
 	}
 
-	p := &PostApproveParams{PostId: args.PostID, Name: args.CustomerName}
-
-	record, result, err := executePostApprove(te.App, operatorName, p)
+	record, err := service.ApprovePost(te.App, args.PostID)
 	if err != nil {
 		return toolResult{Text: "Erro ao aprovar: " + err.Error(), IsWrite: true}
 	}
 
-	if record != nil {
-		te.Posts = append(te.Posts, record)
+	te.Posts = append(te.Posts, record)
+	bizName := te.resolveBizName(record)
+	result := fmt.Sprintf("%s, post da %s aprovado!", operatorName, bizName)
 
-		if te.WAClient != nil {
-			if sendErr := te.sendPostToClient(record); sendErr != nil {
-				return toolResult{Text: result + " (mas não consegui enviar pro cliente: " + sendErr.Error() + ")", IsWrite: true}
-			}
-			result += " Enviado pro cliente!"
+	if te.WAClient != nil {
+		if sendErr := te.sendPostToClient(record); sendErr != nil {
+			return toolResult{Text: result + " (mas não consegui enviar pro cliente: " + sendErr.Error() + ")", IsWrite: true}
 		}
+		result += " Enviado pro cliente!"
 	}
 
 	return toolResult{Text: result, IsWrite: true}
@@ -633,21 +691,23 @@ func (te *ToolExecutor) rejectPost(input json.RawMessage, operatorName string) t
 		return toolResult{Text: "Erro ao ler parâmetros.", IsWrite: true}
 	}
 
-	if err := validatePostReject(&PostRejectParams{PostId: args.PostID, Feedback: args.Feedback}, operatorName); err != nil {
-		return toolResult{Text: err.Error(), IsWrite: true}
+	if args.PostID == "" {
+		return toolResult{Text: fmt.Sprintf("%s, qual post você quer rejeitar?", operatorName), IsWrite: true}
 	}
 
-	p := &PostRejectParams{PostId: args.PostID, Name: args.CustomerName, Feedback: args.Feedback}
-
-	if record, err := te.App.FindRecordById(domain.CollPosts, args.PostID); err == nil {
-		te.Posts = append(te.Posts, record)
-	}
-
-	result, err := executePostReject(te.App, operatorName, p)
+	record, err := service.RejectPost(te.App, args.PostID, args.Feedback)
 	if err != nil {
 		return toolResult{Text: "Erro ao rejeitar: " + err.Error(), IsWrite: true}
 	}
-	return toolResult{Text: result, IsWrite: true}
+
+	te.Posts = append(te.Posts, record)
+	bizName := te.resolveBizName(record)
+
+	msg := fmt.Sprintf("%s, post da %s rejeitado.", operatorName, bizName)
+	if args.Feedback != "" {
+		msg = fmt.Sprintf("%s, post da %s rejeitado. Feedback: %s.", operatorName, bizName, args.Feedback)
+	}
+	return toolResult{Text: msg, IsWrite: true}
 }
 
 // sendPostToClient sends the post content to the client's WhatsApp.
