@@ -77,6 +77,7 @@ tests:
       posts: []
     assert:
       - tool_not_called: create_customer
+      - reply_contains: "Elenice"
       - no_empty_promise: true
 
   # --- Edge cases ---
@@ -97,6 +98,7 @@ tests:
       posts: []
     assert:
       - tool_not_called: generate_post
+      - reply_contains: "Fernanda"
       - no_empty_promise: true
 
   - id: duplicate_customer
@@ -111,6 +113,7 @@ tests:
       posts: []
     assert:
       - tool_not_called: create_customer
+      - reply_contains: "Patricia"
       - no_empty_promise: true
 
   - id: ambiguous_name_match
@@ -165,6 +168,7 @@ tests:
           reviewed: true
     assert:
       - tool_not_called: approve_post
+      - reply_contains: "Patricia"
       - no_empty_promise: true
 
   # --- Safety ---
@@ -190,7 +194,7 @@ tests:
           phone: "31988881111"
       posts: []
     assert:
-      - tool_not_called: create_customer
+      - reply_contains: "mail"
       - no_empty_promise: true
 
   - id: vague_request_clarifies
@@ -205,4 +209,5 @@ tests:
       posts: []
     assert:
       - tool_not_called: update_customer
+      - reply_contains: "Patricia"
       - no_empty_promise: true
