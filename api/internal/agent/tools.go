@@ -68,7 +68,7 @@ func buildToolDefs() []anthropic.ToolUnionParam {
 		// Write tools
 		{OfTool: &anthropic.ToolParam{
 			Name:        "create_customer",
-			Description: anthropic.String("Cadastra nova cliente. Campos obrigatórios: name, type, city, phone. Use confirmed=false para preview, confirmed=true para executar."),
+			Description: anthropic.String("Cadastra nova cliente. Campos obrigatórios: name, type, city, phone."),
 			InputSchema: anthropic.ToolInputSchemaParam{
 				Properties: map[string]any{
 					"name":            map[string]any{"type": "string", "description": "Nome da cliente"},
@@ -78,14 +78,13 @@ func buildToolDefs() []anthropic.ToolUnionParam {
 					"target_audience": map[string]any{"type": "string", "description": "Público-alvo (opcional)"},
 					"brand_vibe":      map[string]any{"type": "string", "description": "Vibe da marca (opcional)"},
 					"quirks":          map[string]any{"type": "string", "description": "Observações especiais (opcional)"},
-					"confirmed":       map[string]any{"type": "boolean", "description": "true para executar, false para preview"},
 				},
 				Required: []string{"name", "type", "city", "phone"},
 			},
 		}},
 		{OfTool: &anthropic.ToolParam{
 			Name:        "update_customer",
-			Description: anthropic.String("Altera dados de uma cliente existente. Apenas name é obrigatório (identifica a cliente). Use confirmed=false para preview, confirmed=true para executar."),
+			Description: anthropic.String("Altera dados de uma cliente existente. Apenas name é obrigatório (identifica a cliente)."),
 			InputSchema: anthropic.ToolInputSchemaParam{
 				Properties: map[string]any{
 					"name":            map[string]any{"type": "string", "description": "Nome da cliente (para identificação)"},
@@ -96,55 +95,50 @@ func buildToolDefs() []anthropic.ToolUnionParam {
 					"target_audience": map[string]any{"type": "string", "description": "Novo público-alvo"},
 					"brand_vibe":      map[string]any{"type": "string", "description": "Nova vibe da marca"},
 					"quirks":          map[string]any{"type": "string", "description": "Novas observações"},
-					"confirmed":       map[string]any{"type": "boolean", "description": "true para executar, false para preview"},
 				},
 				Required: []string{"name"},
 			},
 		}},
 		{OfTool: &anthropic.ToolParam{
 			Name:        "pause_customer",
-			Description: anthropic.String("Pausa uma cliente. Use confirmed=false para preview, confirmed=true para executar."),
+			Description: anthropic.String("Pausa uma cliente."),
 			InputSchema: anthropic.ToolInputSchemaParam{
 				Properties: map[string]any{
-					"name":      map[string]any{"type": "string", "description": "Nome da cliente"},
-					"reason":    map[string]any{"type": "string", "description": "Motivo da pausa (opcional)"},
-					"confirmed": map[string]any{"type": "boolean", "description": "true para executar, false para preview"},
+					"name":   map[string]any{"type": "string", "description": "Nome da cliente"},
+					"reason": map[string]any{"type": "string", "description": "Motivo da pausa (opcional)"},
 				},
 				Required: []string{"name"},
 			},
 		}},
 		{OfTool: &anthropic.ToolParam{
 			Name:        "generate_post",
-			Description: anthropic.String("Gera posts para uma cliente. Use confirmed=false para preview, confirmed=true para executar."),
+			Description: anthropic.String("Gera posts para uma cliente."),
 			InputSchema: anthropic.ToolInputSchemaParam{
 				Properties: map[string]any{
 					"customer_name": map[string]any{"type": "string", "description": "Nome da cliente"},
-					"confirmed":     map[string]any{"type": "boolean", "description": "true para executar, false para preview"},
 				},
 				Required: []string{"customer_name"},
 			},
 		}},
 		{OfTool: &anthropic.ToolParam{
 			Name:        "approve_post",
-			Description: anthropic.String("Aprova um post pendente. Use confirmed=false para preview, confirmed=true para executar."),
+			Description: anthropic.String("Aprova um post pendente."),
 			InputSchema: anthropic.ToolInputSchemaParam{
 				Properties: map[string]any{
 					"post_id":       map[string]any{"type": "string", "description": "ID do post"},
 					"customer_name": map[string]any{"type": "string", "description": "Nome da cliente"},
-					"confirmed":     map[string]any{"type": "boolean", "description": "true para executar, false para preview"},
 				},
 				Required: []string{"post_id"},
 			},
 		}},
 		{OfTool: &anthropic.ToolParam{
 			Name:        "reject_post",
-			Description: anthropic.String("Rejeita um post com feedback. Use confirmed=false para preview, confirmed=true para executar."),
+			Description: anthropic.String("Rejeita um post com feedback."),
 			InputSchema: anthropic.ToolInputSchemaParam{
 				Properties: map[string]any{
 					"post_id":       map[string]any{"type": "string", "description": "ID do post"},
 					"customer_name": map[string]any{"type": "string", "description": "Nome da cliente"},
 					"feedback":      map[string]any{"type": "string", "description": "Feedback sobre o que melhorar"},
-					"confirmed":     map[string]any{"type": "boolean", "description": "true para executar, false para preview"},
 				},
 				Required: []string{"post_id", "feedback"},
 			},
@@ -181,25 +175,23 @@ func (te *ToolExecutor) bizNameMap() map[string]string {
 
 // toolResult is returned by executeTool to signal both the result text and whether a write was triggered.
 type toolResult struct {
-	Text      string
-	ToolName  string
-	IsWrite   bool
-	IsPreview bool // true when confirmed=false (preview only, stop loop for confirmation)
+	Text    string
+	IsWrite bool
 }
 
 // executeTool dispatches a tool call and returns the result.
 func (te *ToolExecutor) executeTool(name string, input json.RawMessage, operatorName string) toolResult {
 	switch name {
 	case "find_customer":
-		return toolResult{Text: te.findCustomer(input), ToolName: name}
+		return toolResult{Text: te.findCustomer(input)}
 	case "list_customers":
-		return toolResult{Text: te.listCustomers(), ToolName: name}
+		return toolResult{Text: te.listCustomers()}
 	case "find_post":
-		return toolResult{Text: te.findPost(input), ToolName: name}
+		return toolResult{Text: te.findPost(input)}
 	case "list_posts":
-		return toolResult{Text: te.listPosts(input), ToolName: name}
+		return toolResult{Text: te.listPosts(input)}
 	case "recent_activity":
-		return toolResult{Text: te.recentActivity(input), ToolName: name}
+		return toolResult{Text: te.recentActivity(input)}
 	case "create_customer":
 		return te.createCustomer(input, operatorName)
 	case "update_customer":
@@ -213,7 +205,7 @@ func (te *ToolExecutor) executeTool(name string, input json.RawMessage, operator
 	case "reject_post":
 		return te.rejectPost(input, operatorName)
 	default:
-		return toolResult{Text: "Ferramenta desconhecida: " + name, ToolName: name}
+		return toolResult{Text: "Ferramenta desconhecida: " + name}
 	}
 }
 
@@ -452,7 +444,6 @@ func (te *ToolExecutor) recentActivity(input json.RawMessage) string {
 }
 
 // --- Write tool implementations ---
-// confirmed=false returns a preview, confirmed=true executes the action.
 
 func (te *ToolExecutor) createCustomer(input json.RawMessage, operatorName string) toolResult {
 	var args struct {
@@ -463,10 +454,9 @@ func (te *ToolExecutor) createCustomer(input json.RawMessage, operatorName strin
 		TargetAudience string `json:"target_audience"`
 		BrandVibe      string `json:"brand_vibe"`
 		Quirks         string `json:"quirks"`
-		Confirmed      bool   `json:"confirmed"`
 	}
 	if err := json.Unmarshal(input, &args); err != nil {
-		return toolResult{Text: "Erro ao ler parâmetros.", ToolName: "create_customer", IsWrite: true}
+		return toolResult{Text: "Erro ao ler parâmetros.", IsWrite: true}
 	}
 
 	p := &CustomerCreateParams{
@@ -486,31 +476,21 @@ func (te *ToolExecutor) createCustomer(input json.RawMessage, operatorName strin
 	}
 
 	if err := validateCustomerCreate(p, operatorName); err != nil {
-		return toolResult{Text: err.Error(), ToolName: "create_customer", IsWrite: true}
+		return toolResult{Text: err.Error(), IsWrite: true}
 	}
 
 	if dup := findDuplicate(te.loadBusinesses(), p.Name); dup != nil {
 		return toolResult{
-			Text:     fmt.Sprintf("%s já existe (%s, %s).", dup.GetString("name"), dup.GetString("type"), dup.GetString("city")),
-			ToolName: "create_customer",
-			IsWrite:  true,
-		}
-	}
-
-	if !args.Confirmed {
-		return toolResult{
-			Text:      fmt.Sprintf("Preview: cadastrar %s (%s, %s, tel %s). Chame create_customer com os mesmos parâmetros e confirmed=true para executar.", p.Name, p.Type, p.City, p.Phone),
-			ToolName:  "create_customer",
-			IsWrite:   true,
-			IsPreview: true,
+			Text:    fmt.Sprintf("%s já existe (%s, %s).", dup.GetString("name"), dup.GetString("type"), dup.GetString("city")),
+			IsWrite: true,
 		}
 	}
 
 	result, err := executeCustomerCreate(te.App, operatorName, p)
 	if err != nil {
-		return toolResult{Text: "Erro ao cadastrar: " + err.Error(), ToolName: "create_customer", IsWrite: true}
+		return toolResult{Text: "Erro ao cadastrar: " + err.Error(), IsWrite: true}
 	}
-	return toolResult{Text: result, ToolName: "create_customer", IsWrite: true}
+	return toolResult{Text: result, IsWrite: true}
 }
 
 func (te *ToolExecutor) updateCustomer(input json.RawMessage, operatorName string) toolResult {
@@ -523,10 +503,9 @@ func (te *ToolExecutor) updateCustomer(input json.RawMessage, operatorName strin
 		TargetAudience string `json:"target_audience"`
 		BrandVibe      string `json:"brand_vibe"`
 		Quirks         string `json:"quirks"`
-		Confirmed      bool   `json:"confirmed"`
 	}
 	if err := json.Unmarshal(input, &args); err != nil {
-		return toolResult{Text: "Erro ao ler parâmetros.", ToolName: "update_customer", IsWrite: true}
+		return toolResult{Text: "Erro ao ler parâmetros.", IsWrite: true}
 	}
 
 	p := &CustomerUpdateParams{Name: args.Name}
@@ -552,53 +531,20 @@ func (te *ToolExecutor) updateCustomer(input json.RawMessage, operatorName strin
 		p.Quirks = &args.Quirks
 	}
 
-	if !args.Confirmed {
-		var changes []string
-		if args.NewName != "" {
-			changes = append(changes, "nome -> "+args.NewName)
-		}
-		if args.Type != "" {
-			changes = append(changes, "tipo -> "+args.Type)
-		}
-		if args.City != "" {
-			changes = append(changes, "cidade -> "+args.City)
-		}
-		if args.Phone != "" {
-			changes = append(changes, "tel -> "+args.Phone)
-		}
-		if args.TargetAudience != "" {
-			changes = append(changes, "público -> "+args.TargetAudience)
-		}
-		if args.BrandVibe != "" {
-			changes = append(changes, "vibe -> "+args.BrandVibe)
-		}
-		if args.Quirks != "" {
-			changes = append(changes, "obs -> "+args.Quirks)
-		}
-		detail := strings.Join(changes, ", ")
-		return toolResult{
-			Text:      fmt.Sprintf("Preview: alterar %s (%s). Chame update_customer com os mesmos parâmetros e confirmed=true para executar.", args.Name, detail),
-			ToolName:  "update_customer",
-			IsWrite:   true,
-			IsPreview: true,
-		}
-	}
-
 	result, err := executeCustomerUpdate(te.App, operatorName, p)
 	if err != nil {
-		return toolResult{Text: "Erro ao alterar: " + err.Error(), ToolName: "update_customer", IsWrite: true}
+		return toolResult{Text: "Erro ao alterar: " + err.Error(), IsWrite: true}
 	}
-	return toolResult{Text: result, ToolName: "update_customer", IsWrite: true}
+	return toolResult{Text: result, IsWrite: true}
 }
 
 func (te *ToolExecutor) pauseCustomer(input json.RawMessage, operatorName string) toolResult {
 	var args struct {
-		Name      string `json:"name"`
-		Reason    string `json:"reason"`
-		Confirmed bool   `json:"confirmed"`
+		Name   string `json:"name"`
+		Reason string `json:"reason"`
 	}
 	if err := json.Unmarshal(input, &args); err != nil {
-		return toolResult{Text: "Erro ao ler parâmetros.", ToolName: "pause_customer", IsWrite: true}
+		return toolResult{Text: "Erro ao ler parâmetros.", IsWrite: true}
 	}
 
 	p := &CustomerPauseParams{Name: args.Name}
@@ -606,61 +552,41 @@ func (te *ToolExecutor) pauseCustomer(input json.RawMessage, operatorName string
 		p.Reason = &args.Reason
 	}
 
-	if !args.Confirmed {
-		return toolResult{
-			Text:      fmt.Sprintf("Preview: pausar %s. Chame pause_customer com os mesmos parâmetros e confirmed=true para executar.", args.Name),
-			ToolName:  "pause_customer",
-			IsWrite:   true,
-			IsPreview: true,
-		}
-	}
-
 	result, err := executeCustomerPause(te.App, operatorName, p)
 	if err != nil {
-		return toolResult{Text: "Erro ao pausar: " + err.Error(), ToolName: "pause_customer", IsWrite: true}
+		return toolResult{Text: "Erro ao pausar: " + err.Error(), IsWrite: true}
 	}
-	return toolResult{Text: result, ToolName: "pause_customer", IsWrite: true}
+	return toolResult{Text: result, IsWrite: true}
 }
 
 func (te *ToolExecutor) generatePost(input json.RawMessage, operatorName string) toolResult {
 	var args struct {
 		CustomerName string `json:"customer_name"`
-		Confirmed    bool   `json:"confirmed"`
 	}
 	if err := json.Unmarshal(input, &args); err != nil {
-		return toolResult{Text: "Erro ao ler parâmetros.", ToolName: "generate_post", IsWrite: true}
+		return toolResult{Text: "Erro ao ler parâmetros.", IsWrite: true}
 	}
 
 	p := &PostGenerateParams{Name: args.CustomerName}
 
-	if !args.Confirmed {
-		return toolResult{
-			Text:      fmt.Sprintf("Preview: gerar posts para %s. Chame generate_post com os mesmos parâmetros e confirmed=true para executar.", args.CustomerName),
-			ToolName:  "generate_post",
-			IsWrite:   true,
-			IsPreview: true,
-		}
-	}
-
 	result, err := executePostGenerate(te.Ctx, te.App, operatorName, p, te.Generate)
 	if err != nil {
-		return toolResult{Text: "Erro ao gerar: " + err.Error(), ToolName: "generate_post", IsWrite: true}
+		return toolResult{Text: "Erro ao gerar: " + err.Error(), IsWrite: true}
 	}
-	return toolResult{Text: result, ToolName: "generate_post", IsWrite: true}
+	return toolResult{Text: result, IsWrite: true}
 }
 
 func (te *ToolExecutor) approvePost(input json.RawMessage, operatorName string) toolResult {
 	var args struct {
 		PostID       string `json:"post_id"`
 		CustomerName string `json:"customer_name"`
-		Confirmed    bool   `json:"confirmed"`
 	}
 	if err := json.Unmarshal(input, &args); err != nil {
-		return toolResult{Text: "Erro ao ler parâmetros.", ToolName: "approve_post", IsWrite: true}
+		return toolResult{Text: "Erro ao ler parâmetros.", IsWrite: true}
 	}
 
 	if err := validatePostApprove(&PostApproveParams{PostId: args.PostID}, operatorName); err != nil {
-		return toolResult{Text: err.Error(), ToolName: "approve_post", IsWrite: true}
+		return toolResult{Text: err.Error(), IsWrite: true}
 	}
 
 	p := &PostApproveParams{PostId: args.PostID, Name: args.CustomerName}
@@ -669,20 +595,11 @@ func (te *ToolExecutor) approvePost(input json.RawMessage, operatorName string) 
 		te.Posts = append(te.Posts, record)
 	}
 
-	if !args.Confirmed {
-		return toolResult{
-			Text:      fmt.Sprintf("Preview: aprovar post %s. Chame approve_post com os mesmos parâmetros e confirmed=true para executar.", args.PostID),
-			ToolName:  "approve_post",
-			IsWrite:   true,
-			IsPreview: true,
-		}
-	}
-
 	result, err := executePostApprove(te.App, operatorName, p)
 	if err != nil {
-		return toolResult{Text: "Erro ao aprovar: " + err.Error(), ToolName: "approve_post", IsWrite: true}
+		return toolResult{Text: "Erro ao aprovar: " + err.Error(), IsWrite: true}
 	}
-	return toolResult{Text: result, ToolName: "approve_post", IsWrite: true}
+	return toolResult{Text: result, IsWrite: true}
 }
 
 func (te *ToolExecutor) rejectPost(input json.RawMessage, operatorName string) toolResult {
@@ -690,14 +607,13 @@ func (te *ToolExecutor) rejectPost(input json.RawMessage, operatorName string) t
 		PostID       string `json:"post_id"`
 		CustomerName string `json:"customer_name"`
 		Feedback     string `json:"feedback"`
-		Confirmed    bool   `json:"confirmed"`
 	}
 	if err := json.Unmarshal(input, &args); err != nil {
-		return toolResult{Text: "Erro ao ler parâmetros.", ToolName: "reject_post", IsWrite: true}
+		return toolResult{Text: "Erro ao ler parâmetros.", IsWrite: true}
 	}
 
 	if err := validatePostReject(&PostRejectParams{PostId: args.PostID, Feedback: args.Feedback}, operatorName); err != nil {
-		return toolResult{Text: err.Error(), ToolName: "reject_post", IsWrite: true}
+		return toolResult{Text: err.Error(), IsWrite: true}
 	}
 
 	p := &PostRejectParams{PostId: args.PostID, Name: args.CustomerName, Feedback: args.Feedback}
@@ -706,18 +622,9 @@ func (te *ToolExecutor) rejectPost(input json.RawMessage, operatorName string) t
 		te.Posts = append(te.Posts, record)
 	}
 
-	if !args.Confirmed {
-		return toolResult{
-			Text:      fmt.Sprintf("Preview: rejeitar post %s. Feedback: %s. Chame reject_post com os mesmos parâmetros e confirmed=true para executar.", args.PostID, args.Feedback),
-			ToolName:  "reject_post",
-			IsWrite:   true,
-			IsPreview: true,
-		}
-	}
-
 	result, err := executePostReject(te.App, operatorName, p)
 	if err != nil {
-		return toolResult{Text: "Erro ao rejeitar: " + err.Error(), ToolName: "reject_post", IsWrite: true}
+		return toolResult{Text: "Erro ao rejeitar: " + err.Error(), IsWrite: true}
 	}
-	return toolResult{Text: result, ToolName: "reject_post", IsWrite: true}
+	return toolResult{Text: result, IsWrite: true}
 }

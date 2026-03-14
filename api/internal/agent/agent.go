@@ -18,8 +18,6 @@ import (
 	"github.com/pocketbase/pocketbase/core"
 )
 
-const fallbackPreviewReply = ", anotado! Aguardando sua confirmação."
-
 // Agent handles WhatsApp group messages for the operator chat.
 type Agent struct {
 	App        core.App
@@ -189,9 +187,6 @@ func (a *Agent) processWithTools(ctx context.Context, groupJID types.JID, operat
 	}
 
 	reply := tuResult.Reply
-	if reply == "" && tuResult.PreviewUsed && len(tuResult.ToolsCalled) > 0 {
-		reply = operatorName + fallbackPreviewReply
-	}
 	if len(tuResult.Posts) > 0 {
 		reply += "\n\n" + formatPostDetails(tuResult.BizNames, tuResult.Posts)
 	}
@@ -383,25 +378,20 @@ func (a *Agent) sendAndLog(ctx context.Context, groupJID types.JID, operatorName
 	}
 
 	// Store final assistant reply with structured data.
-	// Skip when loop stopped for preview: the loop messages already capture the
-	// tool_use+tool_result exchange. Adding another text-only assistant message
-	// would break the conversation context for the confirmation follow-up.
-	if len(result.FinalMsg.Content) > 0 || len(result.LoopMsgs) == 0 {
-		storedContent := result.ReplyText
-		if result.ToolSummary != "" {
-			storedContent += "\n\n" + result.ToolSummary
+	storedContent := result.ReplyText
+	if result.ToolSummary != "" {
+		storedContent += "\n\n" + result.ToolSummary
+	}
+	finalMsg := result.FinalMsg
+	if len(finalMsg.Content) == 0 {
+		finalMsg = anthropic.MessageParam{
+			Role:    anthropic.MessageParamRoleAssistant,
+			Content: []anthropic.ContentBlockParamUnion{anthropic.NewTextBlock(result.ReplyText)},
 		}
-		finalMsg := result.FinalMsg
-		if len(finalMsg.Content) == 0 {
-			finalMsg = anthropic.MessageParam{
-				Role:    anthropic.MessageParamRoleAssistant,
-				Content: []anthropic.ContentBlockParamUnion{anthropic.NewTextBlock(result.ReplyText)},
-			}
-		}
-		replyStructured := marshalMessageParam(finalMsg)
-		if err := StoreMessage(a.App, "Rekan", "", "assistant", storedContent, "", replyStructured); err != nil {
-			a.Logger.Error("agent: failed to store assistant message", "error", err)
-		}
+	}
+	replyStructured := marshalMessageParam(finalMsg)
+	if err := StoreMessage(a.App, "Rekan", "", "assistant", storedContent, "", replyStructured); err != nil {
+		a.Logger.Error("agent: failed to store assistant message", "error", err)
 	}
 	LogAction(a.App, operatorName, operatorJID, result.ActionType, nil, result.ReplyText, true, start)
 }

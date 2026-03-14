@@ -6,7 +6,6 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/anthropics/anthropic-sdk-go"
 	content "github.com/denisraison/rekan/api/internal/content"
 	"github.com/denisraison/rekan/api/internal/domain"
 
@@ -79,17 +78,15 @@ func callTool(t *testing.T, te *ToolExecutor, name string, args any, operatorNam
 	return te.executeTool(name, json.RawMessage(input), operatorName)
 }
 
-// TestCustomerCreate_HappyPath: call create_customer with confirmed=true, verify DB record.
 func TestCustomerCreate_HappyPath(t *testing.T) {
 	app := newWave4TestApp(t)
 	te := newExecutor(t, app)
 
 	result := callTool(t, te, "create_customer", map[string]any{
-		"name":      "Ana",
-		"type":      "Manicure",
-		"city":      "Goiania",
-		"phone":     "62999990000",
-		"confirmed": true,
+		"name":  "Ana",
+		"type":  "Manicure",
+		"city":  "Goiania",
+		"phone": "62999990000",
 	}, "Elenice")
 
 	if !strings.Contains(result.Text, "cadastrada") {
@@ -118,47 +115,14 @@ func TestCustomerCreate_HappyPath(t *testing.T) {
 	}
 }
 
-// TestCustomerCreate_Preview: confirmed=false returns preview, no DB record.
-func TestCustomerCreate_Preview(t *testing.T) {
-	app := newWave4TestApp(t)
-	te := newExecutor(t, app)
-
-	result := callTool(t, te, "create_customer", map[string]any{
-		"name":      "Ana",
-		"type":      "Manicure",
-		"city":      "Goiania",
-		"phone":     "62999990000",
-		"confirmed": false,
-	}, "Elenice")
-
-	if !result.IsPreview {
-		t.Error("expected IsPreview=true for confirmed=false")
-	}
-	if !strings.Contains(result.Text, "Preview") {
-		t.Errorf("expected 'Preview' in result, got: %s", result.Text)
-	}
-
-	allBiz, err := app.FindAllRecords(domain.CollBusinesses)
-	if err != nil {
-		t.Fatal(err)
-	}
-	for _, b := range allBiz {
-		if b.GetString("name") == "Ana" {
-			t.Error("business 'Ana' should not exist after preview")
-		}
-	}
-}
-
-// TestCustomerUpdate_HappyPath: seed business, call update with confirmed=true, verify DB.
 func TestCustomerUpdate_HappyPath(t *testing.T) {
 	app := newWave4TestApp(t)
 	wave4SeedBusiness(t, app, "Patricia", "Salão", "BH")
 	te := newExecutor(t, app)
 
 	result := callTool(t, te, "update_customer", map[string]any{
-		"name":      "Patricia",
-		"city":      "Contagem",
-		"confirmed": true,
+		"name": "Patricia",
+		"city": "Contagem",
 	}, "Bruna")
 
 	if !strings.Contains(result.Text, "atualizada") {
@@ -180,15 +144,13 @@ func TestCustomerUpdate_HappyPath(t *testing.T) {
 	t.Fatal("Patricia not found in DB")
 }
 
-// TestCustomerUpdate_NotFound: update non-existent customer.
 func TestCustomerUpdate_NotFound(t *testing.T) {
 	app := newWave4TestApp(t)
 	te := newExecutor(t, app)
 
 	result := callTool(t, te, "update_customer", map[string]any{
-		"name":      "Inexistente",
-		"city":      "SP",
-		"confirmed": true,
+		"name": "Inexistente",
+		"city": "SP",
 	}, "Bruna")
 
 	if !strings.Contains(result.Text, "não encontrei") {
@@ -196,16 +158,14 @@ func TestCustomerUpdate_NotFound(t *testing.T) {
 	}
 }
 
-// TestCustomerPause_HappyPath: seed, call pause with confirmed=true, verify invite_status.
 func TestCustomerPause_HappyPath(t *testing.T) {
 	app := newWave4TestApp(t)
 	wave4SeedBusiness(t, app, "Joana", "Loja", "RJ")
 	te := newExecutor(t, app)
 
 	result := callTool(t, te, "pause_customer", map[string]any{
-		"name":      "Joana",
-		"reason":    "vai viajar",
-		"confirmed": true,
+		"name":   "Joana",
+		"reason": "vai viajar",
 	}, "Bruna")
 
 	if !strings.Contains(result.Text, "pausada") {
@@ -227,7 +187,6 @@ func TestCustomerPause_HappyPath(t *testing.T) {
 	t.Fatal("Joana not found in DB")
 }
 
-// TestPostGenerate_HappyPath: seed business, call generate with confirmed=true, verify post created.
 func TestPostGenerate_HappyPath(t *testing.T) {
 	app := newWave4TestApp(t)
 	wave4SeedBusiness(t, app, "Patricia", "Salão", "BH")
@@ -248,7 +207,6 @@ func TestPostGenerate_HappyPath(t *testing.T) {
 
 	result := callTool(t, te, "generate_post", map[string]any{
 		"customer_name": "Patricia",
-		"confirmed":     true,
 	}, "Elenice")
 
 	if !strings.Contains(result.Text, "post gerado") {
@@ -271,7 +229,6 @@ func TestPostGenerate_HappyPath(t *testing.T) {
 	}
 }
 
-// TestPostApprove_HappyPath: seed business + post, call approve with confirmed=true, verify reviewed=true.
 func TestPostApprove_HappyPath(t *testing.T) {
 	app := newWave4TestApp(t)
 	biz := wave4SeedBusiness(t, app, "Patricia", "Salão", "BH")
@@ -281,7 +238,6 @@ func TestPostApprove_HappyPath(t *testing.T) {
 	result := callTool(t, te, "approve_post", map[string]any{
 		"post_id":       post.Id,
 		"customer_name": "Patricia",
-		"confirmed":     true,
 	}, "Bruna")
 
 	if !strings.Contains(result.Text, "aprovado") {
@@ -297,7 +253,6 @@ func TestPostApprove_HappyPath(t *testing.T) {
 	}
 }
 
-// TestPostReject_WithFeedback: reject with feedback, verify reviewed=true and review_note.
 func TestPostReject_WithFeedback(t *testing.T) {
 	app := newWave4TestApp(t)
 	biz := wave4SeedBusiness(t, app, "Maria", "Confeitaria", "SP")
@@ -308,7 +263,6 @@ func TestPostReject_WithFeedback(t *testing.T) {
 		"post_id":       post.Id,
 		"customer_name": "Maria",
 		"feedback":      "muito genérico",
-		"confirmed":     true,
 	}, "Elenice")
 
 	if !strings.Contains(result.Text, "rejeitado") {
@@ -331,9 +285,6 @@ func TestPostReject_WithFeedback(t *testing.T) {
 // (already stored in DB before buildClaudeMessages runs) doesn't produce duplicate
 // consecutive user messages that violate the Claude API contract.
 func TestBuildClaudeMessages_DuplicateCurrentMessage(t *testing.T) {
-	// Simulate the exact DB state from the prod bug:
-	// ProcessMessage stores the user message first, then LoadRecentAndPrune
-	// loads it back, and buildClaudeMessages appends it again.
 	history := []ConversationMessage{
 		{Role: "user", Structured: `{"role":"user","content":[{"text":"Quais clientes?","type":"text"}]}`},
 		{Role: "assistant", Structured: `{"role":"assistant","content":[{"id":"toolu_xxx","input":{},"name":"list_customers","type":"tool_use"}]}`},
@@ -344,14 +295,12 @@ func TestBuildClaudeMessages_DuplicateCurrentMessage(t *testing.T) {
 
 	msgs := buildClaudeMessages(history, "algum post pendente?")
 
-	// Check alternating roles
 	for i := 1; i < len(msgs); i++ {
 		if msgs[i].Role == msgs[i-1].Role {
 			t.Errorf("consecutive same role at index %d and %d: both %q", i-1, i, msgs[i].Role)
 		}
 	}
 
-	// Check no orphaned tool_result blocks
 	for i, msg := range msgs {
 		if msg.Role != "user" {
 			continue
@@ -402,7 +351,6 @@ func TestBuildClaudeMessages_OrphanedToolResult(t *testing.T) {
 // TestBuildClaudeMessages_OrphanedToolUse verifies that tool_use blocks
 // without a matching tool_result in the next message are stripped.
 func TestBuildClaudeMessages_OrphanedToolUse(t *testing.T) {
-	// tool_use in assistant but the following user message is plain text (no tool_result)
 	history := []ConversationMessage{
 		{Role: "user", Structured: `{"role":"user","content":[{"text":"busca","type":"text"}]}`},
 		{Role: "assistant", Structured: `{"role":"assistant","content":[{"id":"toolu_orphan","input":{},"name":"find_customer","type":"tool_use"}]}`},
@@ -420,7 +368,6 @@ func TestBuildClaudeMessages_OrphanedToolUse(t *testing.T) {
 		}
 	}
 
-	// Should still have user/assistant/user messages (without the empty assistant)
 	for i := 1; i < len(msgs); i++ {
 		if msgs[i].Role == msgs[i-1].Role {
 			t.Errorf("consecutive same role at index %d and %d: both %q", i-1, i, msgs[i].Role)
@@ -428,101 +375,26 @@ func TestBuildClaudeMessages_OrphanedToolUse(t *testing.T) {
 	}
 }
 
-// TestPreviewFlow_NoExtraAssistantMessage verifies that after a preview (loop stopped
-// for confirmation), the conversation context lets Claude see the pending tool_use
-// so it can follow up with confirmed=true.
-func TestPreviewFlow_NoExtraAssistantMessage(t *testing.T) {
-	// Simulate the DB state after a preview flow where sendAndLog stored
-	// only the loop messages (no extra text-only assistant message).
-	history := []ConversationMessage{
-		{Role: "user", Structured: `{"role":"user","content":[{"text":"rejeita o post da Nika, muito genérico","type":"text"}]}`},
-		{Role: "assistant", Structured: `{"role":"assistant","content":[{"text":"Vou mostrar o preview.","type":"text"},{"id":"toolu_preview","input":{"post_id":"p1","feedback":"genérico","confirmed":false},"name":"reject_post","type":"tool_use"}]}`},
-		{Role: "user", Structured: `{"role":"user","content":[{"tool_use_id":"toolu_preview","is_error":false,"content":[{"text":"Preview: rejeitar post p1. Aguardando confirmação.","type":"text"}],"type":"tool_result"}]}`},
-		// NO extra assistant text message (this is the fix)
-		// User confirmation stored by ProcessMessage:
-		{Role: "user", Structured: `{"role":"user","content":[{"text":"sim","type":"text"}]}`},
-	}
-
-	msgs := buildClaudeMessages(history, "sim")
-
-	// The last assistant message should contain the tool_use block,
-	// so Claude knows there's a pending confirmation
-	var lastAssistant anthropic.MessageParam
-	for _, msg := range msgs {
-		if msg.Role == anthropic.MessageParamRoleAssistant {
-			lastAssistant = msg
-		}
-	}
-
-	hasToolUse := false
-	for _, block := range lastAssistant.Content {
-		if block.OfToolUse != nil && block.OfToolUse.Name == "reject_post" {
-			hasToolUse = true
-		}
-	}
-	if !hasToolUse {
-		t.Error("last assistant message should contain reject_post tool_use for confirmation context")
-		for i, msg := range msgs {
-			out, _ := json.Marshal(msg)
-			t.Logf("messages[%d]: %s", i, out)
-		}
-	}
-
-	// The last user message should contain the confirmation text
-	lastUser := msgs[len(msgs)-1]
-	hasConfirmText := false
-	for _, block := range lastUser.Content {
-		if block.OfText != nil && block.OfText.Text == "sim" {
-			hasConfirmText = true
-		}
-	}
-	if !hasConfirmText {
-		t.Error("last user message should contain confirmation text")
-	}
-
-	// Verify the broken case: if an extra assistant text message were stored
-	// (the old behavior), the tool_use context would be lost
-	historyWithExtra := append(history[:3:3],
-		ConversationMessage{Role: "assistant", Structured: `{"role":"assistant","content":[{"text":"Post da Nika sobre costura...","type":"text"}]}`},
-		history[3],
-	)
-	msgsWithExtra := buildClaudeMessages(historyWithExtra, "sim")
-
-	var lastAssistantExtra anthropic.MessageParam
-	for _, msg := range msgsWithExtra {
-		if msg.Role == anthropic.MessageParamRoleAssistant {
-			lastAssistantExtra = msg
-		}
-	}
-	for _, block := range lastAssistantExtra.Content {
-		if block.OfToolUse != nil {
-			t.Error("with extra assistant message, tool_use should have been sanitized (proving the old behavior was broken)")
-		}
-	}
-}
-
-// TestDoubleConfirmation_Idempotent: call create_customer with confirmed=true twice, findDuplicate catches second.
-func TestDoubleConfirmation_Idempotent(t *testing.T) {
+// TestDoubleCreate_Idempotent: call create_customer twice, findDuplicate catches second.
+func TestDoubleCreate_Idempotent(t *testing.T) {
 	app := newWave4TestApp(t)
 	te := newExecutor(t, app)
 
 	callTool(t, te, "create_customer", map[string]any{
-		"name":      "Ana",
-		"type":      "Manicure",
-		"city":      "SP",
-		"phone":     "11999990000",
-		"confirmed": true,
+		"name":  "Ana",
+		"type":  "Manicure",
+		"city":  "SP",
+		"phone": "11999990000",
 	}, "Elenice")
 
 	// Reset cached businesses so findDuplicate picks up the new record
 	te.businesses = nil
 
 	result := callTool(t, te, "create_customer", map[string]any{
-		"name":      "Ana",
-		"type":      "Manicure",
-		"city":      "SP",
-		"phone":     "11999990000",
-		"confirmed": true,
+		"name":  "Ana",
+		"type":  "Manicure",
+		"city":  "SP",
+		"phone": "11999990000",
 	}, "Elenice")
 
 	if !strings.Contains(result.Text, "já existe") {
