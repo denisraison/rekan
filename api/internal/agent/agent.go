@@ -329,7 +329,9 @@ func describeAction(state *OperatorState) string {
 	var nameHolder struct {
 		Name string `json:"name"`
 	}
-	_ = json.Unmarshal(state.CollectedFields, &nameHolder)
+	if err := json.Unmarshal(state.CollectedFields, &nameHolder); err != nil {
+		return state.ActionType
+	}
 
 	labels := map[string]string{
 		ActionCustomerCreate: "Cadastrar cliente",
@@ -381,6 +383,8 @@ func (a *Agent) handleStatefulMessage(ctx context.Context, groupJID types.JID, m
 			confirmed = true
 		case ClassCancel:
 			cancelled = true
+		case ClassOther:
+			// treated as neither confirmation nor cancellation
 		}
 	}
 

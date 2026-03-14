@@ -334,7 +334,7 @@ func (te *ToolExecutor) findPost(input json.RawMessage) string {
 	}
 	result := fmt.Sprintf("Post: %s | Cliente: %s | Status: %s", record.Id, bizName, status)
 	if note := record.GetString("review_note"); note != "" {
-		result += fmt.Sprintf(" | Nota: %s", note)
+		result += " | Nota: " + note
 	}
 	return result
 }
