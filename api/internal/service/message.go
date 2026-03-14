@@ -34,22 +34,6 @@ func wrapNotFound(err error, msg string) error {
 	return err
 }
 
-// SimulateTyping shows a typing indicator, waits 1-3s, runs fn, then clears
-// the indicator. The typing indicator is best-effort (errors are ignored).
-func SimulateTyping(ctx context.Context, waClient *wa.Client, jid types.JID, fn func() error) error {
-	waClient.SendChatPresence(ctx, jid, types.ChatPresenceComposing, "") //nolint:errcheck // best-effort typing indicator
-	delay := time.Duration(1000+rand.IntN(2000)) * time.Millisecond
-	select {
-	case <-time.After(delay):
-	case <-ctx.Done():
-		waClient.SendChatPresence(ctx, jid, types.ChatPresencePaused, "") //nolint:errcheck // best-effort typing indicator
-		return ctx.Err()
-	}
-	err := fn()
-	waClient.SendChatPresence(ctx, jid, types.ChatPresencePaused, "") //nolint:errcheck // best-effort typing indicator
-	return err
-}
-
 // StoreOutgoingMessage saves an outgoing message record. Errors are logged but
 // not returned since message storage is best-effort.
 func StoreOutgoingMessage(app core.App, businessID, phone, msgType, content string, media *filesystem.File) {
@@ -98,37 +82,40 @@ func SendTextMessage(ctx context.Context, app core.App, waClient *wa.Client, par
 		text += "\n\n" + params.Hashtags
 	}
 
-	err = SimulateTyping(ctx, waClient, jid, func() error {
-		_, err := waClient.SendMessage(ctx, jid, &waE2E.Message{
-			Conversation: &text,
-		})
-		return err
-	})
-	if err != nil {
+	stop := wa.Typing(ctx, waClient, jid)
+	if _, err = waClient.SendMessage(ctx, jid, &waE2E.Message{
+		Conversation: &text,
+	}); err != nil {
+		stop()
 		return err
 	}
+	stop()
 
 	StoreOutgoingMessage(app, params.BusinessID, phone, domain.MsgTypeText, text, nil)
 
 	if strings.TrimSpace(params.ProductionNote) != "" {
 		time.Sleep(time.Duration(500+rand.IntN(1000)) * time.Millisecond)
 
+		stop = wa.Typing(ctx, waClient, jid)
 		noteText := "*Dica de foto:* " + params.ProductionNote
 		if _, err := waClient.SendMessage(ctx, jid, &waE2E.Message{
 			Conversation: &noteText,
 		}); err != nil {
 			app.Logger().Error("sendTextMessage: production note", "error", err)
 		}
+		stop()
 		StoreOutgoingMessage(app, params.BusinessID, phone, domain.MsgTypeText, noteText, nil)
 
 		// Posting time tip
 		time.Sleep(time.Duration(500+rand.IntN(1000)) * time.Millisecond)
+		stop = wa.Typing(ctx, waClient, jid)
 		tipText := postingtime.Tip(business.GetString("type"))
 		if _, err := waClient.SendMessage(ctx, jid, &waE2E.Message{
 			Conversation: &tipText,
 		}); err != nil {
 			app.Logger().Error("sendTextMessage: posting time tip", "error", err)
 		}
+		stop()
 		StoreOutgoingMessage(app, params.BusinessID, phone, domain.MsgTypeText, tipText, nil)
 	}
 
@@ -198,11 +185,10 @@ func SendMediaMessage(ctx context.Context, app core.App, waClient *wa.Client, pa
 		}
 	}
 
-	err = SimulateTyping(ctx, waClient, jid, func() error {
-		_, err := waClient.SendMessage(ctx, jid, msg)
-		return err
-	})
-	if err != nil {
+	stop := wa.Typing(ctx, waClient, jid)
+	defer stop()
+
+	if _, err = waClient.SendMessage(ctx, jid, msg); err != nil {
 		return err
 	}
 

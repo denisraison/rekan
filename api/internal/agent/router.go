@@ -216,7 +216,11 @@ func executePostGenerate(ctx context.Context, app core.App, operatorName string,
 	}
 
 	post := result.Posts[0]
-	return fmt.Sprintf("%s, post gerado pra %s! \"%s\" (%s)", operatorName, biz.GetString("name"), truncate(post.Caption, 80), post.ID), nil
+	var b strings.Builder
+	fmt.Fprintf(&b, "%s, post gerado pra %s!\n\n", operatorName, biz.GetString("name"))
+	appendPostFields(&b, post.Caption, post.Hashtags, post.ProductionNote)
+	fmt.Fprintf(&b, "ID: %s", post.ID)
+	return b.String(), nil
 }
 
 func executePostApprove(app core.App, operatorName string, p *PostApproveParams) (string, error) {

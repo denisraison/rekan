@@ -60,13 +60,12 @@ func ApproveScheduledMessage(ctx context.Context, app core.App, wa *whatsapp.Cli
 	text := record.GetString("text")
 	jid := types.NewJID(phone, types.DefaultUserServer)
 
-	err = SimulateTyping(ctx, wa, jid, func() error {
-		_, err := wa.SendMessage(ctx, jid, &waE2E.Message{
-			Conversation: &text,
-		})
-		return err
-	})
-	if err != nil {
+	stop := whatsapp.Typing(ctx, wa, jid)
+	defer stop()
+
+	if _, err = wa.SendMessage(ctx, jid, &waE2E.Message{
+		Conversation: &text,
+	}); err != nil {
 		return err
 	}
 

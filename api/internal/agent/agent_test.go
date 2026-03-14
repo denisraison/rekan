@@ -52,6 +52,10 @@ func (f *fakeWAClient) Upload(_ context.Context, _ []byte, _ whatsmeow.MediaType
 	return whatsmeow.UploadResponse{}, nil
 }
 
+func (f *fakeWAClient) SendChatPresence(_ context.Context, _ types.JID, _ types.ChatPresence, _ types.ChatPresenceMedia) error {
+	return nil
+}
+
 func (f *fakeWAClient) sentMessages() []string {
 	f.mu.Lock()
 	defer f.mu.Unlock()

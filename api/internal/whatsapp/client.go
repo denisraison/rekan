@@ -198,6 +198,23 @@ func (c *Client) SendChatPresence(ctx context.Context, jid types.JID, state type
 	return c.wac.SendChatPresence(ctx, jid, state, media)
 }
 
+// PresenceSender can send chat presence updates.
+type PresenceSender interface {
+	SendChatPresence(ctx context.Context, jid types.JID, state types.ChatPresence, media types.ChatPresenceMedia) error
+}
+
+// Typing sends a "composing" indicator and returns a function that clears it.
+// Both calls are best-effort (errors are silently ignored).
+//
+//	stop := whatsapp.Typing(ctx, c, jid)
+//	defer stop()
+func Typing(ctx context.Context, ps PresenceSender, jid types.JID) func() {
+	ps.SendChatPresence(ctx, jid, types.ChatPresenceComposing, "") //nolint:errcheck
+	return func() {
+		ps.SendChatPresence(ctx, jid, types.ChatPresencePaused, "") //nolint:errcheck
+	}
+}
+
 // Upload uploads media to WhatsApp servers for later inclusion in a message.
 func (c *Client) Upload(ctx context.Context, data []byte, mediaType whatsmeow.MediaType) (whatsmeow.UploadResponse, error) {
 	return c.wac.Upload(ctx, data, mediaType)

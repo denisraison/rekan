@@ -13,6 +13,7 @@ import (
 
 	content "github.com/denisraison/rekan/api/internal/content"
 	"github.com/denisraison/rekan/api/internal/transcribe"
+	wa "github.com/denisraison/rekan/api/internal/whatsapp"
 	"github.com/pocketbase/pocketbase/core"
 )
 
@@ -157,6 +158,9 @@ func (a *Agent) ProcessMessage(groupJID types.JID, messageID string, senderJID t
 		a.Logger.Error("agent: react thumbs up", "error", err)
 	}
 
+	stop := wa.Typing(ctx, a.WAClient, groupJID)
+	defer stop()
+
 	result, err := a.processWithTools(ctx, groupJID, state, operatorName, operatorJID, message)
 	if err != nil {
 		a.Logger.Error("agent: tool-use loop failed", "error", err)
@@ -288,6 +292,9 @@ func toolNameToActionType(name string) string {
 }
 
 func (a *Agent) handleStatefulMessage(ctx context.Context, groupJID types.JID, messageID string, senderJID types.JID, message, operatorName, operatorJID string, state *OperatorState, start time.Time) {
+	stop := wa.Typing(ctx, a.WAClient, groupJID)
+	defer stop()
+
 	actionType := state.ActionType
 
 	var replyText string

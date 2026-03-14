@@ -199,6 +199,27 @@ func (te *ToolExecutor) executeTool(name string, input json.RawMessage, operator
 	}
 }
 
+// appendPostFields writes caption, hashtags, and production note to b.
+func appendPostFields(b *strings.Builder, caption string, hashtags []string, productionNote string) {
+	fmt.Fprintf(b, "Legenda: %s\n", caption)
+	if len(hashtags) > 0 {
+		fmt.Fprintf(b, "Hashtags: %s\n", strings.Join(hashtags, " "))
+	}
+	if productionNote != "" {
+		fmt.Fprintf(b, "Nota de produção: %s\n", productionNote)
+	}
+}
+
+// appendPostFieldsJSON is like appendPostFields but decodes hashtags from a
+// raw JSON string (e.g. `["#foo","#bar"]`).
+func appendPostFieldsJSON(b *strings.Builder, caption, hashtagsJSON, productionNote string) {
+	var tags []string
+	if hashtagsJSON != "" {
+		json.Unmarshal([]byte(hashtagsJSON), &tags) //nolint:errcheck
+	}
+	appendPostFields(b, caption, tags, productionNote)
+}
+
 // --- Read tool implementations ---
 
 func (te *ToolExecutor) findCustomer(input json.RawMessage) string {
@@ -276,7 +297,7 @@ func (te *ToolExecutor) findPost(input json.RawMessage) string {
 	var b strings.Builder
 	fmt.Fprintf(&b, "Post: %s\n", record.Id)
 	fmt.Fprintf(&b, "Cliente: %s\n", bizName)
-	fmt.Fprintf(&b, "Legenda: %s\n", record.GetString("caption"))
+	appendPostFieldsJSON(&b, record.GetString("caption"), record.GetString("hashtags"), record.GetString("production_note"))
 	if record.GetBool("reviewed") {
 		b.WriteString("Status: revisado\n")
 	} else {
@@ -350,7 +371,7 @@ func (te *ToolExecutor) listPosts(input json.RawMessage) string {
 		if p.GetBool("reviewed") {
 			status = "revisado"
 		}
-		caption := truncate(p.GetString("caption"), 600)
+		caption := truncate(p.GetString("caption"), 300)
 		fmt.Fprintf(&b, "- %s: \"%s\" (%s) [%s]\n", name, caption, p.Id, status)
 	}
 	return b.String()

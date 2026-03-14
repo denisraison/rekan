@@ -12,10 +12,12 @@ import (
 // WAClient is the subset of whatsmeow.Client used by the agent.
 type WAClient interface {
 	SendMessage(ctx context.Context, to types.JID, msg *waE2E.Message) (whatsmeow.SendResponse, error)
+	SendChatPresence(ctx context.Context, jid types.JID, state types.ChatPresence, media types.ChatPresenceMedia) error
 	ResolveLID(ctx context.Context, jid types.JID) types.JID
 	Download(ctx context.Context, msg whatsmeow.DownloadableMessage) (data []byte, err error)
 	Upload(ctx context.Context, data []byte, mediaType whatsmeow.MediaType) (whatsmeow.UploadResponse, error)
 }
+
 
 // SendImage sends an image message to a WhatsApp chat.
 func SendImage(ctx context.Context, wa WAClient, to types.JID, imageData []byte, caption string) error {
