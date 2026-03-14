@@ -17,6 +17,7 @@ web/build/
 
 # Eval
 api/runs/
+/runs/
 
 # Generated posts
 rekan-posts/

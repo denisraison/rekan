@@ -194,7 +194,7 @@ func findCasesDir() string {
 }
 
 func findRunsDir() string {
-	return "../runs"
+	return "runs"
 }
 
 func truncateStr(s string, n int) string {
