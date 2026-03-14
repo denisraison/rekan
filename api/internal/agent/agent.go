@@ -234,10 +234,65 @@ func buildClaudeMessages(history []ConversationMessage, currentMessage string) [
 	// Ensure messages alternate roles (Claude API requirement)
 	messages = mergeConsecutiveRoles(messages)
 
-	// Add current message
-	messages = append(messages, anthropic.NewUserMessage(anthropic.NewTextBlock(currentMessage)))
+	// Remove orphaned tool_result blocks (e.g. when pruning cut a tool_use/tool_result pair)
+	messages = sanitizeToolPairs(messages)
+
+	// Add current message (may already be in history since ProcessMessage stores it before loading)
+	messages = appendOrMergeUser(messages, currentMessage)
 
 	return messages
+}
+
+// sanitizeToolPairs removes tool_result blocks whose tool_use_id has no matching
+// tool_use in the preceding assistant message. This happens when history pruning
+// deletes the assistant message but keeps the tool_result.
+func sanitizeToolPairs(messages []anthropic.MessageParam) []anthropic.MessageParam {
+	var result []anthropic.MessageParam
+	for i, msg := range messages {
+		if msg.Role != anthropic.MessageParamRoleUser {
+			result = append(result, msg)
+			continue
+		}
+
+		// Collect tool_use IDs from the preceding assistant message
+		toolUseIDs := map[string]bool{}
+		if i > 0 && messages[i-1].Role == anthropic.MessageParamRoleAssistant {
+			for _, block := range messages[i-1].Content {
+				if block.OfToolUse != nil {
+					toolUseIDs[block.OfToolUse.ID] = true
+				}
+			}
+		}
+
+		// Keep only blocks that are not orphaned tool_results
+		var kept []anthropic.ContentBlockParamUnion
+		for _, block := range msg.Content {
+			if block.OfToolResult != nil && !toolUseIDs[block.OfToolResult.ToolUseID] {
+				continue
+			}
+			kept = append(kept, block)
+		}
+
+		if len(kept) > 0 {
+			result = append(result, anthropic.MessageParam{Role: msg.Role, Content: kept})
+		}
+	}
+	return result
+}
+
+// appendOrMergeUser adds the current message. If the last message is already
+// a user message containing the same text (stored by ProcessMessage before
+// history was loaded), it skips the duplicate.
+func appendOrMergeUser(messages []anthropic.MessageParam, text string) []anthropic.MessageParam {
+	if n := len(messages); n > 0 && messages[n-1].Role == anthropic.MessageParamRoleUser {
+		last := messages[n-1]
+		for _, block := range last.Content {
+			if block.OfText != nil && block.OfText.Text == text {
+				return messages
+			}
+		}
+	}
+	return append(messages, anthropic.NewUserMessage(anthropic.NewTextBlock(text)))
 }
 
 // mergeConsecutiveRoles merges consecutive messages with the same role.

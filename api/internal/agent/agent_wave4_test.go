@@ -326,6 +326,79 @@ func TestPostReject_WithFeedback(t *testing.T) {
 	}
 }
 
+// TestBuildClaudeMessages_DuplicateCurrentMessage verifies that the current user message
+// (already stored in DB before buildClaudeMessages runs) doesn't produce duplicate
+// consecutive user messages that violate the Claude API contract.
+func TestBuildClaudeMessages_DuplicateCurrentMessage(t *testing.T) {
+	// Simulate the exact DB state from the prod bug:
+	// ProcessMessage stores the user message first, then LoadRecentAndPrune
+	// loads it back, and buildClaudeMessages appends it again.
+	history := []ConversationMessage{
+		{Role: "user", Structured: `{"role":"user","content":[{"text":"Quais clientes?","type":"text"}]}`},
+		{Role: "assistant", Structured: `{"role":"assistant","content":[{"id":"toolu_xxx","input":{},"name":"list_customers","type":"tool_use"}]}`},
+		{Role: "user", Structured: `{"role":"user","content":[{"tool_use_id":"toolu_xxx","is_error":false,"content":[{"text":"Clientes: 1","type":"text"}],"type":"tool_result"}]}`},
+		{Role: "assistant", Structured: `{"role":"assistant","content":[{"text":"Temos 1 cliente.","type":"text"}]}`},
+		{Role: "user", Structured: `{"role":"user","content":[{"text":"algum post pendente?","type":"text"}]}`},
+	}
+
+	msgs := buildClaudeMessages(history, "algum post pendente?")
+
+	// Check alternating roles
+	for i := 1; i < len(msgs); i++ {
+		if msgs[i].Role == msgs[i-1].Role {
+			t.Errorf("consecutive same role at index %d and %d: both %q", i-1, i, msgs[i].Role)
+		}
+	}
+
+	// Check no orphaned tool_result blocks
+	for i, msg := range msgs {
+		if msg.Role != "user" {
+			continue
+		}
+		for _, block := range msg.Content {
+			if block.OfToolResult == nil {
+				continue
+			}
+			toolUseID := block.OfToolResult.ToolUseID
+			if i == 0 {
+				t.Errorf("tool_result at messages[0] has no preceding assistant message")
+				continue
+			}
+			prev := msgs[i-1]
+			found := false
+			for _, pb := range prev.Content {
+				if pb.OfToolUse != nil && pb.OfToolUse.ID == toolUseID {
+					found = true
+					break
+				}
+			}
+			if !found {
+				t.Errorf("messages[%d] has tool_result referencing %q but preceding assistant message has no matching tool_use", i, toolUseID)
+			}
+		}
+	}
+}
+
+// TestBuildClaudeMessages_OrphanedToolResult verifies that tool_result blocks
+// without a matching tool_use (e.g. from history pruning) are stripped.
+func TestBuildClaudeMessages_OrphanedToolResult(t *testing.T) {
+	// Simulate pruning that cut the assistant tool_use but kept the tool_result
+	history := []ConversationMessage{
+		{Role: "user", Structured: `{"role":"user","content":[{"tool_use_id":"toolu_orphan","is_error":false,"content":[{"text":"result","type":"text"}],"type":"tool_result"}]}`},
+		{Role: "assistant", Structured: `{"role":"assistant","content":[{"text":"ok","type":"text"}]}`},
+	}
+
+	msgs := buildClaudeMessages(history, "oi")
+
+	for i, msg := range msgs {
+		for _, block := range msg.Content {
+			if block.OfToolResult != nil {
+				t.Errorf("messages[%d] still has orphaned tool_result for %q", i, block.OfToolResult.ToolUseID)
+			}
+		}
+	}
+}
+
 // TestDoubleConfirmation_Idempotent: call create_customer with confirmed=true twice, findDuplicate catches second.
 func TestDoubleConfirmation_Idempotent(t *testing.T) {
 	app := newWave4TestApp(t)
