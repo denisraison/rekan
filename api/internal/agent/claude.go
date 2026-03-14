@@ -33,11 +33,12 @@ type toolUseResult struct {
 	Reply       string
 	ToolsCalled []string
 	WriteUsed   bool
-	Posts       []*core.Record // posts referenced during execution, appended to reply
+	Posts       []*core.Record    // posts referenced during execution, appended to reply
+	BizNames    map[string]string // business ID -> display name
 }
 
 // RunToolLoop runs the Claude tool-use loop until a final reply or max round trips.
-func (cc *ClaudeClient) RunToolLoop(ctx context.Context, app core.App, state *OperatorState, operatorName, operatorJID string, gen content.GenerateFunc, messages []anthropic.MessageParam, systemPrompt string) (*toolUseResult, error) {
+func (cc *ClaudeClient) RunToolLoop(ctx context.Context, app core.App, state *OperatorState, operatorName, operatorJID string, gen content.GenerateFunc, messages []anthropic.MessageParam, systemPrompt string) (result *toolUseResult, err error) {
 	tools := agentTools
 
 	executor := &ToolExecutor{
@@ -47,10 +48,17 @@ func (cc *ClaudeClient) RunToolLoop(ctx context.Context, app core.App, state *Op
 		Generate:    gen,
 	}
 
-	result := &toolUseResult{}
+	result = &toolUseResult{}
+	defer func() {
+		if err == nil {
+			result.Posts = executor.Posts
+			result.BizNames = executor.bizNameMap()
+		}
+	}()
 
 	for range maxToolRoundTrips {
-		resp, err := cc.client.Messages.New(ctx, anthropic.MessageNewParams{
+		var resp *anthropic.Message
+		resp, err = cc.client.Messages.New(ctx, anthropic.MessageNewParams{
 			Model:     cc.model,
 			MaxTokens: 1024,
 			System:    []anthropic.TextBlockParam{{Text: systemPrompt}},
@@ -82,13 +90,11 @@ func (cc *ClaudeClient) RunToolLoop(ctx context.Context, app core.App, state *Op
 
 		// No tool calls means we're done
 		if len(toolResults) == 0 {
-			result.Posts = executor.Posts
 			return result, nil
 		}
 
 		// If a write tool was called, stop the loop (wait for confirmation)
 		if result.WriteUsed {
-			result.Posts = executor.Posts
 			return result, nil
 		}
 
@@ -100,6 +106,5 @@ func (cc *ClaudeClient) RunToolLoop(ctx context.Context, app core.App, state *Op
 	if result.Reply == "" {
 		result.Reply = operatorName + ", não consegui processar. Tenta de novo?"
 	}
-	result.Posts = executor.Posts
 	return result, nil
 }

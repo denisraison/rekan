@@ -214,7 +214,7 @@ func (a *Agent) processWithTools(ctx context.Context, groupJID types.JID, state 
 
 	reply := tuResult.Reply
 	if len(tuResult.Posts) > 0 {
-		reply += "\n\n" + formatPostDetails(a.App, tuResult.Posts)
+		reply += "\n\n" + formatPostDetails(tuResult.BizNames, tuResult.Posts)
 	}
 
 	return &agentResult{ReplyText: reply, ActionType: actionType}, nil

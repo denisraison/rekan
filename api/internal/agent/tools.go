@@ -163,6 +163,15 @@ func (te *ToolExecutor) loadBusinesses() []*core.Record {
 	return te.businesses
 }
 
+// bizNameMap returns a map of business ID to display name from the cached businesses.
+func (te *ToolExecutor) bizNameMap() map[string]string {
+	m := make(map[string]string, len(te.loadBusinesses()))
+	for _, biz := range te.businesses {
+		m[biz.Id] = biz.GetString("name")
+	}
+	return m
+}
+
 // toolResult is returned by executeTool to signal both the result text and whether a write was triggered.
 type toolResult struct {
 	Text     string
@@ -202,7 +211,8 @@ func (te *ToolExecutor) executeTool(name string, input json.RawMessage, operator
 
 // formatPostDetails builds a WhatsApp-friendly block with full post content.
 // Deduplicates by post ID in case the same post was referenced multiple times.
-func formatPostDetails(app core.App, posts []*core.Record) string {
+// bizNames maps business ID to display name.
+func formatPostDetails(bizNames map[string]string, posts []*core.Record) string {
 	seen := map[string]bool{}
 	var b strings.Builder
 	for _, p := range posts {
@@ -211,15 +221,16 @@ func formatPostDetails(app core.App, posts []*core.Record) string {
 		}
 		seen[p.Id] = true
 
-		bizName := p.GetString("business")
-		if biz, err := app.FindRecordById(domain.CollBusinesses, bizName); err == nil {
-			bizName = biz.GetString("name")
+		bizID := p.GetString("business")
+		name := bizNames[bizID]
+		if name == "" {
+			name = bizID
 		}
 
 		if b.Len() > 0 {
 			b.WriteString("\n")
 		}
-		fmt.Fprintf(&b, "*Post %s* (%s)\n", p.Id, bizName)
+		fmt.Fprintf(&b, "*Post %s* (%s)\n", p.Id, name)
 		appendPostFieldsJSON(&b, p.GetString("caption"), p.GetString("hashtags"), p.GetString("production_note"))
 	}
 	return b.String()
@@ -312,13 +323,7 @@ func (te *ToolExecutor) findPost(input json.RawMessage) string {
 		return fmt.Sprintf("Post %s não encontrado.", args.PostID)
 	}
 
-	bizID := record.GetString("business")
-	bizName := bizID
-	if bizID != "" {
-		if biz, err := te.App.FindRecordById(domain.CollBusinesses, bizID); err == nil {
-			bizName = biz.GetString("name")
-		}
-	}
+	bizName := resolveBusinessName(te.App, record, record.GetString("business"))
 
 	te.Posts = append(te.Posts, record)
 
