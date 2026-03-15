@@ -11,8 +11,6 @@ import (
 	"sync"
 	"time"
 
-	"github.com/anthropics/anthropic-sdk-go"
-	"github.com/anthropics/anthropic-sdk-go/option"
 	"github.com/denisraison/rekan/api/internal/service"
 	"gopkg.in/yaml.v3"
 )
@@ -81,17 +79,17 @@ type TestSuite struct {
 
 // TestResult holds the outcome of running a single test case.
 type TestResult struct {
-	ID          string
-	Passed      bool
-	Checks      []CheckResult
-	Reply       string
-	ToolsCalled []string
-	ToolLog     []toolCallEntry
-	InputTokens int
-	OutputTokens int
-	WallTimeMs  int64
+	ID             string
+	Passed         bool
+	Checks         []CheckResult
+	Reply          string
+	ToolsCalled    []string
+	ToolLog        []toolCallEntry
+	InputTokens    int
+	OutputTokens   int
+	WallTimeMs     int64
 	ToolRoundTrips int
-	Error       string
+	Error          string
 }
 
 // CheckResult is the outcome of a single assertion.
@@ -127,16 +125,15 @@ type evalResult struct {
 
 // RunEval runs all test cases in parallel (max 5 concurrent) and returns results.
 func RunEval(ctx context.Context, cases []TestCase) []TestResult {
-	apiKey := os.Getenv("CLAUDE_API_KEY")
-	client := anthropic.NewClient(option.WithAPIKey(apiKey))
+	client := NewClient()
 
 	results := make([]TestResult, len(cases))
 	sem := make(chan struct{}, 5)
 	var wg sync.WaitGroup
 
 	for i, tc := range cases {
+		sem <- struct{}{}
 		wg.Go(func() {
-			sem <- struct{}{}
 			defer func() { <-sem }()
 			results[i] = runAndGrade(ctx, client, tc)
 		})
@@ -146,7 +143,7 @@ func RunEval(ctx context.Context, cases []TestCase) []TestResult {
 	return results
 }
 
-func runAndGrade(ctx context.Context, client anthropic.Client, tc TestCase) TestResult {
+func runAndGrade(ctx context.Context, client *Client, tc TestCase) TestResult {
 	start := timeNowMs()
 	er, err := runEvalCase(ctx, client, tc)
 	elapsed := timeNowMs() - start
@@ -186,60 +183,65 @@ func runAndGrade(ctx context.Context, client anthropic.Client, tc TestCase) Test
 	return result
 }
 
-// runEvalCase runs a single test case through the Claude tool-use loop with mock data.
-func runEvalCase(ctx context.Context, client anthropic.Client, tc TestCase) (*evalResult, error) {
-	systemPrompt := buildSystemPrompt(tc.Operator.Name)
-	messages := []anthropic.MessageParam{
-		anthropic.NewUserMessage(anthropic.NewTextBlock(tc.Message)),
-	}
-	tools := agentTools
+// runEvalCase runs a single test case through the tool-use loop with mock data.
+func runEvalCase(ctx context.Context, client *Client, tc TestCase) (*evalResult, error) {
 	er := &evalResult{ToolArgs: make(map[string][]json.RawMessage)}
 	mock := &MockExecutor{Fixtures: tc.Fixtures, OperatorName: tc.Operator.Name}
 
-	for range maxToolRoundTrips {
-		resp, err := client.Messages.New(ctx, anthropic.MessageNewParams{
-			Model:     anthropic.ModelClaudeSonnet4_6,
-			MaxTokens: 1024,
-			System:    []anthropic.TextBlockParam{{Text: systemPrompt}},
-			Messages:  messages,
-			Tools:     tools,
-		})
-		if err != nil {
-			return nil, err
+	// Build mock tools that record calls in evalResult
+	mockTools := buildMockTools(mock, er)
+
+	systemPrompt := buildSystemPrompt(tc.Operator.Name)
+	runResult, err := client.Run(ctx, RunConfig{
+		System:    systemPrompt,
+		Messages:  []Message{NewUserMessage(NewTextBlock(tc.Message))},
+		Tools:     mockTools,
+		MaxTurns:  maxToolRoundTrips,
+		MaxTokens: 2048,
+	})
+	if err != nil {
+		return nil, err
+	}
+
+	er.Reply = runResult.Reply
+	for _, trace := range runResult.Traces {
+		er.InputTokens += trace.InputTokens
+		er.OutputTokens += trace.OutputTokens
+		if len(trace.ToolCalls) > 0 {
+			er.ToolRoundTrips++
 		}
-
-		er.InputTokens += int(resp.Usage.InputTokens)
-		er.OutputTokens += int(resp.Usage.OutputTokens)
-		messages = append(messages, resp.ToParam())
-
-		var toolResults []anthropic.ContentBlockParamUnion
-		for _, block := range resp.Content {
-			switch v := block.AsAny().(type) {
-			case anthropic.TextBlock:
-				er.Reply = v.Text
-			case anthropic.ToolUseBlock:
-				er.ToolsCalled = append(er.ToolsCalled, v.Name)
-				er.ToolArgs[v.Name] = append(er.ToolArgs[v.Name], v.Input)
-
-				mockResult := mock.Execute(v.Name, v.Input)
-				er.ToolLog = append(er.ToolLog, toolCallEntry{
-					Name:   v.Name,
-					Args:   truncate(string(v.Input), 80),
-					Result: truncate(mockResult, 60),
-				})
-				toolResults = append(toolResults, anthropic.NewToolResultBlock(v.ID, mockResult, false))
-			}
-		}
-
-		if len(toolResults) == 0 {
-			break
-		}
-
-		er.ToolRoundTrips++
-		messages = append(messages, anthropic.NewUserMessage(toolResults...))
 	}
 
 	return er, nil
+}
+
+// buildMockTools creates Tool values wrapping MockExecutor that record calls for eval grading.
+func buildMockTools(mock *MockExecutor, er *evalResult) []Tool {
+	// We need the same tool schemas as production. Build a dummy executor just for schemas.
+	prodTools := buildTools(&ToolExecutor{Ctx: context.Background()}, mock.OperatorName)
+
+	mockTools := make([]Tool, len(prodTools))
+	for i, pt := range prodTools {
+		toolName := pt.Name
+		mockTools[i] = Tool{
+			Name:        pt.Name,
+			Description: pt.Description,
+			InputSchema: pt.InputSchema,
+			Execute: func(_ context.Context, input json.RawMessage) (string, error) {
+				er.ToolsCalled = append(er.ToolsCalled, toolName)
+				er.ToolArgs[toolName] = append(er.ToolArgs[toolName], input)
+
+				mockResult := mock.Execute(toolName, input)
+				er.ToolLog = append(er.ToolLog, toolCallEntry{
+					Name:   toolName,
+					Args:   truncate(string(input), 80),
+					Result: truncate(mockResult, 60),
+				})
+				return mockResult, nil
+			},
+		}
+	}
+	return mockTools
 }
 
 // MockExecutor implements tool dispatch using structured fixtures.
@@ -249,7 +251,6 @@ type MockExecutor struct {
 }
 
 // Execute dispatches a mock tool call and returns the result string.
-// Output format matches the real ToolExecutor methods in tools.go.
 func (m *MockExecutor) Execute(name string, input json.RawMessage) string {
 	switch name {
 	case "find_customer":
@@ -398,7 +399,6 @@ func (m *MockExecutor) createCustomer(input json.RawMessage) string {
 		return "Erro ao ler parâmetros."
 	}
 
-	// Check for duplicate
 	for _, c := range m.Fixtures.Customers {
 		if strings.EqualFold(c.Name, args.Name) {
 			return fmt.Sprintf("%s já existe (%s, %s).", c.Name, c.Type, c.City)
@@ -436,7 +436,6 @@ func (m *MockExecutor) generatePost(input json.RawMessage) string {
 		return "Erro ao ler parâmetros."
 	}
 
-	// Check customer exists
 	found := false
 	for _, c := range m.Fixtures.Customers {
 		if strings.Contains(service.NormalizeForMatch(c.Name), service.NormalizeForMatch(args.CustomerName)) {
@@ -588,7 +587,6 @@ func assertReplyNotContains(substr string, reply string) CheckResult {
 }
 
 // promisePatterns matches first-person Portuguese verbs that claim an action was completed.
-// Excludes past participles (cadastrada/atualizada) and infinitives used in context (para cadastrar).
 var promisePatterns = regexp.MustCompile(`(?i)\b(cadastrei|atualizei|aprovei|rejeitei|pausei|gerei|alterei|criei|cadastrou|atualizou|aprovou|rejeitou|pausou|gerou)\b`)
 
 // questionPattern detects sentences that are questions (contain verb near a ?).
@@ -607,11 +605,9 @@ var writeToolNames = map[string]bool{
 func assertNoEmptyPromise(reply string, toolsCalled []string) CheckResult {
 	name := "no_empty_promise"
 
-	// Find all promise verb matches, but exclude those inside questions
 	matches := promisePatterns.FindAllStringIndex(reply, -1)
 	hasDeclarativePromise := false
 	for _, m := range matches {
-		// Extract the sentence containing this match
 		sentence := extractSentence(reply, m[0])
 		if questionPattern.MatchString(sentence) {
 			continue
@@ -624,7 +620,6 @@ func assertNoEmptyPromise(reply string, toolsCalled []string) CheckResult {
 		return CheckResult{Name: name, Passed: true}
 	}
 
-	// Reply contains declarative action verbs, check that at least one write tool was called
 	for _, t := range toolsCalled {
 		if writeToolNames[t] {
 			return CheckResult{Name: name, Passed: true}

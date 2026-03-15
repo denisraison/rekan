@@ -6,145 +6,11 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/anthropics/anthropic-sdk-go"
 	content "github.com/denisraison/rekan/api/internal/content"
 	"github.com/denisraison/rekan/api/internal/domain"
 	"github.com/denisraison/rekan/api/internal/service"
 	"github.com/pocketbase/pocketbase/core"
 )
-
-// agentTools is the static set of tool definitions, computed once.
-var agentTools = buildToolDefs()
-
-func buildToolDefs() []anthropic.ToolUnionParam {
-	return []anthropic.ToolUnionParam{
-		// Read tools
-		{OfTool: &anthropic.ToolParam{
-			Name:        "find_customer",
-			Description: anthropic.String("Busca cliente por nome (match fuzzy). Retorna detalhes: nome, tipo, cidade, telefone, público, vibe, obs, status."),
-			InputSchema: anthropic.ToolInputSchemaParam{
-				Properties: map[string]any{
-					"query": map[string]any{"type": "string", "description": "Nome ou parte do nome da cliente"},
-				},
-				Required: []string{"query"},
-			},
-		}},
-		{OfTool: &anthropic.ToolParam{
-			Name:        "list_customers",
-			Description: anthropic.String("Lista todas as clientes ativas/rascunho com nome, tipo e cidade."),
-			InputSchema: anthropic.ToolInputSchemaParam{
-				Properties: map[string]any{},
-			},
-		}},
-		{OfTool: &anthropic.ToolParam{
-			Name:        "find_post",
-			Description: anthropic.String("Busca um post pelo ID. Retorna legenda, cliente, status de revisão e nota."),
-			InputSchema: anthropic.ToolInputSchemaParam{
-				Properties: map[string]any{
-					"post_id": map[string]any{"type": "string", "description": "ID do post"},
-				},
-				Required: []string{"post_id"},
-			},
-		}},
-		{OfTool: &anthropic.ToolParam{
-			Name:        "list_posts",
-			Description: anthropic.String("Lista posts. Filtre por nome da cliente e/ou status (pending, reviewed, all). Máximo 20, mais recentes primeiro."),
-			InputSchema: anthropic.ToolInputSchemaParam{
-				Properties: map[string]any{
-					"customer_name": map[string]any{"type": "string", "description": "Nome da cliente (opcional)"},
-					"status":        map[string]any{"type": "string", "enum": []string{"pending", "reviewed", "all"}, "description": "Filtro de status (padrão: all)"},
-				},
-			},
-		}},
-		{OfTool: &anthropic.ToolParam{
-			Name:        "recent_activity",
-			Description: anthropic.String("Mostra as últimas ações realizadas pelo agente."),
-			InputSchema: anthropic.ToolInputSchemaParam{
-				Properties: map[string]any{
-					"limit": map[string]any{"type": "integer", "description": "Número de ações (padrão: 5, máximo: 20)"},
-				},
-			},
-		}},
-		// Write tools
-		{OfTool: &anthropic.ToolParam{
-			Name:        "create_customer",
-			Description: anthropic.String("Cadastra nova cliente. Campos obrigatórios: name, type, city, phone."),
-			InputSchema: anthropic.ToolInputSchemaParam{
-				Properties: map[string]any{
-					"name":            map[string]any{"type": "string", "description": "Nome da cliente"},
-					"type":            map[string]any{"type": "string", "description": "Tipo de negócio (ex: Salão de Beleza, Confeitaria)"},
-					"city":            map[string]any{"type": "string", "description": "Cidade"},
-					"phone":           map[string]any{"type": "string", "description": "Telefone da cliente"},
-					"target_audience": map[string]any{"type": "string", "description": "Público-alvo (opcional)"},
-					"brand_vibe":      map[string]any{"type": "string", "description": "Vibe da marca (opcional)"},
-					"quirks":          map[string]any{"type": "string", "description": "Observações especiais (opcional)"},
-				},
-				Required: []string{"name", "type", "city", "phone"},
-			},
-		}},
-		{OfTool: &anthropic.ToolParam{
-			Name:        "update_customer",
-			Description: anthropic.String("Altera dados de uma cliente existente. Apenas name é obrigatório (identifica a cliente)."),
-			InputSchema: anthropic.ToolInputSchemaParam{
-				Properties: map[string]any{
-					"name":            map[string]any{"type": "string", "description": "Nome da cliente (para identificação)"},
-					"new_name":        map[string]any{"type": "string", "description": "Novo nome do negócio (se quiser renomear)"},
-					"type":            map[string]any{"type": "string", "description": "Novo tipo de negócio"},
-					"city":            map[string]any{"type": "string", "description": "Nova cidade"},
-					"phone":           map[string]any{"type": "string", "description": "Novo telefone"},
-					"target_audience": map[string]any{"type": "string", "description": "Novo público-alvo"},
-					"brand_vibe":      map[string]any{"type": "string", "description": "Nova vibe da marca"},
-					"quirks":          map[string]any{"type": "string", "description": "Novas observações"},
-				},
-				Required: []string{"name"},
-			},
-		}},
-		{OfTool: &anthropic.ToolParam{
-			Name:        "pause_customer",
-			Description: anthropic.String("Pausa uma cliente."),
-			InputSchema: anthropic.ToolInputSchemaParam{
-				Properties: map[string]any{
-					"name":   map[string]any{"type": "string", "description": "Nome da cliente"},
-					"reason": map[string]any{"type": "string", "description": "Motivo da pausa (opcional)"},
-				},
-				Required: []string{"name"},
-			},
-		}},
-		{OfTool: &anthropic.ToolParam{
-			Name:        "generate_post",
-			Description: anthropic.String("Gera posts para uma cliente."),
-			InputSchema: anthropic.ToolInputSchemaParam{
-				Properties: map[string]any{
-					"customer_name": map[string]any{"type": "string", "description": "Nome da cliente"},
-				},
-				Required: []string{"customer_name"},
-			},
-		}},
-		{OfTool: &anthropic.ToolParam{
-			Name:        "approve_post",
-			Description: anthropic.String("Aprova um post pendente."),
-			InputSchema: anthropic.ToolInputSchemaParam{
-				Properties: map[string]any{
-					"post_id":       map[string]any{"type": "string", "description": "ID do post"},
-					"customer_name": map[string]any{"type": "string", "description": "Nome da cliente"},
-				},
-				Required: []string{"post_id"},
-			},
-		}},
-		{OfTool: &anthropic.ToolParam{
-			Name:        "reject_post",
-			Description: anthropic.String("Rejeita um post com feedback."),
-			InputSchema: anthropic.ToolInputSchemaParam{
-				Properties: map[string]any{
-					"post_id":       map[string]any{"type": "string", "description": "ID do post"},
-					"customer_name": map[string]any{"type": "string", "description": "Nome da cliente"},
-					"feedback":      map[string]any{"type": "string", "description": "Feedback sobre o que melhorar"},
-				},
-				Required: []string{"post_id", "feedback"},
-			},
-		}},
-	}
-}
 
 // ToolExecutor handles tool call execution for the agent loop.
 type ToolExecutor struct {
@@ -154,6 +20,7 @@ type ToolExecutor struct {
 	Generate   content.GenerateFunc
 	businesses []*core.Record // cached on first access
 	Posts      []*core.Record // posts referenced during execution, appended to reply programmatically
+	WriteUsed  bool           // whether any write tool was called
 }
 
 // loadBusinesses returns cached businesses, querying once per executor lifetime.
@@ -174,39 +41,139 @@ func (te *ToolExecutor) bizNameMap() map[string]string {
 	return m
 }
 
-// toolResult is returned by executeTool to signal both the result text and whether a write was triggered.
-type toolResult struct {
-	Text    string
-	IsWrite bool
-}
+// buildTools constructs the full set of agent tools with closures over the executor.
+func buildTools(executor *ToolExecutor, operatorName string) []Tool {
+	// Helper to build a JSON schema from properties and required fields
+	schema := func(props map[string]any, required ...string) json.RawMessage {
+		s := map[string]any{
+			"type":       "object",
+			"properties": props,
+		}
+		if len(required) > 0 {
+			s["required"] = required
+		}
+		return marshalSchema(s)
+	}
 
-// executeTool dispatches a tool call and returns the result.
-func (te *ToolExecutor) executeTool(name string, input json.RawMessage, operatorName string) toolResult {
-	switch name {
-	case "find_customer":
-		return toolResult{Text: te.findCustomer(input)}
-	case "list_customers":
-		return toolResult{Text: te.listCustomers()}
-	case "find_post":
-		return toolResult{Text: te.findPost(input)}
-	case "list_posts":
-		return toolResult{Text: te.listPosts(input)}
-	case "recent_activity":
-		return toolResult{Text: te.recentActivity(input)}
-	case "create_customer":
-		return te.createCustomer(input, operatorName)
-	case "update_customer":
-		return te.updateCustomer(input, operatorName)
-	case "pause_customer":
-		return te.pauseCustomer(input, operatorName)
-	case "generate_post":
-		return te.generatePost(input, operatorName)
-	case "approve_post":
-		return te.approvePost(input, operatorName)
-	case "reject_post":
-		return te.rejectPost(input, operatorName)
-	default:
-		return toolResult{Text: "Ferramenta desconhecida: " + name}
+	readTool := func(name, desc string, inputSchema json.RawMessage, fn func(json.RawMessage) string) Tool {
+		return Tool{
+			Name:        name,
+			Description: desc,
+			InputSchema: inputSchema,
+			Execute: func(_ context.Context, input json.RawMessage) (string, error) {
+				return fn(input), nil
+			},
+		}
+	}
+
+	writeTool := func(name, desc string, inputSchema json.RawMessage, fn func(json.RawMessage) string) Tool {
+		return Tool{
+			Name:        name,
+			Description: desc,
+			InputSchema: inputSchema,
+			Execute: func(_ context.Context, input json.RawMessage) (string, error) {
+				executor.WriteUsed = true
+				return fn(input), nil
+			},
+		}
+	}
+
+	return []Tool{
+		// Read tools
+		readTool("find_customer",
+			"Busca cliente por nome (match fuzzy). Retorna detalhes: nome, tipo, cidade, telefone, público, vibe, obs, status.",
+			schema(map[string]any{
+				"query": map[string]any{"type": "string", "description": "Nome ou parte do nome da cliente"},
+			}, "query"),
+			func(input json.RawMessage) string { return executor.findCustomer(input) },
+		),
+		readTool("list_customers",
+			"Lista todas as clientes ativas/rascunho com nome, tipo e cidade.",
+			schema(map[string]any{}),
+			func(_ json.RawMessage) string { return executor.listCustomers() },
+		),
+		readTool("find_post",
+			"Busca um post pelo ID. Retorna legenda, cliente, status de revisão e nota.",
+			schema(map[string]any{
+				"post_id": map[string]any{"type": "string", "description": "ID do post"},
+			}, "post_id"),
+			func(input json.RawMessage) string { return executor.findPost(input) },
+		),
+		readTool("list_posts",
+			"Lista posts. Filtre por nome da cliente e/ou status (pending, reviewed, all). Máximo 20, mais recentes primeiro.",
+			schema(map[string]any{
+				"customer_name": map[string]any{"type": "string", "description": "Nome da cliente (opcional)"},
+				"status":        map[string]any{"type": "string", "enum": []string{"pending", "reviewed", "all"}, "description": "Filtro de status (padrão: all)"},
+			}),
+			func(input json.RawMessage) string { return executor.listPosts(input) },
+		),
+		readTool("recent_activity",
+			"Mostra as últimas ações realizadas pelo agente.",
+			schema(map[string]any{
+				"limit": map[string]any{"type": "integer", "description": "Número de ações (padrão: 5, máximo: 20)"},
+			}),
+			func(input json.RawMessage) string { return executor.recentActivity(input) },
+		),
+		// Write tools
+		writeTool("create_customer",
+			"Cadastra nova cliente. Campos obrigatórios: name, type, city, phone.",
+			schema(map[string]any{
+				"name":            map[string]any{"type": "string", "description": "Nome da cliente"},
+				"type":            map[string]any{"type": "string", "description": "Tipo de negócio (ex: Salão de Beleza, Confeitaria)"},
+				"city":            map[string]any{"type": "string", "description": "Cidade"},
+				"phone":           map[string]any{"type": "string", "description": "Telefone da cliente"},
+				"target_audience": map[string]any{"type": "string", "description": "Público-alvo (opcional)"},
+				"brand_vibe":      map[string]any{"type": "string", "description": "Vibe da marca (opcional)"},
+				"quirks":          map[string]any{"type": "string", "description": "Observações especiais (opcional)"},
+			}, "name", "type", "city", "phone"),
+			func(input json.RawMessage) string { return executor.createCustomer(input, operatorName) },
+		),
+		writeTool("update_customer",
+			"Altera dados de uma cliente existente. Apenas name é obrigatório (identifica a cliente).",
+			schema(map[string]any{
+				"name":            map[string]any{"type": "string", "description": "Nome da cliente (para identificação)"},
+				"new_name":        map[string]any{"type": "string", "description": "Novo nome do negócio (se quiser renomear)"},
+				"type":            map[string]any{"type": "string", "description": "Novo tipo de negócio"},
+				"city":            map[string]any{"type": "string", "description": "Nova cidade"},
+				"phone":           map[string]any{"type": "string", "description": "Novo telefone"},
+				"target_audience": map[string]any{"type": "string", "description": "Novo público-alvo"},
+				"brand_vibe":      map[string]any{"type": "string", "description": "Nova vibe da marca"},
+				"quirks":          map[string]any{"type": "string", "description": "Novas observações"},
+			}, "name"),
+			func(input json.RawMessage) string { return executor.updateCustomer(input, operatorName) },
+		),
+		writeTool("pause_customer",
+			"Pausa uma cliente.",
+			schema(map[string]any{
+				"name":   map[string]any{"type": "string", "description": "Nome da cliente"},
+				"reason": map[string]any{"type": "string", "description": "Motivo da pausa (opcional)"},
+			}, "name"),
+			func(input json.RawMessage) string { return executor.pauseCustomer(input, operatorName) },
+		),
+		writeTool("generate_post",
+			"Gera posts para uma cliente.",
+			schema(map[string]any{
+				"customer_name": map[string]any{"type": "string", "description": "Nome da cliente"},
+			}, "customer_name"),
+			func(input json.RawMessage) string { return executor.generatePost(input, operatorName) },
+		),
+		writeTool("approve_post",
+			"Aprova um post pendente.",
+			schema(map[string]any{
+				"post_id":       map[string]any{"type": "string", "description": "ID do post"},
+				"customer_name": map[string]any{"type": "string", "description": "Nome da cliente"},
+			}, "post_id"),
+			func(input json.RawMessage) string { return executor.approvePost(input, operatorName) },
+		),
+		writeTool("reject_post",
+			"Rejeita um post com feedback.",
+			schema(map[string]any{
+				"post_id":       map[string]any{"type": "string", "description": "ID do post"},
+				"customer_name": map[string]any{"type": "string", "description": "Nome da cliente"},
+				"feedback":      map[string]any{"type": "string", "description": "Feedback sobre o que melhorar"},
+			}, "post_id", "feedback"),
+			func(input json.RawMessage) string { return executor.rejectPost(input, operatorName) },
+		),
 	}
 }
 
@@ -284,22 +251,24 @@ func fieldLabel(key string) string {
 // resolveBizName returns the business display name for a post record, using the cached businesses.
 func (te *ToolExecutor) resolveBizName(postRecord *core.Record) string {
 	bizID := postRecord.GetString("business")
-	if name := te.bizNameMap()[bizID]; name != "" {
-		return name
+	for _, biz := range te.loadBusinesses() {
+		if biz.Id == bizID {
+			return biz.GetString("name")
+		}
 	}
 	return bizID
 }
 
-// resolveCustomer finds exactly one business by name, returning an error toolResult on 0 or 2+ matches.
-func (te *ToolExecutor) resolveCustomer(name, operatorName string) (*core.Record, *toolResult) {
+// resolveCustomer finds exactly one business by name, returning an error string on 0 or 2+ matches.
+func (te *ToolExecutor) resolveCustomer(name, operatorName string) (*core.Record, string) {
 	matches := service.FindBusinessByName(te.loadBusinesses(), name)
 	if len(matches) == 0 {
-		return nil, &toolResult{Text: fmt.Sprintf("%s, não encontrei cliente '%s'.", operatorName, name), IsWrite: true}
+		return nil, fmt.Sprintf("%s, não encontrei cliente '%s'.", operatorName, name)
 	}
 	if len(matches) > 1 {
-		return nil, &toolResult{Text: disambiguate(operatorName, matches), IsWrite: true}
+		return nil, disambiguate(operatorName, matches)
 	}
-	return matches[0], nil
+	return matches[0], ""
 }
 
 // --- Read tool implementations ---
@@ -465,7 +434,7 @@ func (te *ToolExecutor) recentActivity(input json.RawMessage) string {
 
 // --- Write tool implementations ---
 
-func (te *ToolExecutor) createCustomer(input json.RawMessage, operatorName string) toolResult {
+func (te *ToolExecutor) createCustomer(input json.RawMessage, operatorName string) string {
 	var args struct {
 		Name           string `json:"name"`
 		Type           string `json:"type"`
@@ -476,7 +445,7 @@ func (te *ToolExecutor) createCustomer(input json.RawMessage, operatorName strin
 		Quirks         string `json:"quirks"`
 	}
 	if err := json.Unmarshal(input, &args); err != nil {
-		return toolResult{Text: "Erro ao ler parâmetros.", IsWrite: true}
+		return "Erro ao ler parâmetros."
 	}
 
 	p := service.CreateBusinessParams{
@@ -496,28 +465,22 @@ func (te *ToolExecutor) createCustomer(input json.RawMessage, operatorName strin
 	}
 
 	if err := validateCustomerCreate(p, operatorName); err != nil {
-		return toolResult{Text: err.Error(), IsWrite: true}
+		return err.Error()
 	}
 
 	if dup := service.FindDuplicate(te.loadBusinesses(), p.Name); dup != nil {
-		return toolResult{
-			Text:    fmt.Sprintf("%s já existe (%s, %s).", dup.GetString("name"), dup.GetString("type"), dup.GetString("city")),
-			IsWrite: true,
-		}
+		return fmt.Sprintf("%s já existe (%s, %s).", dup.GetString("name"), dup.GetString("type"), dup.GetString("city"))
 	}
 
 	record, err := service.CreateBusiness(te.App, p)
 	if err != nil {
-		return toolResult{Text: "Erro ao cadastrar: " + err.Error(), IsWrite: true}
+		return "Erro ao cadastrar: " + err.Error()
 	}
-	te.businesses = nil // invalidate cache so subsequent tools see the new customer
-	return toolResult{
-		Text:    fmt.Sprintf("%s, %s cadastrada! (%s, %s)", operatorName, record.GetString("name"), record.GetString("type"), record.GetString("city")),
-		IsWrite: true,
-	}
+	te.businesses = nil // invalidate cache
+	return fmt.Sprintf("%s, %s cadastrada! (%s, %s)", operatorName, record.GetString("name"), record.GetString("type"), record.GetString("city"))
 }
 
-func (te *ToolExecutor) updateCustomer(input json.RawMessage, operatorName string) toolResult {
+func (te *ToolExecutor) updateCustomer(input json.RawMessage, operatorName string) string {
 	var args struct {
 		Name           string `json:"name"`
 		NewName        string `json:"new_name"`
@@ -529,12 +492,12 @@ func (te *ToolExecutor) updateCustomer(input json.RawMessage, operatorName strin
 		Quirks         string `json:"quirks"`
 	}
 	if err := json.Unmarshal(input, &args); err != nil {
-		return toolResult{Text: "Erro ao ler parâmetros.", IsWrite: true}
+		return "Erro ao ler parâmetros."
 	}
 
-	record, errResult := te.resolveCustomer(args.Name, operatorName)
-	if errResult != nil {
-		return *errResult
+	record, errMsg := te.resolveCustomer(args.Name, operatorName)
+	if errMsg != "" {
+		return errMsg
 	}
 
 	p := service.UpdateBusinessParams{}
@@ -562,10 +525,10 @@ func (te *ToolExecutor) updateCustomer(input json.RawMessage, operatorName strin
 
 	updatedKeys, err := service.UpdateBusiness(te.App, record, p)
 	if err != nil {
-		return toolResult{Text: "Erro ao alterar: " + err.Error(), IsWrite: true}
+		return "Erro ao alterar: " + err.Error()
 	}
 	if len(updatedKeys) == 0 {
-		return toolResult{Text: fmt.Sprintf("%s, nenhum campo pra atualizar na %s.", operatorName, args.Name), IsWrite: true}
+		return fmt.Sprintf("%s, nenhum campo pra atualizar na %s.", operatorName, args.Name)
 	}
 
 	labels := make([]string, len(updatedKeys))
@@ -573,70 +536,67 @@ func (te *ToolExecutor) updateCustomer(input json.RawMessage, operatorName strin
 		labels[i] = fieldLabel(key)
 	}
 
-	te.businesses = nil // invalidate cache so subsequent tools see the update
+	te.businesses = nil // invalidate cache
 
 	displayName := args.Name
 	if args.NewName != "" {
 		displayName = args.NewName
 	}
-	return toolResult{
-		Text:    fmt.Sprintf("%s, %s atualizada! Campos: %s.", operatorName, displayName, strings.Join(labels, ", ")),
-		IsWrite: true,
-	}
+	return fmt.Sprintf("%s, %s atualizada! Campos: %s.", operatorName, displayName, strings.Join(labels, ", "))
 }
 
-func (te *ToolExecutor) pauseCustomer(input json.RawMessage, operatorName string) toolResult {
+func (te *ToolExecutor) pauseCustomer(input json.RawMessage, operatorName string) string {
 	var args struct {
 		Name   string `json:"name"`
 		Reason string `json:"reason"`
 	}
 	if err := json.Unmarshal(input, &args); err != nil {
-		return toolResult{Text: "Erro ao ler parâmetros.", IsWrite: true}
+		return "Erro ao ler parâmetros."
 	}
 
-	record, errResult := te.resolveCustomer(args.Name, operatorName)
-	if errResult != nil {
-		return *errResult
+	record, errMsg := te.resolveCustomer(args.Name, operatorName)
+	if errMsg != "" {
+		return errMsg
 	}
 
 	if err := service.PauseBusiness(te.App, record); err != nil {
-		return toolResult{Text: "Erro ao pausar: " + err.Error(), IsWrite: true}
+		return "Erro ao pausar: " + err.Error()
 	}
-	te.businesses = nil // invalidate cache so subsequent tools see the pause
+	te.businesses = nil // invalidate cache
 
 	msg := fmt.Sprintf("%s, %s pausada.", operatorName, args.Name)
 	if args.Reason != "" {
 		msg = fmt.Sprintf("%s, %s pausada. Motivo: %s.", operatorName, args.Name, args.Reason)
 	}
-	return toolResult{Text: msg, IsWrite: true}
+	return msg
 }
 
-func (te *ToolExecutor) generatePost(input json.RawMessage, operatorName string) toolResult {
+func (te *ToolExecutor) generatePost(input json.RawMessage, operatorName string) string {
 	var args struct {
 		CustomerName string `json:"customer_name"`
 	}
 	if err := json.Unmarshal(input, &args); err != nil {
-		return toolResult{Text: "Erro ao ler parâmetros.", IsWrite: true}
+		return "Erro ao ler parâmetros."
 	}
 
 	if args.CustomerName == "" {
-		return toolResult{Text: operatorName + ", pra qual cliente você quer gerar post?", IsWrite: true}
+		return operatorName + ", pra qual cliente você quer gerar post?"
 	}
 
-	biz, errResult := te.resolveCustomer(args.CustomerName, operatorName)
-	if errResult != nil {
-		return *errResult
+	biz, errMsg := te.resolveCustomer(args.CustomerName, operatorName)
+	if errMsg != "" {
+		return errMsg
 	}
 	if te.Generate == nil {
-		return toolResult{Text: operatorName + ", geração de posts não está configurada.", IsWrite: true}
+		return operatorName + ", geração de posts não está configurada."
 	}
 
 	result, err := service.GeneratePosts(te.Ctx, te.App, te.Generate, biz.Id)
 	if err != nil {
-		return toolResult{Text: "Erro ao gerar: " + err.Error(), IsWrite: true}
+		return "Erro ao gerar: " + err.Error()
 	}
 	if len(result.Posts) == 0 {
-		return toolResult{Text: fmt.Sprintf("%s, não consegui gerar post pra %s.", operatorName, biz.GetString("name")), IsWrite: true}
+		return fmt.Sprintf("%s, não consegui gerar post pra %s.", operatorName, biz.GetString("name"))
 	}
 
 	post := result.Posts[0]
@@ -650,25 +610,25 @@ func (te *ToolExecutor) generatePost(input json.RawMessage, operatorName string)
 			te.Posts = append(te.Posts, record)
 		}
 	}
-	return toolResult{Text: b.String(), IsWrite: true}
+	return b.String()
 }
 
-func (te *ToolExecutor) approvePost(input json.RawMessage, operatorName string) toolResult {
+func (te *ToolExecutor) approvePost(input json.RawMessage, operatorName string) string {
 	var args struct {
 		PostID       string `json:"post_id"`
 		CustomerName string `json:"customer_name"`
 	}
 	if err := json.Unmarshal(input, &args); err != nil {
-		return toolResult{Text: "Erro ao ler parâmetros.", IsWrite: true}
+		return "Erro ao ler parâmetros."
 	}
 
 	if args.PostID == "" {
-		return toolResult{Text: operatorName + ", qual post você quer aprovar?", IsWrite: true}
+		return operatorName + ", qual post você quer aprovar?"
 	}
 
 	record, err := service.ApprovePost(te.App, args.PostID)
 	if err != nil {
-		return toolResult{Text: "Erro ao aprovar: " + err.Error(), IsWrite: true}
+		return "Erro ao aprovar: " + err.Error()
 	}
 
 	te.Posts = append(te.Posts, record)
@@ -677,31 +637,31 @@ func (te *ToolExecutor) approvePost(input json.RawMessage, operatorName string) 
 
 	if te.WAClient != nil {
 		if sendErr := te.sendPostToClient(record); sendErr != nil {
-			return toolResult{Text: result + " (mas não consegui enviar pro cliente: " + sendErr.Error() + ")", IsWrite: true}
+			return result + " (mas não consegui enviar pro cliente: " + sendErr.Error() + ")"
 		}
 		result += " Enviado pro cliente!"
 	}
 
-	return toolResult{Text: result, IsWrite: true}
+	return result
 }
 
-func (te *ToolExecutor) rejectPost(input json.RawMessage, operatorName string) toolResult {
+func (te *ToolExecutor) rejectPost(input json.RawMessage, operatorName string) string {
 	var args struct {
 		PostID       string `json:"post_id"`
 		CustomerName string `json:"customer_name"`
 		Feedback     string `json:"feedback"`
 	}
 	if err := json.Unmarshal(input, &args); err != nil {
-		return toolResult{Text: "Erro ao ler parâmetros.", IsWrite: true}
+		return "Erro ao ler parâmetros."
 	}
 
 	if args.PostID == "" {
-		return toolResult{Text: operatorName + ", qual post você quer rejeitar?", IsWrite: true}
+		return operatorName + ", qual post você quer rejeitar?"
 	}
 
 	record, err := service.RejectPost(te.App, args.PostID, args.Feedback)
 	if err != nil {
-		return toolResult{Text: "Erro ao rejeitar: " + err.Error(), IsWrite: true}
+		return "Erro ao rejeitar: " + err.Error()
 	}
 
 	te.Posts = append(te.Posts, record)
@@ -711,7 +671,7 @@ func (te *ToolExecutor) rejectPost(input json.RawMessage, operatorName string) t
 	if args.Feedback != "" {
 		msg = fmt.Sprintf("%s, post da %s rejeitado. Feedback: %s.", operatorName, bizName, args.Feedback)
 	}
-	return toolResult{Text: msg, IsWrite: true}
+	return msg
 }
 
 // sendPostToClient sends the post content to the client's WhatsApp.

@@ -8,7 +8,6 @@ import (
 	"strings"
 	"time"
 
-	"github.com/anthropics/anthropic-sdk-go"
 	"go.mau.fi/whatsmeow/types"
 	"go.mau.fi/whatsmeow/types/events"
 
@@ -26,7 +25,7 @@ type Agent struct {
 	Debouncer  *Debouncer
 	Transcribe *transcribe.Client   // nil if GEMINI_API_KEY not set
 	Generate   content.GenerateFunc // nil if not wired
-	Claude     *ClaudeClient
+	Claude     *Client
 }
 
 // New creates a new Agent instance.
@@ -38,7 +37,7 @@ func New(app core.App, waClient WAClient, logger *slog.Logger, tc *transcribe.Cl
 		Debouncer:  NewDebouncer(),
 		Transcribe: tc,
 		Generate:   gen,
-		Claude:     NewClaudeClient(),
+		Claude:     NewClient(),
 	}
 }
 
@@ -111,8 +110,8 @@ type agentResult struct {
 	ReplyText   string
 	ToolSummary string
 	ActionType  string
-	LoopMsgs    []anthropic.MessageParam // tool loop messages for structured storage
-	FinalMsg    anthropic.MessageParam   // actual final assistant response from Claude
+	LoopMsgs    []Message // tool loop messages for structured storage
+	FinalMsg    Message   // actual final assistant response from Claude
 }
 
 // ProcessMessage is the core message processing pipeline.
@@ -123,7 +122,7 @@ func (a *Agent) ProcessMessage(groupJID types.JID, messageID string, senderJID t
 	ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
 	defer cancel()
 
-	userStructured := marshalMessageParam(anthropic.NewUserMessage(anthropic.NewTextBlock(message)))
+	userStructured := marshalMessage(NewUserMessage(NewTextBlock(message)))
 	if err := StoreMessage(a.App, operatorName, operatorJID, "user", message, "", userStructured); err != nil {
 		a.Logger.Error("agent: failed to store message", "error", err)
 	}
@@ -155,76 +154,108 @@ func (a *Agent) processWithTools(ctx context.Context, groupJID types.JID, operat
 		a.Logger.Error("agent: failed to load conversation history", "error", err)
 	}
 
-	// Build Claude messages from conversation history
 	messages := buildClaudeMessages(history, message)
+
+	executor := &ToolExecutor{
+		Ctx:      ctx,
+		App:      a.App,
+		WAClient: a.WAClient,
+		Generate: a.Generate,
+	}
+	tools := buildTools(executor, operatorName)
 
 	slowTimer := time.AfterFunc(5*time.Second, func() {
 		if err := SendReply(ctx, a.WAClient, groupJID, "Um momento..."); err != nil {
 			a.Logger.Error("agent: failed to send slow timer reply", "error", err)
 		}
-		// Sending a message clears the typing indicator; restart it.
 		wa.Typing(ctx, a.WAClient, groupJID)
 	})
 
 	systemPrompt := buildSystemPrompt(operatorName)
-	tuResult, err := a.Claude.RunToolLoop(ctx, a.App, a.WAClient, operatorName, a.Generate, messages, systemPrompt)
+	runResult, runErr := a.Claude.Run(ctx, RunConfig{
+		System:   systemPrompt,
+		Messages: messages,
+		Tools:    tools,
+		MaxTurns: maxToolRoundTrips,
+	})
 	slowTimer.Stop()
 
-	if err != nil {
-		return nil, err
+	if runErr != nil {
+		return nil, runErr
+	}
+
+	// Extract tool calls from traces for action type mapping and tool log
+	var toolsCalled []string
+	var toolLog []toolCallEntry
+	for _, trace := range runResult.Traces {
+		for _, tc := range trace.ToolCalls {
+			toolsCalled = append(toolsCalled, tc.Name)
+			toolLog = append(toolLog, toolCallEntry{Name: tc.Name})
+		}
 	}
 
 	actionType := "INFO"
-	if tuResult.WriteUsed && len(tuResult.ToolsCalled) > 0 {
-		for i := len(tuResult.ToolsCalled) - 1; i >= 0; i-- {
-			if at := toolNameToActionType(tuResult.ToolsCalled[i]); at != "" {
+	if executor.WriteUsed && len(toolsCalled) > 0 {
+		for i := len(toolsCalled) - 1; i >= 0; i-- {
+			if at := toolNameToActionType(toolsCalled[i]); at != "" {
 				actionType = at
 				break
 			}
 		}
-	} else if len(tuResult.ToolsCalled) > 0 {
-		if at := toolNameToActionType(tuResult.ToolsCalled[0]); at != "" {
+	} else if len(toolsCalled) > 0 {
+		if at := toolNameToActionType(toolsCalled[0]); at != "" {
 			actionType = at
 		}
 	}
 
-	reply := tuResult.Reply
-	if len(tuResult.Posts) > 0 {
-		reply += "\n\n" + formatPostDetails(tuResult.BizNames, tuResult.Posts)
+	reply := runResult.Reply
+	if len(executor.Posts) > 0 {
+		bizNames := executor.bizNameMap()
+		reply += "\n\n" + formatPostDetails(bizNames, executor.Posts)
+	}
+
+	// Collect loop messages (all except the final) and the final assistant message
+	var loopMsgs []Message
+	var finalMsg Message
+	allMsgs := runResult.Messages
+	if len(allMsgs) > len(messages) {
+		newMsgs := allMsgs[len(messages):]
+		if len(newMsgs) > 0 {
+			finalMsg = newMsgs[len(newMsgs)-1]
+			loopMsgs = newMsgs[:len(newMsgs)-1]
+		}
 	}
 
 	return &agentResult{
 		ReplyText:   reply,
-		ToolSummary: buildToolSummary(tuResult.ToolLog),
+		ToolSummary: buildToolSummary(toolLog),
 		ActionType:  actionType,
-		LoopMsgs:    tuResult.LoopMsgs,
-		FinalMsg:    tuResult.FinalMsg,
+		LoopMsgs:    loopMsgs,
+		FinalMsg:    finalMsg,
 	}, nil
 }
 
-// buildClaudeMessages converts conversation history + current message into Claude API messages.
-func buildClaudeMessages(history []ConversationMessage, currentMessage string) []anthropic.MessageParam {
-	var messages []anthropic.MessageParam
+const maxToolRoundTrips = 5
+
+// buildClaudeMessages converts conversation history + current message into agent messages.
+func buildClaudeMessages(history []ConversationMessage, currentMessage string) []Message {
+	var messages []Message
 
 	for _, msg := range history {
 		// Prefer structured JSON when available (preserves tool_use/tool_result blocks)
 		if msg.Structured != "" {
-			var mp anthropic.MessageParam
-			if json.Unmarshal([]byte(msg.Structured), &mp) == nil {
-				messages = append(messages, mp)
+			var m Message
+			if json.Unmarshal([]byte(msg.Structured), &m) == nil {
+				messages = append(messages, m)
 				continue
 			}
 		}
 
 		// Fallback: plain text for old messages without structured data
-		text := msg.Content
 		if msg.Role == "user" {
-			messages = append(messages, anthropic.NewUserMessage(anthropic.NewTextBlock(text)))
+			messages = append(messages, NewUserMessage(NewTextBlock(msg.Content)))
 		} else {
-			messages = append(messages, anthropic.MessageParam{
-				Role:    anthropic.MessageParamRoleAssistant,
-				Content: []anthropic.ContentBlockParamUnion{anthropic.NewTextBlock(text)},
-			})
+			messages = append(messages, NewAssistantMessage(NewTextBlock(msg.Content)))
 		}
 	}
 
@@ -242,75 +273,68 @@ func buildClaudeMessages(history []ConversationMessage, currentMessage string) [
 }
 
 // sanitizeToolPairs strips unpaired tool_use and tool_result blocks.
-// The Claude API requires every tool_use in an assistant message to have a
-// matching tool_result in the immediately following user message, and vice versa.
-// History pruning can break these pairs.
-func sanitizeToolPairs(messages []anthropic.MessageParam) []anthropic.MessageParam {
-	// Collect all paired IDs: a tool_use at index i must have a tool_result at i+1
+func sanitizeToolPairs(messages []Message) []Message {
 	paired := map[string]bool{}
 	for i, msg := range messages {
-		if msg.Role != anthropic.MessageParamRoleAssistant || i+1 >= len(messages) {
+		if msg.Role != RoleAssistant || i+1 >= len(messages) {
 			continue
 		}
 		next := messages[i+1]
-		if next.Role != anthropic.MessageParamRoleUser {
+		if next.Role != RoleUser {
 			continue
 		}
 		resultIDs := map[string]bool{}
 		for _, block := range next.Content {
-			if block.OfToolResult != nil {
-				resultIDs[block.OfToolResult.ToolUseID] = true
+			if block.Type == "tool_result" {
+				resultIDs[block.ToolUseID] = true
 			}
 		}
 		for _, block := range msg.Content {
-			if block.OfToolUse != nil && resultIDs[block.OfToolUse.ID] {
-				paired[block.OfToolUse.ID] = true
+			if block.Type == "tool_use" && resultIDs[block.ID] {
+				paired[block.ID] = true
 			}
 		}
 	}
 
-	// Filter out unpaired tool_use and tool_result blocks
-	var result []anthropic.MessageParam
+	var result []Message
 	for _, msg := range messages {
-		var kept []anthropic.ContentBlockParamUnion
+		var kept []ContentBlock
 		for _, block := range msg.Content {
 			switch {
-			case block.OfToolUse != nil && !paired[block.OfToolUse.ID]:
+			case block.Type == "tool_use" && !paired[block.ID]:
 				continue
-			case block.OfToolResult != nil && !paired[block.OfToolResult.ToolUseID]:
+			case block.Type == "tool_result" && !paired[block.ToolUseID]:
 				continue
 			}
 			kept = append(kept, block)
 		}
 		if len(kept) > 0 {
-			result = append(result, anthropic.MessageParam{Role: msg.Role, Content: kept})
+			result = append(result, Message{Role: msg.Role, Content: kept})
 		}
 	}
 	return result
 }
 
 // appendOrMergeUser adds the current message. If the last message is already
-// a user message containing the same text (stored by ProcessMessage before
-// history was loaded), it skips the duplicate.
-func appendOrMergeUser(messages []anthropic.MessageParam, text string) []anthropic.MessageParam {
-	if n := len(messages); n > 0 && messages[n-1].Role == anthropic.MessageParamRoleUser {
-		last := messages[n-1]
-		for _, block := range last.Content {
-			if block.OfText != nil && block.OfText.Text == text {
+// a user message containing the same text, it skips the duplicate.
+func appendOrMergeUser(messages []Message, text string) []Message {
+	if n := len(messages); n > 0 && messages[n-1].Role == RoleUser {
+		for _, block := range messages[n-1].Content {
+			if block.Type == "text" && block.Text == text {
 				return messages
 			}
 		}
 	}
-	return append(messages, anthropic.NewUserMessage(anthropic.NewTextBlock(text)))
+	return append(messages, NewUserMessage(NewTextBlock(text)))
 }
 
 // mergeConsecutiveRoles merges consecutive messages with the same role.
-func mergeConsecutiveRoles(messages []anthropic.MessageParam) []anthropic.MessageParam {
+func mergeConsecutiveRoles(messages []Message) []Message {
 	if len(messages) == 0 {
 		return messages
 	}
 
-	var merged []anthropic.MessageParam
+	var merged []Message
 	for _, msg := range messages {
 		if len(merged) > 0 && merged[len(merged)-1].Role == msg.Role {
 			merged[len(merged)-1].Content = append(merged[len(merged)-1].Content, msg.Content...)
@@ -320,7 +344,7 @@ func mergeConsecutiveRoles(messages []anthropic.MessageParam) []anthropic.Messag
 	}
 
 	// Claude requires first message to be user role
-	if len(merged) > 0 && merged[0].Role != anthropic.MessageParamRoleUser {
+	if len(merged) > 0 && merged[0].Role != RoleUser {
 		merged = merged[1:]
 	}
 
@@ -369,42 +393,42 @@ func (a *Agent) sendAndLog(ctx context.Context, groupJID types.JID, operatorName
 
 	// Store tool loop messages (assistant tool_use + user tool_result pairs)
 	for _, msg := range result.LoopMsgs {
-		role := "assistant"
-		if msg.Role == anthropic.MessageParamRoleUser {
-			role = "user"
-		}
-		structured := marshalMessageParam(msg)
-		if err := StoreMessage(a.App, "Rekan", "", role, "", "", structured); err != nil {
+		structured := marshalMessage(msg)
+		if err := StoreMessage(a.App, "Rekan", "", string(msg.Role), "", "", structured); err != nil {
 			a.Logger.Error("agent: failed to store loop message", "error", err)
 		}
 	}
 
-	// Store final assistant reply with structured data.
+	// Store final assistant reply with structured data
 	storedContent := result.ReplyText
 	if result.ToolSummary != "" {
 		storedContent += "\n\n" + result.ToolSummary
 	}
 	finalMsg := result.FinalMsg
 	if len(finalMsg.Content) == 0 {
-		finalMsg = anthropic.MessageParam{
-			Role:    anthropic.MessageParamRoleAssistant,
-			Content: []anthropic.ContentBlockParamUnion{anthropic.NewTextBlock(result.ReplyText)},
-		}
+		finalMsg = NewAssistantMessage(NewTextBlock(result.ReplyText))
 	}
-	replyStructured := marshalMessageParam(finalMsg)
+	replyStructured := marshalMessage(finalMsg)
 	if err := StoreMessage(a.App, "Rekan", "", "assistant", storedContent, "", replyStructured); err != nil {
 		a.Logger.Error("agent: failed to store assistant message", "error", err)
 	}
 	LogAction(a.App, operatorName, operatorJID, result.ActionType, nil, result.ReplyText, true, start)
 }
 
-// marshalMessageParam serializes a MessageParam to JSON for the structured field.
-func marshalMessageParam(mp anthropic.MessageParam) string {
-	data, err := json.Marshal(mp)
+// marshalMessage serializes a Message to JSON for the structured field.
+func marshalMessage(m Message) string {
+	data, err := json.Marshal(m)
 	if err != nil {
 		return ""
 	}
 	return string(data)
+}
+
+// toolCallEntry records a single tool call for building summaries.
+type toolCallEntry struct {
+	Name   string
+	Args   string // abbreviated args
+	Result string // abbreviated result
 }
 
 // buildToolSummary formats tool calls into a bracketed summary for conversation history.
@@ -414,7 +438,11 @@ func buildToolSummary(log []toolCallEntry) string {
 	}
 	var parts []string
 	for _, e := range log {
-		parts = append(parts, fmt.Sprintf("%s(%s) -> %s", e.Name, e.Args, e.Result))
+		if e.Args != "" || e.Result != "" {
+			parts = append(parts, fmt.Sprintf("%s(%s) -> %s", e.Name, e.Args, e.Result))
+		} else {
+			parts = append(parts, e.Name)
+		}
 	}
 	return "[Ferramentas: " + strings.Join(parts, ", ") + "]"
 }
