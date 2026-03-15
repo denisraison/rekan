@@ -5,7 +5,7 @@ client<llm> JudgeClient {
     api_key env.GEMINI_API_KEY
     generationConfig {
       temperature 0.1
-      maxOutputTokens 1024
+      maxOutputTokens 2048
     }
   }
 }

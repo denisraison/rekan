@@ -18,14 +18,14 @@ function GenerateRekanContent(profile: BusinessProfile, roles: ContentRole[], pr
     O post precisa ter:
     - Legenda CURTA: MÁXIMO 400 caracteres. Conte os caracteres. 2-3 parágrafos curtos, não mais.
     - Hashtags do nicho (0 a 3, só se fizer sentido). Não force.
-    - CTA é opcional. Se incluir, prefira "salva esse post", "manda pra uma amiga", "comenta aqui". Evite "link na bio", "chama no zap".
-    - Direção de foto/vídeo na nota de produção: screenshot do app, tela do notebook, selfie trabalhando, print de conversa com usuário, etc.
+    - CTA é opcional. A maioria dos posts reais não tem CTA. Se incluir, varie: "manda pra uma amiga que precisa ouvir isso", "salva pra depois", "comenta se já passou por isso". Evite "link na bio", "chama no zap". NUNCA use "salva esse post" como frase final automática.
+    - Nota de produção: o que fotografar com o celular, enquadramento, uma dica. 2-3 frases. Deve ser algo que a pessoa consiga fazer sozinha, agora, sem planejar. Ex: screenshot do app, tela do notebook, selfie trabalhando, print de conversa com usuário.
 
     REGRA PRINCIPAL, valor antes de produto:
     - O post deve entregar valor MESMO SEM USAR o produto. Dica prática, insight sobre MEI, bastidor que ensina. O produto pode aparecer de passagem.
 
-    REGRA DE TEXTURA, personagens reais:
-    - Mencione uma pessoa específica (real ou verossímil) com nome e um detalhe pessoal que NÃO tem relação com Instagram. Ex: "A Dona Cida faz 200 coxinhas por dia e ainda cuida da neta".
+    REGRA DE TEXTURA, detalhes com vida própria:
+    - Inclua pelo menos um detalhe que não está nos dados do produto acima: um horário, o clima, uma pessoa com nome e detalhe pessoal, algo que aconteceu. O detalhe deve ter vida própria, não apenas decorar o pitch.
 
     Papel do post:
     {% for r in roles %}  {{ r.name }}: {{ r.description }}
@@ -35,8 +35,8 @@ function GenerateRekanContent(profile: BusinessProfile, roles: ContentRole[], pr
     - Como fundador(a) falando com quem você quer ajudar, não como marca vendendo produto. Frases curtas.
     - NUNCA use travessão (—). Use vírgula ou ponto.
     - Abra com um micro-momento concreto: uma cena, um número real, um detalhe do dia a dia.
-    - Use palavras-chave do nicho nas duas primeiras frases. O Instagram funciona como buscador.
-    - Mencione o nome do produto e a cidade ({{ profile.city }}) de forma natural.
+    - Use palavras-chave do nicho em algum lugar da legenda, de forma natural. O Instagram funciona como buscador. Não force na primeira frase se não couber.
+    - Mencione o nome do produto. A cidade ({{ profile.city }}) pode aparecer se couber naturalmente, mas não force "aqui em [cidade]" em todo post.
     - Emojis só quando você usaria de verdade no WhatsApp.
     - NUNCA termine com pergunta genérica de engajamento.
     - IMPORTANTE: A legenda deve ter no MÁXIMO 400 caracteres. Posts curtos têm mais engajamento. Não desenvolva além do necessário.

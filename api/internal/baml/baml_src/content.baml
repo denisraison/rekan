@@ -17,8 +17,8 @@ function GenerateContent(profile: BusinessProfile, roles: ContentRole[], previou
     O post precisa ter:
     - Legenda CURTA: MÁXIMO 400 caracteres. Conte os caracteres. 2-3 parágrafos curtos, não mais.
     - Hashtags do nicho (0 a 3, só se fizer sentido). Não force.
-    - CTA é opcional. Se incluir, prefira "salva esse post", "manda pra uma amiga", "comenta aqui". Evite "link na bio", "chama no zap" (o algoritmo penaliza saídas da plataforma).
-    - Nota de produção: o que fotografar, enquadramento, uma dica. 2-3 frases.
+    - CTA é opcional. A maioria dos posts reais de MEI não tem CTA. Se incluir, varie: "manda pra uma amiga que precisa ouvir isso", "salva pra depois", "comenta se já passou por isso". Evite "link na bio", "chama no zap". NUNCA use "salva esse post" como frase final automática.
+    - Nota de produção: o que fotografar com o celular, enquadramento, uma dica. 2-3 frases. Deve ser algo que a pessoa consiga fazer sozinha, agora, sem planejar.
 
     Papel do post:
     {% for r in roles %}  {{ r.name }}: {{ r.description }}
@@ -28,10 +28,12 @@ function GenerateContent(profile: BusinessProfile, roles: ContentRole[], previou
     - Do jeito que você falaria com um cliente no balcão. Frases curtas.
     - NUNCA use travessão (—). Use vírgula ou ponto.
     - Abra com um micro-momento concreto: uma cena, um número real, um detalhe sensorial. Nada de declarações genéricas.
-    - Use palavras-chave do nicho naturalmente nas duas primeiras frases. O Instagram funciona como buscador.
-    - Mencione o nome do negócio e a cidade/bairro.
+    - Inclua pelo menos um detalhe que não está nos dados do negócio acima: um horário, o clima, um som, uma pessoa, algo que aconteceu. Detalhes inventados devem ter vida própria, não apenas decorar o pitch.
+    - Use palavras-chave do nicho em algum lugar da legenda, de forma natural. O Instagram funciona como buscador. Não force na primeira frase se não couber.
+    - Mencione o nome do negócio. A cidade/bairro pode aparecer se couber naturalmente, mas não force "aqui em [cidade]" em todo post.
     - Emojis só quando você usaria de verdade no WhatsApp.
     - NUNCA termine com pergunta genérica de engajamento ("qual seu favorito?", "comenta aqui", "marca um amigo?").
+    - Evite o formato "pergunta que eu escuto toda semana + resposta". Varie as estruturas: bastidor, marco, opinião, cena do dia, reflexão pessoal.
     - IMPORTANTE: A legenda deve ter no MÁXIMO 400 caracteres. Posts curtos têm mais engajamento. Não desenvolva a história além do necessário. Um parágrafo de abertura + um de contexto é suficiente.
 
     {% if previousHooks | length > 0 %}
@@ -68,8 +70,8 @@ function GenerateFromMessage(profile: BusinessProfile, clientMessage: string, pr
     O post precisa ter:
     - Legenda CURTA: MÁXIMO 400 caracteres. Conte os caracteres. 2-3 parágrafos curtos, não mais.
     - Hashtags do nicho (0 a 3, só se fizer sentido). Não force.
-    - CTA é opcional. Se incluir, prefira "salva esse post", "manda pra uma amiga", "comenta aqui". Evite "link na bio", "chama no zap" (o algoritmo penaliza saídas da plataforma).
-    - Nota de produção: o que fotografar, enquadramento, uma dica. 2-3 frases.
+    - CTA é opcional. A maioria dos posts reais de MEI não tem CTA. Se incluir, varie: "manda pra uma amiga que precisa ouvir isso", "salva pra depois", "comenta se já passou por isso". Evite "link na bio", "chama no zap". NUNCA use "salva esse post" como frase final automática.
+    - Nota de produção: o que fotografar com o celular, enquadramento, uma dica. 2-3 frases. Deve ser algo que a pessoa consiga fazer sozinha, agora, sem planejar.
 
     REGRA PRINCIPAL, use os detalhes concretos da mensagem do cliente:
     - Extraia nomes, números, datas, detalhes específicos da mensagem e use na legenda.
@@ -79,8 +81,9 @@ function GenerateFromMessage(profile: BusinessProfile, clientMessage: string, pr
     - Do jeito que você falaria com um cliente no balcão. Frases curtas.
     - NUNCA use travessão (—). Use vírgula ou ponto.
     - Abra com um micro-momento concreto: uma cena, um número real, um detalhe sensorial.
-    - Use palavras-chave do nicho naturalmente nas duas primeiras frases. O Instagram funciona como buscador.
-    - Mencione o nome do negócio e a cidade/bairro.
+    - Inclua pelo menos um detalhe que não está nos dados do negócio acima: um horário, o clima, um som, algo que aconteceu. Detalhes inventados devem ter vida própria, não apenas decorar o pitch.
+    - Use palavras-chave do nicho em algum lugar da legenda, de forma natural. O Instagram funciona como buscador. Não force na primeira frase se não couber.
+    - Mencione o nome do negócio. A cidade/bairro pode aparecer se couber naturalmente, mas não force "aqui em [cidade]" em todo post.
     - Emojis só quando você usaria de verdade no WhatsApp.
     - NUNCA termine com pergunta genérica de engajamento.
     - IMPORTANTE: A legenda deve ter no MÁXIMO 400 caracteres. Posts curtos têm mais engajamento. Não desenvolva além do necessário.
