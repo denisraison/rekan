@@ -20,6 +20,8 @@ type Message struct {
 }
 
 // ContentBlock is one piece of content within a message.
+// Content handles both string and array formats for tool_result blocks
+// (the Anthropic SDK serialized content as [{"type":"text","text":"..."}]).
 type ContentBlock struct {
 	Type      string          `json:"type"`
 	Text      string          `json:"text,omitempty"`
@@ -29,6 +31,42 @@ type ContentBlock struct {
 	ToolUseID string          `json:"tool_use_id,omitempty"`
 	Content   string          `json:"content,omitempty"`
 	IsError   bool            `json:"is_error,omitempty"`
+}
+
+// UnmarshalJSON handles the Content field being either a string or an array
+// of content blocks (legacy SDK format).
+func (b *ContentBlock) UnmarshalJSON(data []byte) error {
+	// Use a plain struct to avoid infinite recursion.
+	type plain ContentBlock
+	// First try normal unmarshal (Content as string).
+	if err := json.Unmarshal(data, (*plain)(b)); err == nil {
+		return nil
+	}
+
+	// Content might be an array. Unmarshal into raw map, fix Content, retry.
+	var raw map[string]json.RawMessage
+	if err := json.Unmarshal(data, &raw); err != nil {
+		return err
+	}
+
+	// Extract array-format content and convert to string.
+	if c, ok := raw["content"]; ok && len(c) > 0 && c[0] == '[' {
+		var blocks []struct {
+			Text string `json:"text"`
+		}
+		if json.Unmarshal(c, &blocks) == nil && len(blocks) > 0 {
+			str, _ := json.Marshal(blocks[0].Text)
+			raw["content"] = str
+		} else {
+			delete(raw, "content")
+		}
+	}
+
+	fixed, err := json.Marshal(raw)
+	if err != nil {
+		return err
+	}
+	return json.Unmarshal(fixed, (*plain)(b))
 }
 
 // Tool is the unit of composition. Everything the agent can do is a Tool.

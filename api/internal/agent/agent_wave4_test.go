@@ -382,6 +382,90 @@ func TestBuildClaudeMessages_OrphanedToolUse(t *testing.T) {
 	}
 }
 
+// TestBuildClaudeMessages_SDKArrayContent reproduces the bug where tool_result
+// content stored in SDK array format (pre-PEP-030) causes unmarshal failure,
+// creating empty text blocks that the API rejects.
+func TestBuildClaudeMessages_SDKArrayContent(t *testing.T) {
+	// This is the exact format the Anthropic Go SDK produced for tool_result content:
+	// "content":[{"type":"text","text":"..."}] instead of "content":"..."
+	history := []ConversationMessage{
+		{Role: "user", Content: "busca a Nika", Structured: `{"role":"user","content":[{"type":"text","text":"busca a Nika"}]}`},
+		{Role: "assistant", Content: "", Structured: `{"role":"assistant","content":[{"type":"text","text":"Deixa eu verificar!"},{"type":"tool_use","id":"toolu_xxx","name":"search_customers","input":{"query":"Nika"}}]}`},
+		{Role: "user", Content: "", Structured: `{"role":"user","content":[{"type":"tool_result","tool_use_id":"toolu_xxx","is_error":false,"content":[{"type":"text","text":"Nome: Nika"}]}]}`},
+		{Role: "assistant", Content: "Encontrei a Nika!", Structured: `{"role":"assistant","content":[{"type":"text","text":"Encontrei a Nika!"}]}`},
+		{Role: "user", Content: "gera um post", Structured: `{"role":"user","content":[{"type":"text","text":"gera um post"}]}`},
+	}
+
+	msgs := buildClaudeMessages(history, "gera um post")
+
+	// Verify no empty text blocks (these cause API error: text.text: Field required)
+	for i, msg := range msgs {
+		for j, block := range msg.Content {
+			if block.Type == "text" && block.Text == "" {
+				t.Errorf("messages[%d].content[%d]: empty text block would cause API error", i, j)
+			}
+		}
+	}
+
+	// Verify tool_result content was deserialized from array format
+	foundToolResult := false
+	for _, msg := range msgs {
+		for _, block := range msg.Content {
+			if block.Type == "tool_result" && block.Content == "Nome: Nika" {
+				foundToolResult = true
+			}
+		}
+	}
+	if !foundToolResult {
+		t.Error("tool_result with array-format content was not deserialized; expected Content='Nome: Nika'")
+	}
+
+	// Verify alternating roles
+	for i := 1; i < len(msgs); i++ {
+		if msgs[i].Role == msgs[i-1].Role {
+			t.Errorf("consecutive same role at index %d and %d: both %q", i-1, i, msgs[i].Role)
+		}
+	}
+}
+
+// TestContentBlock_UnmarshalArrayContent verifies the custom UnmarshalJSON
+// handles both string and array formats for tool_result content.
+func TestContentBlock_UnmarshalArrayContent(t *testing.T) {
+	tests := []struct {
+		name string
+		json string
+		want string
+	}{
+		{
+			name: "string format",
+			json: `{"type":"tool_result","tool_use_id":"toolu_1","content":"hello"}`,
+			want: "hello",
+		},
+		{
+			name: "array format (SDK legacy)",
+			json: `{"type":"tool_result","tool_use_id":"toolu_1","content":[{"type":"text","text":"hello from array"}]}`,
+			want: "hello from array",
+		},
+		{
+			name: "no content",
+			json: `{"type":"tool_result","tool_use_id":"toolu_1"}`,
+			want: "",
+		},
+	}
+
+	for _, tc := range tests {
+		t.Run(tc.name, func(t *testing.T) {
+			var block ContentBlock
+			if err := json.Unmarshal([]byte(tc.json), &block); err != nil {
+				t.Fatalf("unmarshal failed: %v", err)
+			}
+			if block.Content != tc.want {
+				t.Errorf("Content = %q, want %q", block.Content, tc.want)
+			}
+		})
+	}
+}
+
 // TestDoubleCreate_Idempotent: call create_customer twice, findDuplicate catches second.
 func TestDoubleCreate_Idempotent(t *testing.T) {
 	app := newWave4TestApp(t)

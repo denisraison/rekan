@@ -247,7 +247,12 @@ func buildClaudeMessages(history []ConversationMessage, currentMessage string) [
 			}
 		}
 
-		// Fallback: plain text for old messages without structured data
+		// Fallback: plain text for old messages without structured data.
+		// Skip empty content (e.g. tool loop messages whose structured JSON
+		// failed to deserialize due to content type mismatch).
+		if msg.Content == "" {
+			continue
+		}
 		if msg.Role == "user" {
 			messages = append(messages, NewUserMessage(NewTextBlock(msg.Content)))
 		} else {
