@@ -261,8 +261,6 @@ func (m *MockExecutor) Execute(name string, input json.RawMessage) string {
 		return m.createCustomer(input)
 	case "update_customer":
 		return m.updateCustomer(input)
-	case "pause_customer":
-		return m.pauseCustomer(input)
 	case "generate_post":
 		return m.generatePost(input)
 	case "approve_post":
@@ -285,10 +283,10 @@ func (m *MockExecutor) searchCustomers(input json.RawMessage) string {
 	// No query: list all
 	if args.Query == "" {
 		if len(m.Fixtures.Customers) == 0 {
-			return "Nenhuma cliente ativa no momento."
+			return "Nenhuma cliente ativa."
 		}
 		var b strings.Builder
-		fmt.Fprintf(&b, "Clientes ativas: %d\n", len(m.Fixtures.Customers))
+		fmt.Fprintf(&b, "%d clientes ativas:\n", len(m.Fixtures.Customers))
 		for _, c := range m.Fixtures.Customers {
 			fmt.Fprintf(&b, "- %s (%s, %s)\n", c.Name, c.Type, c.City)
 		}
@@ -310,14 +308,11 @@ func (m *MockExecutor) searchCustomers(input json.RawMessage) string {
 
 	var b strings.Builder
 	for _, c := range matches {
-		fmt.Fprintf(&b, "Nome: %s\n", c.Name)
-		fmt.Fprintf(&b, "Tipo: %s\n", c.Type)
-		fmt.Fprintf(&b, "Cidade: %s\n", c.City)
+		fmt.Fprintf(&b, "Nome: %s\nTipo: %s\nCidade: %s\n", c.Name, c.Type, c.City)
 		if c.Phone != "" {
 			fmt.Fprintf(&b, "Tel: %s\n", c.Phone)
 		}
-		fmt.Fprintf(&b, "Status: active\n")
-		b.WriteString("---\n")
+		fmt.Fprintf(&b, "Status: active\n---\n")
 	}
 	return b.String()
 }
@@ -399,27 +394,24 @@ func (m *MockExecutor) createCustomer(input json.RawMessage) string {
 		}
 	}
 
-	return fmt.Sprintf("%s, %s cadastrada! (%s, %s)", m.OperatorName, args.Name, args.Type, args.City)
+	return fmt.Sprintf("%s cadastrada (%s, %s).", args.Name, args.Type, args.City)
 }
 
 func (m *MockExecutor) updateCustomer(input json.RawMessage) string {
 	var args struct {
-		Name string `json:"name"`
+		Name   string `json:"name"`
+		Status string `json:"status"`
 	}
 	if err := json.Unmarshal(input, &args); err != nil {
 		return "Erro ao ler parâmetros."
 	}
-	return fmt.Sprintf("%s, %s atualizada!", m.OperatorName, args.Name)
-}
-
-func (m *MockExecutor) pauseCustomer(input json.RawMessage) string {
-	var args struct {
-		Name string `json:"name"`
+	if args.Status == "paused" {
+		return fmt.Sprintf("%s pausada.", args.Name)
 	}
-	if err := json.Unmarshal(input, &args); err != nil {
-		return "Erro ao ler parâmetros."
+	if args.Status == "active" {
+		return fmt.Sprintf("%s reativada.", args.Name)
 	}
-	return fmt.Sprintf("%s, %s pausada.", m.OperatorName, args.Name)
+	return fmt.Sprintf("%s atualizada.", args.Name)
 }
 
 func (m *MockExecutor) generatePost(input json.RawMessage) string {
@@ -438,15 +430,15 @@ func (m *MockExecutor) generatePost(input json.RawMessage) string {
 		}
 	}
 	if !found {
-		return fmt.Sprintf("%s, não encontrei cliente '%s'.", m.OperatorName, args.CustomerName)
+		return fmt.Sprintf("Não encontrei cliente '%s'.", args.CustomerName)
 	}
 
 	var b strings.Builder
-	fmt.Fprintf(&b, "%s, post gerado pra %s!\n\n", m.OperatorName, args.CustomerName)
+	fmt.Fprintf(&b, "Post gerado pra %s.\n", args.CustomerName)
+	fmt.Fprintf(&b, "ID: post_gen_001\n")
 	fmt.Fprintf(&b, "Legenda: Post de exemplo para %s\n", args.CustomerName)
 	b.WriteString("Hashtags: #exemplo #post\n")
-	b.WriteString("Nota de produção: Foto de exemplo\n")
-	b.WriteString("ID: post_gen_001")
+	b.WriteString("Nota de produção: Foto de exemplo")
 	return b.String()
 }
 
@@ -460,7 +452,7 @@ func (m *MockExecutor) approvePost(input json.RawMessage) string {
 
 	for _, p := range m.Fixtures.Posts {
 		if p.ID == args.PostID {
-			return fmt.Sprintf("%s, post da %s aprovado!", m.OperatorName, p.Business)
+			return fmt.Sprintf("Post da %s aprovado.", p.Business)
 		}
 	}
 	return fmt.Sprintf("Post %s não encontrado.", args.PostID)
@@ -477,7 +469,10 @@ func (m *MockExecutor) rejectPost(input json.RawMessage) string {
 
 	for _, p := range m.Fixtures.Posts {
 		if p.ID == args.PostID {
-			return fmt.Sprintf("%s, post da %s rejeitado. Feedback: %s.", m.OperatorName, p.Business, args.Feedback)
+			if args.Feedback != "" {
+				return fmt.Sprintf("Post da %s rejeitado. Feedback: %s.", p.Business, args.Feedback)
+			}
+			return fmt.Sprintf("Post da %s rejeitado.", p.Business)
 		}
 	}
 	return fmt.Sprintf("Post %s não encontrado.", args.PostID)
@@ -592,7 +587,6 @@ var writeToolNames = map[string]bool{
 	"update_customer": true,
 	"approve_post":    true,
 	"reject_post":     true,
-	"pause_customer":  true,
 	"generate_post":   true,
 }
 

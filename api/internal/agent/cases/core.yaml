@@ -135,6 +135,21 @@ tests:
       - reply_contains: "Maria Silva"
       - reply_contains: "Maria Santos"
 
+  - id: pause_via_update
+    message: "pausa a Patricia por favor"
+    operator: { name: "Elenice", jid: "5511999990000" }
+    fixtures:
+      customers:
+        - name: "Patricia"
+          type: "Salão de Beleza"
+          city: "Belo Horizonte"
+          phone: "31988881111"
+      posts: []
+    assert:
+      - tool_not_called: pause_customer
+      - reply_contains: "Patricia"
+      - no_empty_promise: true
+
   - id: update_only_changed_field
     message: "Patricia mudou pra Contagem"
     operator: { name: "Elenice", jid: "5511999990000" }

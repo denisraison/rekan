@@ -209,10 +209,6 @@ func (a *Agent) processWithTools(ctx context.Context, groupJID types.JID, operat
 	}
 
 	reply := runResult.Reply
-	if len(executor.Posts) > 0 {
-		bizNames := executor.bizNameMap()
-		reply += "\n\n" + formatPostDetails(bizNames, executor.Posts)
-	}
 
 	// Collect loop messages (all except the final) and the final assistant message
 	var loopMsgs []Message
@@ -362,8 +358,6 @@ func toolNameToActionType(name string) string {
 		return ActionCustomerCreate
 	case "update_customer":
 		return ActionCustomerUpdate
-	case "pause_customer":
-		return ActionCustomerPause
 	case "generate_post":
 		return ActionPostGenerate
 	case "approve_post":

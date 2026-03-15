@@ -19,7 +19,6 @@ type ToolExecutor struct {
 	WAClient   WAClient
 	Generate   content.GenerateFunc
 	businesses []*core.Record // cached on first access
-	Posts      []*core.Record // posts referenced during execution, appended to reply programmatically
 	WriteUsed  bool           // whether any write tool was called
 }
 
@@ -111,7 +110,7 @@ func buildTools(executor *ToolExecutor, operatorName string) []Tool {
 			func(input json.RawMessage) string { return executor.createCustomer(input, operatorName) },
 		),
 		writeTool("update_customer",
-			"Altera dados de uma cliente existente. Apenas name é obrigatório (identifica a cliente).",
+			"Altera dados ou pausa/reativa uma cliente. Apenas name é obrigatório. Para pausar, use status='paused'. Para reativar, status='active'.",
 			schema(map[string]any{
 				"name":            map[string]any{"type": "string", "description": "Nome da cliente (para identificação)"},
 				"new_name":        map[string]any{"type": "string", "description": "Novo nome do negócio (se quiser renomear)"},
@@ -121,16 +120,9 @@ func buildTools(executor *ToolExecutor, operatorName string) []Tool {
 				"target_audience": map[string]any{"type": "string", "description": "Novo público-alvo"},
 				"brand_vibe":      map[string]any{"type": "string", "description": "Nova vibe da marca"},
 				"quirks":          map[string]any{"type": "string", "description": "Novas observações"},
+				"status":          map[string]any{"type": "string", "enum": []string{"active", "paused"}, "description": "Status da cliente"},
 			}, "name"),
 			func(input json.RawMessage) string { return executor.updateCustomer(input, operatorName) },
-		),
-		writeTool("pause_customer",
-			"Pausa uma cliente.",
-			schema(map[string]any{
-				"name":   map[string]any{"type": "string", "description": "Nome da cliente"},
-				"reason": map[string]any{"type": "string", "description": "Motivo da pausa (opcional)"},
-			}, "name"),
-			func(input json.RawMessage) string { return executor.pauseCustomer(input, operatorName) },
 		),
 		writeTool("generate_post",
 			"Gera posts para uma cliente.",
@@ -157,44 +149,6 @@ func buildTools(executor *ToolExecutor, operatorName string) []Tool {
 	}
 }
 
-// formatPostDetails builds a WhatsApp-friendly block with full post content.
-// Deduplicates by post ID in case the same post was referenced multiple times.
-// bizNames maps business ID to display name.
-func formatPostDetails(bizNames map[string]string, posts []*core.Record) string {
-	seen := map[string]bool{}
-	var b strings.Builder
-	for _, p := range posts {
-		if seen[p.Id] {
-			continue
-		}
-		seen[p.Id] = true
-
-		bizID := p.GetString("business")
-		name := bizNames[bizID]
-		if name == "" {
-			name = bizID
-		}
-
-		if b.Len() > 0 {
-			b.WriteString("\n")
-		}
-		fmt.Fprintf(&b, "*Post %s* (%s)\n", p.Id, name)
-		appendPostFieldsJSON(&b, p.GetString("caption"), p.GetString("hashtags"), p.GetString("production_note"))
-	}
-	return b.String()
-}
-
-// appendPostFields writes caption, hashtags, and production note to b.
-func appendPostFields(b *strings.Builder, caption string, hashtags []string, productionNote string) {
-	fmt.Fprintf(b, "Legenda: %s\n", caption)
-	if len(hashtags) > 0 {
-		fmt.Fprintf(b, "Hashtags: %s\n", strings.Join(hashtags, " "))
-	}
-	if productionNote != "" {
-		fmt.Fprintf(b, "Nota de produção: %s\n", productionNote)
-	}
-}
-
 // decodeHashtags parses a JSON array string (e.g. `["#foo","#bar"]`) into a slice.
 func decodeHashtags(hashtagsJSON string) []string {
 	if hashtagsJSON == "" {
@@ -203,12 +157,6 @@ func decodeHashtags(hashtagsJSON string) []string {
 	var tags []string
 	json.Unmarshal([]byte(hashtagsJSON), &tags) //nolint:errcheck
 	return tags
-}
-
-// appendPostFieldsJSON is like appendPostFields but decodes hashtags from a
-// raw JSON string (e.g. `["#foo","#bar"]`).
-func appendPostFieldsJSON(b *strings.Builder, caption, hashtagsJSON, productionNote string) {
-	appendPostFields(b, caption, decodeHashtags(hashtagsJSON), productionNote)
 }
 
 func postStatus(reviewed bool) string {
@@ -254,13 +202,19 @@ func (te *ToolExecutor) resolveBizName(postRecord *core.Record) string {
 }
 
 // resolveCustomer finds exactly one business by name, returning an error string on 0 or 2+ matches.
-func (te *ToolExecutor) resolveCustomer(name, operatorName string) (*core.Record, string) {
+func (te *ToolExecutor) resolveCustomer(name string) (*core.Record, string) {
 	matches := service.FindBusinessByName(te.loadBusinesses(), name)
 	if len(matches) == 0 {
-		return nil, fmt.Sprintf("%s, não encontrei cliente '%s'.", operatorName, name)
+		return nil, fmt.Sprintf("Não encontrei cliente '%s'.", name)
 	}
 	if len(matches) > 1 {
-		return nil, disambiguate(operatorName, matches)
+		var b strings.Builder
+		b.WriteString("Encontrei mais de uma:\n")
+		for _, m := range matches {
+			fmt.Fprintf(&b, "- %s (%s, %s)\n", m.GetString("name"), m.GetString("type"), m.GetString("city"))
+		}
+		b.WriteString("Qual delas?")
+		return nil, b.String()
 	}
 	return matches[0], ""
 }
@@ -279,10 +233,10 @@ func (te *ToolExecutor) searchCustomers(input json.RawMessage) string {
 	if args.Query == "" {
 		businesses := te.loadBusinesses()
 		if len(businesses) == 0 {
-			return "Nenhuma cliente ativa no momento."
+			return "Nenhuma cliente ativa."
 		}
 		var b strings.Builder
-		fmt.Fprintf(&b, "Clientes ativas: %d\n", len(businesses))
+		fmt.Fprintf(&b, "%d clientes ativas:\n", len(businesses))
 		for _, biz := range businesses {
 			fmt.Fprintf(&b, "- %s (%s, %s)\n", biz.GetString("name"), biz.GetString("type"), biz.GetString("city"))
 		}
@@ -297,9 +251,7 @@ func (te *ToolExecutor) searchCustomers(input json.RawMessage) string {
 
 	var b strings.Builder
 	for _, m := range matches {
-		fmt.Fprintf(&b, "Nome: %s\n", m.GetString("name"))
-		fmt.Fprintf(&b, "Tipo: %s\n", m.GetString("type"))
-		fmt.Fprintf(&b, "Cidade: %s\n", m.GetString("city"))
+		fmt.Fprintf(&b, "Nome: %s\nTipo: %s\nCidade: %s\n", m.GetString("name"), m.GetString("type"), m.GetString("city"))
 		if phone := m.GetString("phone"); phone != "" {
 			fmt.Fprintf(&b, "Tel: %s\n", phone)
 		}
@@ -312,8 +264,7 @@ func (te *ToolExecutor) searchCustomers(input json.RawMessage) string {
 		if q := m.GetString("quirks"); q != "" {
 			fmt.Fprintf(&b, "Obs: %s\n", q)
 		}
-		fmt.Fprintf(&b, "Status: %s\n", m.GetString("invite_status"))
-		b.WriteString("---\n")
+		fmt.Fprintf(&b, "Status: %s\n---\n", m.GetString("invite_status"))
 	}
 	return b.String()
 }
@@ -336,7 +287,6 @@ func (te *ToolExecutor) searchPosts(input json.RawMessage) string {
 		if err != nil {
 			return fmt.Sprintf("Post %s não encontrado.", args.PostID)
 		}
-		te.Posts = append(te.Posts, record)
 
 		bizName := te.resolveBizName(record)
 		var b strings.Builder
@@ -377,8 +327,6 @@ func (te *ToolExecutor) searchPosts(input json.RawMessage) string {
 		return "Nenhum post encontrado."
 	}
 
-	te.Posts = append(te.Posts, posts...)
-
 	bizNames := te.bizNameMap()
 	var b strings.Builder
 	for _, p := range posts {
@@ -394,7 +342,7 @@ func (te *ToolExecutor) searchPosts(input json.RawMessage) string {
 
 // --- Write tool implementations ---
 
-func (te *ToolExecutor) createCustomer(input json.RawMessage, operatorName string) string {
+func (te *ToolExecutor) createCustomer(input json.RawMessage, _ string) string {
 	var args struct {
 		Name           string `json:"name"`
 		Type           string `json:"type"`
@@ -424,8 +372,16 @@ func (te *ToolExecutor) createCustomer(input json.RawMessage, operatorName strin
 		p.Quirks = &args.Quirks
 	}
 
-	if err := validateCustomerCreate(p, operatorName); err != nil {
+	if err := validateCustomerCreate(p); err != nil {
 		return err.Error()
+	}
+
+	if args.Phone != "" {
+		normalized, err := service.NormalizePhone(args.Phone)
+		if err != nil {
+			return "Telefone inválido: " + err.Error()
+		}
+		p.Phone = normalized
 	}
 
 	if dup := service.FindDuplicate(te.loadBusinesses(), p.Name); dup != nil {
@@ -437,10 +393,10 @@ func (te *ToolExecutor) createCustomer(input json.RawMessage, operatorName strin
 		return "Erro ao cadastrar: " + err.Error()
 	}
 	te.businesses = nil // invalidate cache
-	return fmt.Sprintf("%s, %s cadastrada! (%s, %s)", operatorName, record.GetString("name"), record.GetString("type"), record.GetString("city"))
+	return fmt.Sprintf("%s cadastrada (%s, %s).", record.GetString("name"), record.GetString("type"), record.GetString("city"))
 }
 
-func (te *ToolExecutor) updateCustomer(input json.RawMessage, operatorName string) string {
+func (te *ToolExecutor) updateCustomer(input json.RawMessage, _ string) string {
 	var args struct {
 		Name           string `json:"name"`
 		NewName        string `json:"new_name"`
@@ -450,14 +406,40 @@ func (te *ToolExecutor) updateCustomer(input json.RawMessage, operatorName strin
 		TargetAudience string `json:"target_audience"`
 		BrandVibe      string `json:"brand_vibe"`
 		Quirks         string `json:"quirks"`
+		Status         string `json:"status"`
 	}
 	if err := json.Unmarshal(input, &args); err != nil {
 		return "Erro ao ler parâmetros."
 	}
 
-	record, errMsg := te.resolveCustomer(args.Name, operatorName)
+	record, errMsg := te.resolveCustomer(args.Name)
 	if errMsg != "" {
 		return errMsg
+	}
+
+	if args.Phone != "" {
+		normalized, err := service.NormalizePhone(args.Phone)
+		if err != nil {
+			return "Telefone inválido: " + err.Error()
+		}
+		args.Phone = normalized
+	}
+
+	// Handle pause/unpause via status field
+	if args.Status == "paused" {
+		if err := service.PauseBusiness(te.App, record); err != nil {
+			return "Erro ao pausar: " + err.Error()
+		}
+		te.businesses = nil
+		return fmt.Sprintf("%s pausada.", args.Name)
+	}
+	if args.Status == "active" {
+		record.Set("invite_status", domain.InviteStatusActive)
+		if err := te.App.Save(record); err != nil {
+			return "Erro ao reativar: " + err.Error()
+		}
+		te.businesses = nil
+		return fmt.Sprintf("%s reativada.", args.Name)
 	}
 
 	p := service.UpdateBusinessParams{}
@@ -488,7 +470,7 @@ func (te *ToolExecutor) updateCustomer(input json.RawMessage, operatorName strin
 		return "Erro ao alterar: " + err.Error()
 	}
 	if len(updatedKeys) == 0 {
-		return fmt.Sprintf("%s, nenhum campo pra atualizar na %s.", operatorName, args.Name)
+		return fmt.Sprintf("Nenhum campo pra atualizar na %s.", args.Name)
 	}
 
 	labels := make([]string, len(updatedKeys))
@@ -502,36 +484,10 @@ func (te *ToolExecutor) updateCustomer(input json.RawMessage, operatorName strin
 	if args.NewName != "" {
 		displayName = args.NewName
 	}
-	return fmt.Sprintf("%s, %s atualizada! Campos: %s.", operatorName, displayName, strings.Join(labels, ", "))
+	return fmt.Sprintf("%s atualizada. Campos: %s.", displayName, strings.Join(labels, ", "))
 }
 
-func (te *ToolExecutor) pauseCustomer(input json.RawMessage, operatorName string) string {
-	var args struct {
-		Name   string `json:"name"`
-		Reason string `json:"reason"`
-	}
-	if err := json.Unmarshal(input, &args); err != nil {
-		return "Erro ao ler parâmetros."
-	}
-
-	record, errMsg := te.resolveCustomer(args.Name, operatorName)
-	if errMsg != "" {
-		return errMsg
-	}
-
-	if err := service.PauseBusiness(te.App, record); err != nil {
-		return "Erro ao pausar: " + err.Error()
-	}
-	te.businesses = nil // invalidate cache
-
-	msg := fmt.Sprintf("%s, %s pausada.", operatorName, args.Name)
-	if args.Reason != "" {
-		msg = fmt.Sprintf("%s, %s pausada. Motivo: %s.", operatorName, args.Name, args.Reason)
-	}
-	return msg
-}
-
-func (te *ToolExecutor) generatePost(input json.RawMessage, operatorName string) string {
+func (te *ToolExecutor) generatePost(input json.RawMessage, _ string) string {
 	var args struct {
 		CustomerName string `json:"customer_name"`
 	}
@@ -540,15 +496,15 @@ func (te *ToolExecutor) generatePost(input json.RawMessage, operatorName string)
 	}
 
 	if args.CustomerName == "" {
-		return operatorName + ", pra qual cliente você quer gerar post?"
+		return "Pra qual cliente quer gerar post?"
 	}
 
-	biz, errMsg := te.resolveCustomer(args.CustomerName, operatorName)
+	biz, errMsg := te.resolveCustomer(args.CustomerName)
 	if errMsg != "" {
 		return errMsg
 	}
 	if te.Generate == nil {
-		return operatorName + ", geração de posts não está configurada."
+		return "Geração de posts não está configurada."
 	}
 
 	result, err := service.GeneratePosts(te.Ctx, te.App, te.Generate, biz.Id)
@@ -556,24 +512,24 @@ func (te *ToolExecutor) generatePost(input json.RawMessage, operatorName string)
 		return "Erro ao gerar: " + err.Error()
 	}
 	if len(result.Posts) == 0 {
-		return fmt.Sprintf("%s, não consegui gerar post pra %s.", operatorName, biz.GetString("name"))
+		return fmt.Sprintf("Não consegui gerar post pra %s.", biz.GetString("name"))
 	}
 
 	post := result.Posts[0]
 	var b strings.Builder
-	fmt.Fprintf(&b, "%s, post gerado pra %s!\n\n", operatorName, biz.GetString("name"))
-	appendPostFields(&b, post.Caption, post.Hashtags, post.ProductionNote)
-	fmt.Fprintf(&b, "ID: %s", post.ID)
-
-	for _, p := range result.Posts {
-		if record, findErr := te.App.FindRecordById(domain.CollPosts, p.ID); findErr == nil {
-			te.Posts = append(te.Posts, record)
-		}
+	fmt.Fprintf(&b, "Post gerado pra %s.\n", biz.GetString("name"))
+	fmt.Fprintf(&b, "ID: %s\n", post.ID)
+	fmt.Fprintf(&b, "Legenda: %s\n", post.Caption)
+	if len(post.Hashtags) > 0 {
+		fmt.Fprintf(&b, "Hashtags: %s\n", strings.Join(post.Hashtags, " "))
+	}
+	if post.ProductionNote != "" {
+		fmt.Fprintf(&b, "Nota de produção: %s", post.ProductionNote)
 	}
 	return b.String()
 }
 
-func (te *ToolExecutor) approvePost(input json.RawMessage, operatorName string) string {
+func (te *ToolExecutor) approvePost(input json.RawMessage, _ string) string {
 	var args struct {
 		PostID string `json:"post_id"`
 	}
@@ -582,7 +538,7 @@ func (te *ToolExecutor) approvePost(input json.RawMessage, operatorName string) 
 	}
 
 	if args.PostID == "" {
-		return operatorName + ", qual post você quer aprovar?"
+		return "Qual post quer aprovar?"
 	}
 
 	record, err := service.ApprovePost(te.App, args.PostID)
@@ -590,21 +546,20 @@ func (te *ToolExecutor) approvePost(input json.RawMessage, operatorName string) 
 		return "Erro ao aprovar: " + err.Error()
 	}
 
-	te.Posts = append(te.Posts, record)
 	bizName := te.resolveBizName(record)
-	result := fmt.Sprintf("%s, post da %s aprovado!", operatorName, bizName)
+	result := fmt.Sprintf("Post da %s aprovado.", bizName)
 
 	if te.WAClient != nil {
 		if sendErr := te.sendPostToClient(record); sendErr != nil {
-			return result + " (mas não consegui enviar pro cliente: " + sendErr.Error() + ")"
+			return result + " Não consegui enviar pro cliente: " + sendErr.Error()
 		}
-		result += " Enviado pro cliente!"
+		result += " Enviado pro cliente."
 	}
 
 	return result
 }
 
-func (te *ToolExecutor) rejectPost(input json.RawMessage, operatorName string) string {
+func (te *ToolExecutor) rejectPost(input json.RawMessage, _ string) string {
 	var args struct {
 		PostID   string `json:"post_id"`
 		Feedback string `json:"feedback"`
@@ -614,7 +569,7 @@ func (te *ToolExecutor) rejectPost(input json.RawMessage, operatorName string) s
 	}
 
 	if args.PostID == "" {
-		return operatorName + ", qual post você quer rejeitar?"
+		return "Qual post quer rejeitar?"
 	}
 
 	record, err := service.RejectPost(te.App, args.PostID, args.Feedback)
@@ -622,14 +577,11 @@ func (te *ToolExecutor) rejectPost(input json.RawMessage, operatorName string) s
 		return "Erro ao rejeitar: " + err.Error()
 	}
 
-	te.Posts = append(te.Posts, record)
 	bizName := te.resolveBizName(record)
-
-	msg := fmt.Sprintf("%s, post da %s rejeitado.", operatorName, bizName)
 	if args.Feedback != "" {
-		msg = fmt.Sprintf("%s, post da %s rejeitado. Feedback: %s.", operatorName, bizName, args.Feedback)
+		return fmt.Sprintf("Post da %s rejeitado. Feedback: %s.", bizName, args.Feedback)
 	}
-	return msg
+	return fmt.Sprintf("Post da %s rejeitado.", bizName)
 }
 
 // sendPostToClient sends the post content to the client's WhatsApp.

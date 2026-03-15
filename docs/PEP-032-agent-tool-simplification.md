@@ -69,13 +69,10 @@ Elenice - Nika, post da Opalina rejeitado. Feedback: Texto muito longo, precisa 
 
 After:
 ```
-status:rejected
-customer:Opalina
-post_id:n9cmjj2q131pfj8
-feedback:Texto muito longo, precisa ser mais curto
+Post da Opalina rejeitado. Feedback: Texto muito longo, precisa ser mais curto.
 ```
 
-No operator name. No behavioral instructions. No Portuguese prose. The model formats natural language; the tool reports facts.
+No operator name. No behavioral instructions. Concise natural language that the model can relay directly. We initially tried a custom `key:value` format (`status:rejected\ncustomer:Opalina\n...`) but reverted after eval regressions: Anthropic's own guidance says models work best with "natural language names, terms, or identifiers" and our homebrew format was neither JSON nor prose, forcing the model to parse an unfamiliar format and convert it back to natural language for the user.
 
 ### Post ID prefix matching
 
@@ -104,20 +101,29 @@ Merge the 4 read tools into 2. Remove `recent_activity`. Clean up dead params.
 - Updated `approve_by_customer_name` eval assertion from `post_abc123` to `post_abc` since list view now shows 8-char short IDs and the model passes those to `approve_post`.
 - Also updated `toolNameToActionType` in agent.go, mock executor in eval.go, and test fixture JSON in agent_test.go and agent_wave4_test.go to use new tool names.
 
-### Wave 2: Structured results, remove Posts accumulator, absorb pause
+### Wave 2: Clean up results, remove Posts accumulator, absorb pause
 
-Switch all tool results from prose to key:value. Remove operator name from results. Remove behavioral instructions from results. Delete `executor.Posts` and `formatPostDetails`. Absorb `pause_customer` into `update_customer`. Move phone validation into tool layer.
+Remove operator name and behavioral instructions from tool results. Delete `executor.Posts` and `formatPostDetails`. Absorb `pause_customer` into `update_customer`. Move phone validation into tool layer. Post content inline in generate/search results.
 
 **Files changed:**
-- `api/internal/agent/tools.go` — all tool implementations rewritten to return structured key:value. `pause_customer` removed, `update_customer` gains `status` field. `executor.Posts` and all `te.Posts = append(...)` lines removed. `formatPostDetails`, `appendPostFields`, `appendPostFieldsJSON`, `decodeHashtags` deleted (post content goes inline in tool results). Phone normalization moved before service calls.
+- `api/internal/agent/tools.go` — operator name removed from all tool results. `pause_customer` removed, `update_customer` gains `status` field. `executor.Posts` field and all `te.Posts = append(...)` lines removed. `formatPostDetails`, `appendPostFields`, `appendPostFieldsJSON` deleted. `resolveCustomer` simplified (no longer takes operator name). Phone normalization moved before service calls. Post content inline in `generatePost` result.
 - `api/internal/agent/agent.go` — `executor.Posts` and `formatPostDetails` call site removed from `processWithTools`. `toolNameToActionType` drops `pause_customer`.
-- `api/internal/agent/prompt.go` — add post content instruction to system prompt.
-- `api/internal/agent/cases/core.yaml` — add eval case for pause-via-update. Update assertions that match on prose results.
+- `api/internal/agent/router.go` — `ActionCustomerPause` and `disambiguate` removed.
+- `api/internal/agent/validate.go` — operator name removed from validation errors.
+- `api/internal/agent/prompt.go` — post content instruction updated. Added pause tool hint.
+- `api/internal/agent/eval.go` — mock executor updated: `pauseCustomer` removed, `updateCustomer` handles status field, operator name removed from mock results.
+- `api/internal/agent/agent_wave4_test.go` — pause test uses `update_customer` with `status:paused`.
+- `api/internal/agent/cases/core.yaml` — added `pause_via_update` eval case.
 
 **Gate:**
-- [ ] `grep -r "executor\.Posts\|formatPostDetails\|pause_customer" api/internal/agent/` returns nothing
-- [ ] `make eval-agent` passes
+- [x] `grep -r "executor\.Posts\|formatPostDetails\|pause_customer" api/internal/agent/ --include='*.go'` returns nothing
+- [x] `make eval-agent` passes (no regressions vs Wave 1 baseline)
 - [ ] Manual: send "pausa a [cliente]" via WhatsApp, verify it calls `update_customer` with `status:paused`
+
+**Notes:**
+- Initially implemented `key:value` structured results per the original design, but eval regressions showed the model struggled with the custom format. Reverted to concise natural language (without operator name or behavioral instructions). See Anthropic's "Writing effective tools for agents" guide: models work better with natural language identifiers than custom formats.
+- `decodeHashtags` kept (still used by `sendPostToClient` and `searchPosts` detail view).
+- `bizNameMap` kept (still used by `searchPosts` list view).
 
 ### Wave 3: ID resolution and prefix matching
 
@@ -136,8 +142,7 @@ Add customer ID passthrough on write tools. Add post ID prefix matching.
 
 - 11 → 7 tools. 36% fewer tool definitions for the model to parse each turn. Fewer tokens in the system message. Clearer selection boundaries.
 - Post review flows that took 5 turns should take 2: list (with previews) → act. The operator never needs to type or read opaque IDs.
-- Tools are testable without parsing Portuguese. Structured results can be asserted with key matching.
+- Tool results are concise and consistent (no operator name, no behavioral instructions) while staying in natural language the model handles well.
 - The `Posts` side-channel and its prompt band-aid are gone. The model controls what appears in its reply.
-- Trade-off: structured results need prompt tuning. If the model echoes `status:rejected` verbatim instead of natural language, the system prompt needs reinforcement. Watch for this in eval.
 - Trade-off: merging tools changes selection behavior. The eval suite covers main flows but not every edge. Run eval after each wave and spot-check with real WhatsApp messages before deploying.
 - Trade-off: 8-char prefix IDs have enough entropy for current scale. If we reach thousands of posts, prefix collisions become possible. The prefix match fails clearly on ambiguity.

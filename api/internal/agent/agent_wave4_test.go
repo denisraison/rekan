@@ -161,8 +161,8 @@ func TestCustomerUpdate_NotFound(t *testing.T) {
 		"city": "SP",
 	}, "Bruna")
 
-	if !strings.Contains(result, "não encontrei") {
-		t.Errorf("expected 'not found' message, got: %s", result)
+	if !strings.Contains(result, "Não encontrei") {
+		t.Errorf("expected 'Não encontrei' in result, got: %s", result)
 	}
 }
 
@@ -171,9 +171,9 @@ func TestCustomerPause_HappyPath(t *testing.T) {
 	wave4SeedBusiness(t, app, "Joana", "Loja", "RJ")
 	te := newExecutor(t, app)
 
-	result, _ := callTool(t, te, "pause_customer", map[string]any{
+	result, _ := callTool(t, te, "update_customer", map[string]any{
 		"name":   "Joana",
-		"reason": "vai viajar",
+		"status": "paused",
 	}, "Bruna")
 
 	if !strings.Contains(result, "pausada") {
@@ -217,8 +217,8 @@ func TestPostGenerate_HappyPath(t *testing.T) {
 		"customer_name": "Patricia",
 	}, "Elenice")
 
-	if !strings.Contains(result, "post gerado") {
-		t.Errorf("expected 'post gerado' in result, got: %s", result)
+	if !strings.Contains(result, "Post gerado") {
+		t.Errorf("expected 'Post gerado' in result, got: %s", result)
 	}
 
 	posts, err := app.FindAllRecords(domain.CollPosts)
