@@ -25,5 +25,8 @@ rekan-posts/
 # Test artifacts
 test-results/
 
+# Caption research
+docs/caption-research/
+
 # Secrets
 .env
