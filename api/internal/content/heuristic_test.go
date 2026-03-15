@@ -76,46 +76,46 @@ func TestCheckBrazilianPortuguese(t *testing.T) {
 }
 
 func TestCheckCaptionLength(t *testing.T) {
-	t.Run("exactly 2200", func(t *testing.T) {
-		posts := []Post{{Caption: strings.Repeat("a", 2200)}}
+	t.Run("exactly 500", func(t *testing.T) {
+		posts := []Post{{Caption: strings.Repeat("a", 500)}}
 		r := checkCaptionLength(posts)
 		if !r.Pass {
-			t.Error("exactly 2200 chars should pass")
+			t.Error("exactly 500 chars should pass")
 		}
 	})
-	t.Run("2201 fails", func(t *testing.T) {
-		posts := []Post{{Caption: strings.Repeat("a", 2201)}}
+	t.Run("501 fails", func(t *testing.T) {
+		posts := []Post{{Caption: strings.Repeat("a", 501)}}
 		r := checkCaptionLength(posts)
 		if r.Pass {
-			t.Error("2201 chars should fail")
+			t.Error("501 chars should fail")
 		}
 	})
 	t.Run("multi post under limit", func(t *testing.T) {
 		posts := []Post{
-			{Caption: strings.Repeat("a", 1000)},
-			{Caption: strings.Repeat("b", 1000)},
-			{Caption: strings.Repeat("c", 1000)},
+			{Caption: strings.Repeat("a", 300)},
+			{Caption: strings.Repeat("b", 400)},
+			{Caption: strings.Repeat("c", 500)},
 		}
 		r := checkCaptionLength(posts)
 		if !r.Pass {
-			t.Error("3 posts each under 2200 should pass")
+			t.Error("3 posts each under 500 should pass")
 		}
 	})
 	t.Run("multi post one over", func(t *testing.T) {
 		posts := []Post{
-			{Caption: strings.Repeat("a", 500)},
-			{Caption: strings.Repeat("b", 2201)},
+			{Caption: strings.Repeat("a", 300)},
+			{Caption: strings.Repeat("b", 501)},
 		}
 		r := checkCaptionLength(posts)
 		if r.Pass {
-			t.Error("should fail when one post exceeds 2200")
+			t.Error("should fail when one post exceeds 500")
 		}
 	})
-	t.Run("over 500 soft warning", func(t *testing.T) {
-		posts := []Post{{Caption: strings.Repeat("a", 600)}}
+	t.Run("over 400 soft warning", func(t *testing.T) {
+		posts := []Post{{Caption: strings.Repeat("a", 450)}}
 		r := checkCaptionLength(posts)
 		if !r.Pass {
-			t.Error("over 500 should still pass")
+			t.Error("over 400 should still pass")
 		}
 		if !strings.Contains(r.Reason, "consider shortening") {
 			t.Errorf("expected soft warning, got reason=%q", r.Reason)

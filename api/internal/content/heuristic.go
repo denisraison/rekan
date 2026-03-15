@@ -125,7 +125,7 @@ func containsWord(text, word string) bool {
 	return false
 }
 
-const maxCaptionLength = 2200
+const maxCaptionLength = 500
 
 func checkCaptionLength(posts []Post) CheckResult {
 	var reason string
@@ -139,8 +139,8 @@ func checkCaptionLength(posts []Post) CheckResult {
 		}
 		if reason == "" && n < 50 {
 			reason = fmt.Sprintf("caption is %d chars, consider expanding", n)
-		} else if reason == "" && n > 500 {
-			reason = fmt.Sprintf("caption is %d chars, consider shortening", n)
+		} else if reason == "" && n > 400 {
+			reason = fmt.Sprintf("caption is %d chars, consider shortening to under 400", n)
 		}
 	}
 	return CheckResult{Name: "caption_length", Pass: true, Reason: reason}

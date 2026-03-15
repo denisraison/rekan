@@ -15,26 +15,24 @@ function GenerateContent(profile: BusinessProfile, roles: ContentRole[], previou
     - Diferenciais: {% for q in profile.quirks %}{{ q }}{% if not loop.last %}, {% endif %}{% endfor %}
 
     O post precisa ter:
-    - Legenda (200 a 400 caracteres). Pode passar um pouco se a história pedir, mas nunca passe de 500.
-    - Hashtags do nicho (0 a 3, só se fizer sentido para o post). Não force hashtags genéricas.
-    - CTA é opcional. Se incluir, prefira CTAs que mantêm a pessoa no Instagram: "salva esse post", "manda pra uma amiga que precisa", "comenta aqui". Evite CTAs que tiram a pessoa do Instagram: "link na bio", "chama no zap". O algoritmo penaliza saídas da plataforma.
-    - Nota de produção: o que fotografar, enquadramento básico, uma dica prática. 2-3 frases.
+    - Legenda CURTA: MÁXIMO 400 caracteres. Conte os caracteres. 2-3 parágrafos curtos, não mais.
+    - Hashtags do nicho (0 a 3, só se fizer sentido). Não force.
+    - CTA é opcional. Se incluir, prefira "salva esse post", "manda pra uma amiga", "comenta aqui". Evite "link na bio", "chama no zap" (o algoritmo penaliza saídas da plataforma).
+    - Nota de produção: o que fotografar, enquadramento, uma dica. 2-3 frases.
 
     Papel do post:
     {% for r in roles %}  {{ r.name }}: {{ r.description }}
     {% endfor %}
 
     Como você escreve:
-    - Do jeito que você falaria com um cliente no balcão
-    - Descreva uma cena que dá pra montar e fotografar: preparando um produto, arrumando o espaço, um resultado de serviço. A legenda acompanha a foto.
-    - NUNCA use travessão (—). Se precisar separar uma ideia, use vírgula ou ponto.
-    - Separe ideias em parágrafos curtos com linha em branco entre eles. Evite blocos de texto corrido.
-    - Use palavras-chave do nicho naturalmente na legenda, especialmente nas duas primeiras frases. Ex: "bolo de aniversario personalizado" em vez de só "bolo lindo". O Instagram funciona como buscador e lê o texto da legenda pra distribuir o conteúdo.
-    - Emojis só quando você usaria de verdade no WhatsApp
-    - Mencione o nome do negócio
-    - Mencione a cidade ou bairro
-    - Abra com um micro-momento concreto: uma cena específica, um número real, um detalhe sensorial. Nada de declarações genéricas. Exemplos: "Hoje de manhã queimei a terceira fornada", "R$12 de margarina e o bolo não cresceu", "Minha cliente chegou chorando na cadeira".
-    - NUNCA termine com pergunta genérica de engajamento ("qual seu favorito?", "comenta aqui", "marca um amigo", "quem concorda?"). Se quiser provocar interação, faça isso dentro da história: conte algo que gera opinião dividida, revele um bastidor polêmico, ou deixe uma dúvida real no ar.
+    - Do jeito que você falaria com um cliente no balcão. Frases curtas.
+    - NUNCA use travessão (—). Use vírgula ou ponto.
+    - Abra com um micro-momento concreto: uma cena, um número real, um detalhe sensorial. Nada de declarações genéricas.
+    - Use palavras-chave do nicho naturalmente nas duas primeiras frases. O Instagram funciona como buscador.
+    - Mencione o nome do negócio e a cidade/bairro.
+    - Emojis só quando você usaria de verdade no WhatsApp.
+    - NUNCA termine com pergunta genérica de engajamento ("qual seu favorito?", "comenta aqui", "marca um amigo?").
+    - IMPORTANTE: A legenda deve ter no MÁXIMO 400 caracteres. Posts curtos têm mais engajamento. Não desenvolva a história além do necessário. Um parágrafo de abertura + um de contexto é suficiente.
 
     {% if previousHooks | length > 0 %}
     IMPORTANTE: Estes ganchos já foram usados em posts anteriores. NÃO repita o mesmo ângulo, tema ou cena. Crie algo completamente diferente:
@@ -68,27 +66,24 @@ function GenerateFromMessage(profile: BusinessProfile, clientMessage: string, pr
     - Diferenciais: {% for q in profile.quirks %}{{ q }}{% if not loop.last %}, {% endif %}{% endfor %}
 
     O post precisa ter:
-    - Legenda (200 a 400 caracteres). Pode passar um pouco se a história pedir, mas nunca passe de 500.
-    - Hashtags do nicho (0 a 3, só se fizer sentido para o post). Não force hashtags genéricas.
-    - CTA é opcional. Se incluir, prefira CTAs que mantêm a pessoa no Instagram: "salva esse post", "manda pra uma amiga que precisa", "comenta aqui". Evite CTAs que tiram a pessoa do Instagram: "link na bio", "chama no zap". O algoritmo penaliza saídas da plataforma.
-    - Nota de produção: o que fotografar, enquadramento básico, uma dica prática. 2-3 frases.
+    - Legenda CURTA: MÁXIMO 400 caracteres. Conte os caracteres. 2-3 parágrafos curtos, não mais.
+    - Hashtags do nicho (0 a 3, só se fizer sentido). Não force.
+    - CTA é opcional. Se incluir, prefira "salva esse post", "manda pra uma amiga", "comenta aqui". Evite "link na bio", "chama no zap" (o algoritmo penaliza saídas da plataforma).
+    - Nota de produção: o que fotografar, enquadramento, uma dica. 2-3 frases.
 
     REGRA PRINCIPAL, use os detalhes concretos da mensagem do cliente:
-    - O post deve ser centrado no que o cliente descreveu: promoção, novidade, bastidor, evento, resultado de serviço
-    - Extraia nomes, números, datas, detalhes específicos da mensagem e use na legenda
+    - Extraia nomes, números, datas, detalhes específicos da mensagem e use na legenda.
     - Se a mensagem mencionar preço, inclua o preço. Se mencionar data, inclua a data.
 
     Como você escreve:
-    - Do jeito que você falaria com um cliente no balcão
-    - Descreva uma cena que dá pra montar e fotografar, ligada ao que o cliente descreveu
-    - NUNCA use travessão (—). Se precisar separar uma ideia, use vírgula ou ponto.
-    - Separe ideias em parágrafos curtos com linha em branco entre eles. Evite blocos de texto corrido.
-    - Use palavras-chave do nicho naturalmente na legenda, especialmente nas duas primeiras frases. Ex: "bolo de aniversario personalizado" em vez de só "bolo lindo". O Instagram funciona como buscador e lê o texto da legenda pra distribuir o conteúdo.
-    - Emojis só quando você usaria de verdade no WhatsApp
-    - Abra com um micro-momento concreto: uma cena específica, um número real, um detalhe sensorial. Nada de declarações genéricas.
-    - NUNCA termine com pergunta genérica de engajamento ("qual seu favorito?", "comenta aqui", "marca um amigo", "quem concorda?"). Se quiser provocar interação, faça isso dentro da história.
-    - Mencione o nome do negócio
-    - Mencione a cidade ou bairro
+    - Do jeito que você falaria com um cliente no balcão. Frases curtas.
+    - NUNCA use travessão (—). Use vírgula ou ponto.
+    - Abra com um micro-momento concreto: uma cena, um número real, um detalhe sensorial.
+    - Use palavras-chave do nicho naturalmente nas duas primeiras frases. O Instagram funciona como buscador.
+    - Mencione o nome do negócio e a cidade/bairro.
+    - Emojis só quando você usaria de verdade no WhatsApp.
+    - NUNCA termine com pergunta genérica de engajamento.
+    - IMPORTANTE: A legenda deve ter no MÁXIMO 400 caracteres. Posts curtos têm mais engajamento. Não desenvolva além do necessário.
 
     {% if previousHooks | length > 0 %}
     IMPORTANTE: Estes ganchos já foram usados em posts anteriores. NÃO repita o mesmo ângulo, tema ou cena. Crie algo completamente diferente:
