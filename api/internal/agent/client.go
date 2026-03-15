@@ -12,6 +12,7 @@ import (
 
 const (
 	defaultBaseURL   = "https://api.anthropic.com"
+	defaultModel     = "claude-sonnet-4-6"
 	anthropicVersion = "2023-06-01"
 )
 
@@ -26,7 +27,7 @@ type Client struct {
 func NewClient() *Client {
 	return &Client{
 		APIKey:  os.Getenv("CLAUDE_API_KEY"),
-		Model:   "claude-sonnet-4-6-20250514",
+		Model:   defaultModel,
 		BaseURL: defaultBaseURL,
 	}
 }
