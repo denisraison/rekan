@@ -327,25 +327,24 @@ func (m *MockExecutor) searchPosts(input json.RawMessage) string {
 		json.Unmarshal(input, &args) //nolint:errcheck
 	}
 
-	// Single post detail view
+	// Single post detail view (supports prefix matching)
 	if args.PostID != "" {
-		for _, p := range m.Fixtures.Posts {
-			if p.ID == args.PostID {
-				var b strings.Builder
-				fmt.Fprintf(&b, "id:%s\n", p.ID)
-				fmt.Fprintf(&b, "customer:%s\n", p.Business)
-				fmt.Fprintf(&b, "status:%s\n", postStatus(p.Reviewed))
-				fmt.Fprintf(&b, "caption:%s\n", p.Caption)
-				if len(p.Hashtags) > 0 {
-					fmt.Fprintf(&b, "hashtags:%s\n", strings.Join(p.Hashtags, " "))
-				}
-				if p.ProductionNote != "" {
-					fmt.Fprintf(&b, "production_note:%s\n", p.ProductionNote)
-				}
-				return b.String()
-			}
+		match, errMsg := m.resolvePostByPrefix(args.PostID)
+		if errMsg != "" {
+			return errMsg
 		}
-		return fmt.Sprintf("Post %s não encontrado.", args.PostID)
+		var b strings.Builder
+		fmt.Fprintf(&b, "id:%s\n", match.ID)
+		fmt.Fprintf(&b, "customer:%s\n", match.Business)
+		fmt.Fprintf(&b, "status:%s\n", postStatus(match.Reviewed))
+		fmt.Fprintf(&b, "caption:%s\n", match.Caption)
+		if len(match.Hashtags) > 0 {
+			fmt.Fprintf(&b, "hashtags:%s\n", strings.Join(match.Hashtags, " "))
+		}
+		if match.ProductionNote != "" {
+			fmt.Fprintf(&b, "production_note:%s\n", match.ProductionNote)
+		}
+		return b.String()
 	}
 
 	// List view
@@ -417,26 +416,22 @@ func (m *MockExecutor) updateCustomer(input json.RawMessage) string {
 func (m *MockExecutor) generatePost(input json.RawMessage) string {
 	var args struct {
 		CustomerName string `json:"customer_name"`
+		CustomerID   string `json:"customer_id"`
 	}
 	if err := json.Unmarshal(input, &args); err != nil {
 		return "Erro ao ler parâmetros."
 	}
 
-	found := false
-	for _, c := range m.Fixtures.Customers {
-		if strings.Contains(service.NormalizeForMatch(c.Name), service.NormalizeForMatch(args.CustomerName)) {
-			found = true
-			break
-		}
+	customer, errMsg := m.resolveCustomerByNameOrID(args.CustomerID, args.CustomerName)
+	if errMsg != "" {
+		return errMsg
 	}
-	if !found {
-		return fmt.Sprintf("Não encontrei cliente '%s'.", args.CustomerName)
-	}
+	customerName := customer.Name
 
 	var b strings.Builder
-	fmt.Fprintf(&b, "Post gerado pra %s.\n", args.CustomerName)
+	fmt.Fprintf(&b, "Post gerado pra %s.\n", customerName)
 	fmt.Fprintf(&b, "ID: post_gen_001\n")
-	fmt.Fprintf(&b, "Legenda: Post de exemplo para %s\n", args.CustomerName)
+	fmt.Fprintf(&b, "Legenda: Post de exemplo para %s\n", customerName)
 	b.WriteString("Hashtags: #exemplo #post\n")
 	b.WriteString("Nota de produção: Foto de exemplo")
 	return b.String()
@@ -450,12 +445,11 @@ func (m *MockExecutor) approvePost(input json.RawMessage) string {
 		return "Erro ao ler parâmetros."
 	}
 
-	for _, p := range m.Fixtures.Posts {
-		if p.ID == args.PostID {
-			return fmt.Sprintf("Post da %s aprovado.", p.Business)
-		}
+	match, errMsg := m.resolvePostByPrefix(args.PostID)
+	if errMsg != "" {
+		return errMsg
 	}
-	return fmt.Sprintf("Post %s não encontrado.", args.PostID)
+	return fmt.Sprintf("Post da %s aprovado.", match.Business)
 }
 
 func (m *MockExecutor) rejectPost(input json.RawMessage) string {
@@ -467,15 +461,53 @@ func (m *MockExecutor) rejectPost(input json.RawMessage) string {
 		return "Erro ao ler parâmetros."
 	}
 
-	for _, p := range m.Fixtures.Posts {
-		if p.ID == args.PostID {
-			if args.Feedback != "" {
-				return fmt.Sprintf("Post da %s rejeitado. Feedback: %s.", p.Business, args.Feedback)
+	match, errMsg := m.resolvePostByPrefix(args.PostID)
+	if errMsg != "" {
+		return errMsg
+	}
+	if args.Feedback != "" {
+		return fmt.Sprintf("Post da %s rejeitado. Feedback: %s.", match.Business, args.Feedback)
+	}
+	return fmt.Sprintf("Post da %s rejeitado.", match.Business)
+}
+
+// resolveCustomerByNameOrID resolves a mock customer by ID or fuzzy name match.
+// Mock customers have no real IDs, so customer_id matches against name (the mock convention).
+func (m *MockExecutor) resolveCustomerByNameOrID(id, name string) (*MockCustomer, string) {
+	if id != "" {
+		for i, c := range m.Fixtures.Customers {
+			if c.Name == id {
+				return &m.Fixtures.Customers[i], ""
 			}
-			return fmt.Sprintf("Post da %s rejeitado.", p.Business)
+		}
+		return nil, fmt.Sprintf("Cliente com ID '%s' não encontrada.", id)
+	}
+	if name == "" {
+		return nil, "Pra qual cliente?"
+	}
+	for i, c := range m.Fixtures.Customers {
+		if strings.Contains(service.NormalizeForMatch(c.Name), service.NormalizeForMatch(name)) {
+			return &m.Fixtures.Customers[i], ""
 		}
 	}
-	return fmt.Sprintf("Post %s não encontrado.", args.PostID)
+	return nil, fmt.Sprintf("Não encontrei cliente '%s'.", name)
+}
+
+// resolvePostByPrefix finds exactly one mock post matching the given ID prefix.
+func (m *MockExecutor) resolvePostByPrefix(prefix string) (*MockPost, string) {
+	var match *MockPost
+	for i, p := range m.Fixtures.Posts {
+		if strings.HasPrefix(p.ID, prefix) {
+			if match != nil {
+				return nil, "Mais de um post com esse prefixo. Use um ID mais específico."
+			}
+			match = &m.Fixtures.Posts[i]
+		}
+	}
+	if match == nil {
+		return nil, fmt.Sprintf("Post %s não encontrado.", prefix)
+	}
+	return match, ""
 }
 
 // --- Assertion engine ---

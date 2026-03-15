@@ -207,8 +207,9 @@ func SaveProactivePost(app core.App, params SaveProactiveParams) (string, error)
 
 // ListPostsFilter controls which posts to return.
 type ListPostsFilter struct {
-	BusinessIDs []string // empty means all
-	Status      string   // "pending", "reviewed", or "" for all
+	BusinessIDs  []string // empty means all
+	Status       string   // "pending", "reviewed", or "" for all
+	PostIDPrefix string   // non-empty: filter by id LIKE 'prefix%'
 }
 
 // ListPosts returns posts matching the filter, ordered by creation date descending.
@@ -220,6 +221,10 @@ func ListPosts(app core.App, filter ListPostsFilter) ([]*core.Record, error) {
 		q = q.AndWhere(dbx.NewExp("reviewed = FALSE OR reviewed = ''"))
 	case "reviewed":
 		q = q.AndWhere(dbx.NewExp("reviewed = TRUE"))
+	}
+
+	if filter.PostIDPrefix != "" {
+		q = q.AndWhere(dbx.NewExp("id LIKE {:prefix}", dbx.Params{"prefix": filter.PostIDPrefix + "%"}))
 	}
 
 	if len(filter.BusinessIDs) > 0 {
@@ -240,13 +245,17 @@ func ListPosts(app core.App, filter ListPostsFilter) ([]*core.Record, error) {
 	return posts, nil
 }
 
-// ApprovePost marks a post as reviewed.
+// ApprovePost marks a post as reviewed, looking it up by ID.
 func ApprovePost(app core.App, postID string) (*core.Record, error) {
 	record, err := app.FindRecordById(domain.CollPosts, postID)
 	if err != nil {
 		return nil, wrapNotFound(err, "post não encontrado")
 	}
+	return ApprovePostRecord(app, record)
+}
 
+// ApprovePostRecord marks an already-loaded post as reviewed.
+func ApprovePostRecord(app core.App, record *core.Record) (*core.Record, error) {
 	record.Set("reviewed", true)
 	if err := app.Save(record); err != nil {
 		return nil, fmt.Errorf("approving post: %w", err)
@@ -254,13 +263,17 @@ func ApprovePost(app core.App, postID string) (*core.Record, error) {
 	return record, nil
 }
 
-// RejectPost marks a post as reviewed with feedback.
+// RejectPost marks a post as reviewed with feedback, looking it up by ID.
 func RejectPost(app core.App, postID, feedback string) (*core.Record, error) {
 	record, err := app.FindRecordById(domain.CollPosts, postID)
 	if err != nil {
 		return nil, wrapNotFound(err, "post não encontrado")
 	}
+	return RejectPostRecord(app, record, feedback)
+}
 
+// RejectPostRecord marks an already-loaded post as reviewed with feedback.
+func RejectPostRecord(app core.App, record *core.Record, feedback string) (*core.Record, error) {
 	record.Set("reviewed", true)
 	record.Set("review_note", feedback)
 	if err := app.Save(record); err != nil {

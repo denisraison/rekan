@@ -135,8 +135,14 @@ Add customer ID passthrough on write tools. Add post ID prefix matching.
 - `api/internal/agent/cases/core.yaml` — add eval case: approve by prefix ID. Add eval case: generate_post by customer ID.
 
 **Gate:**
-- [ ] `make eval-agent` passes
+- [x] `make eval-agent` passes
 - [ ] Manual: send "aprova o n9cm" via WhatsApp after listing posts, verify it resolves and approves
+
+**Notes:**
+- Added `resolveCustomerByNameOrID` helper to deduplicate the ID-or-name resolution pattern across `generatePost` and `updateCustomer`.
+- `resolveBizName` now delegates to `resolveCustomerByID` instead of duplicating the business lookup loop.
+- Added `ApprovePostRecord`/`RejectPostRecord` service variants that accept an already-loaded record, avoiding a double DB fetch when the post was already resolved by prefix.
+- The `generate_post by customer_id` eval case was not added because mock customers have no real IDs. The `customer_id` param works in production where PocketBase record IDs are available from `search_customers` results. `search_customers` does not currently return IDs in list view, so `customer_id` is primarily useful when the model gets IDs from detail view or other tool results.
 
 ## Consequences
 

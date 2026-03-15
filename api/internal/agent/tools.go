@@ -110,9 +110,10 @@ func buildTools(executor *ToolExecutor, operatorName string) []Tool {
 			func(input json.RawMessage) string { return executor.createCustomer(input, operatorName) },
 		),
 		writeTool("update_customer",
-			"Altera dados ou pausa/reativa uma cliente. Apenas name é obrigatório. Para pausar, use status='paused'. Para reativar, status='active'.",
+			"Altera dados ou pausa/reativa uma cliente. Apenas name é obrigatório (ou customer_id). Para pausar, use status='paused'. Para reativar, status='active'.",
 			schema(map[string]any{
 				"name":            map[string]any{"type": "string", "description": "Nome da cliente (para identificação)"},
+				"customer_id":     map[string]any{"type": "string", "description": "ID da cliente (opcional, pula busca por nome)"},
 				"new_name":        map[string]any{"type": "string", "description": "Novo nome do negócio (se quiser renomear)"},
 				"type":            map[string]any{"type": "string", "description": "Novo tipo de negócio"},
 				"city":            map[string]any{"type": "string", "description": "Nova cidade"},
@@ -128,6 +129,7 @@ func buildTools(executor *ToolExecutor, operatorName string) []Tool {
 			"Gera posts para uma cliente.",
 			schema(map[string]any{
 				"customer_name": map[string]any{"type": "string", "description": "Nome da cliente"},
+				"customer_id":   map[string]any{"type": "string", "description": "ID da cliente (opcional, pula busca por nome)"},
 			}, "customer_name"),
 			func(input json.RawMessage) string { return executor.generatePost(input, operatorName) },
 		),
@@ -193,12 +195,11 @@ func fieldLabel(key string) string {
 // resolveBizName returns the business display name for a post record, using the cached businesses.
 func (te *ToolExecutor) resolveBizName(postRecord *core.Record) string {
 	bizID := postRecord.GetString("business")
-	for _, biz := range te.loadBusinesses() {
-		if biz.Id == bizID {
-			return biz.GetString("name")
-		}
+	biz, _ := te.resolveCustomerByID(bizID)
+	if biz == nil {
+		return bizID
 	}
-	return bizID
+	return biz.GetString("name")
 }
 
 // resolveCustomer finds exactly one business by name, returning an error string on 0 or 2+ matches.
@@ -217,6 +218,54 @@ func (te *ToolExecutor) resolveCustomer(name string) (*core.Record, string) {
 		return nil, b.String()
 	}
 	return matches[0], ""
+}
+
+// resolvePostByPrefix finds exactly one post matching the given ID prefix.
+// Returns the record on single match, or an error string on 0 or 2+ matches.
+func (te *ToolExecutor) resolvePostByPrefix(prefix string) (*core.Record, string) {
+	posts, err := service.ListPosts(te.App, service.ListPostsFilter{PostIDPrefix: prefix})
+	if err != nil {
+		return nil, "Erro ao buscar post."
+	}
+	if len(posts) == 0 {
+		return nil, fmt.Sprintf("Post %s não encontrado.", prefix)
+	}
+	if len(posts) > 1 {
+		var b strings.Builder
+		b.WriteString("Mais de um post com esse prefixo:\n")
+		bizNames := te.bizNameMap()
+		for _, p := range posts {
+			name := bizNames[p.GetString("business")]
+			if name == "" {
+				name = p.GetString("business")
+			}
+			fmt.Fprintf(&b, "- %s (%s)\n", p.Id, name)
+		}
+		b.WriteString("Use um ID mais específico.")
+		return nil, b.String()
+	}
+	return posts[0], ""
+}
+
+// resolveCustomerByID finds a business by exact ID.
+func (te *ToolExecutor) resolveCustomerByID(id string) (*core.Record, string) {
+	for _, biz := range te.loadBusinesses() {
+		if biz.Id == id {
+			return biz, ""
+		}
+	}
+	return nil, fmt.Sprintf("Cliente com ID '%s' não encontrada.", id)
+}
+
+// resolveCustomerByNameOrID resolves a customer by ID (if given) or by fuzzy name match.
+func (te *ToolExecutor) resolveCustomerByNameOrID(id, name string) (*core.Record, string) {
+	if id != "" {
+		return te.resolveCustomerByID(id)
+	}
+	if name == "" {
+		return nil, "Pra qual cliente?"
+	}
+	return te.resolveCustomer(name)
 }
 
 // --- Read tool implementations ---
@@ -281,11 +330,11 @@ func (te *ToolExecutor) searchPosts(input json.RawMessage) string {
 		}
 	}
 
-	// Single post detail view
+	// Single post detail view (supports prefix matching)
 	if args.PostID != "" {
-		record, err := te.App.FindRecordById(domain.CollPosts, args.PostID)
-		if err != nil {
-			return fmt.Sprintf("Post %s não encontrado.", args.PostID)
+		record, errMsg := te.resolvePostByPrefix(args.PostID)
+		if errMsg != "" {
+			return errMsg
 		}
 
 		bizName := te.resolveBizName(record)
@@ -399,6 +448,7 @@ func (te *ToolExecutor) createCustomer(input json.RawMessage, _ string) string {
 func (te *ToolExecutor) updateCustomer(input json.RawMessage, _ string) string {
 	var args struct {
 		Name           string `json:"name"`
+		CustomerID     string `json:"customer_id"`
 		NewName        string `json:"new_name"`
 		Type           string `json:"type"`
 		City           string `json:"city"`
@@ -412,7 +462,7 @@ func (te *ToolExecutor) updateCustomer(input json.RawMessage, _ string) string {
 		return "Erro ao ler parâmetros."
 	}
 
-	record, errMsg := te.resolveCustomer(args.Name)
+	record, errMsg := te.resolveCustomerByNameOrID(args.CustomerID, args.Name)
 	if errMsg != "" {
 		return errMsg
 	}
@@ -490,16 +540,13 @@ func (te *ToolExecutor) updateCustomer(input json.RawMessage, _ string) string {
 func (te *ToolExecutor) generatePost(input json.RawMessage, _ string) string {
 	var args struct {
 		CustomerName string `json:"customer_name"`
+		CustomerID   string `json:"customer_id"`
 	}
 	if err := json.Unmarshal(input, &args); err != nil {
 		return "Erro ao ler parâmetros."
 	}
 
-	if args.CustomerName == "" {
-		return "Pra qual cliente quer gerar post?"
-	}
-
-	biz, errMsg := te.resolveCustomer(args.CustomerName)
+	biz, errMsg := te.resolveCustomerByNameOrID(args.CustomerID, args.CustomerName)
 	if errMsg != "" {
 		return errMsg
 	}
@@ -541,16 +588,20 @@ func (te *ToolExecutor) approvePost(input json.RawMessage, _ string) string {
 		return "Qual post quer aprovar?"
 	}
 
-	record, err := service.ApprovePost(te.App, args.PostID)
-	if err != nil {
+	post, errMsg := te.resolvePostByPrefix(args.PostID)
+	if errMsg != "" {
+		return errMsg
+	}
+
+	if _, err := service.ApprovePostRecord(te.App, post); err != nil {
 		return "Erro ao aprovar: " + err.Error()
 	}
 
-	bizName := te.resolveBizName(record)
+	bizName := te.resolveBizName(post)
 	result := fmt.Sprintf("Post da %s aprovado.", bizName)
 
 	if te.WAClient != nil {
-		if sendErr := te.sendPostToClient(record); sendErr != nil {
+		if sendErr := te.sendPostToClient(post); sendErr != nil {
 			return result + " Não consegui enviar pro cliente: " + sendErr.Error()
 		}
 		result += " Enviado pro cliente."
@@ -572,12 +623,16 @@ func (te *ToolExecutor) rejectPost(input json.RawMessage, _ string) string {
 		return "Qual post quer rejeitar?"
 	}
 
-	record, err := service.RejectPost(te.App, args.PostID, args.Feedback)
-	if err != nil {
+	post, errMsg := te.resolvePostByPrefix(args.PostID)
+	if errMsg != "" {
+		return errMsg
+	}
+
+	if _, err := service.RejectPostRecord(te.App, post, args.Feedback); err != nil {
 		return "Erro ao rejeitar: " + err.Error()
 	}
 
-	bizName := te.resolveBizName(record)
+	bizName := te.resolveBizName(post)
 	if args.Feedback != "" {
 		return fmt.Sprintf("Post da %s rejeitado. Feedback: %s.", bizName, args.Feedback)
 	}

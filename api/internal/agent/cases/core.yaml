@@ -150,6 +150,33 @@ tests:
       - reply_contains: "Patricia"
       - no_empty_promise: true
 
+  - id: approve_by_prefix_id
+    message: "aprova o n9cm"
+    operator: { name: "Elenice", jid: "5511999990000" }
+    fixtures:
+      customers:
+        - name: "Opalina"
+          type: "Semijoias"
+          city: "São Paulo"
+          phone: "11988881111"
+      posts:
+        - id: "n9cmjj2q131pfj8"
+          business: "Opalina"
+          caption: "Ontem uma cliente pegou um colar de pedra natural..."
+          hashtags: ["#semijoias", "#pedrasnaturais"]
+          production_note: "Monte uma composição com 3 a 4 colares"
+          reviewed: false
+        - id: "pef24izgeblsx69"
+          business: "Opalina"
+          caption: "Hoje de manhã eu parei pra contar e não acreditei..."
+          hashtags: ["#semijoias", "#colecao"]
+          production_note: "Foto da vitrine com as peças novas"
+          reviewed: false
+    assert:
+      - tool_called: approve_post
+      - tool_arg: { tool: approve_post, key: post_id, contains: "n9cm" }
+      - no_empty_promise: true
+
   - id: update_only_changed_field
     message: "Patricia mudou pra Contagem"
     operator: { name: "Elenice", jid: "5511999990000" }
