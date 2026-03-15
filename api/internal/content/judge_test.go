@@ -84,3 +84,31 @@ func TestJudgeKnownBadFailsMost(t *testing.T) {
 		t.Errorf("expected known-bad content to fail at least 3/5 judges, got %d failures", failCount)
 	}
 }
+
+// knownNoCTAContent has no CTA, no hashtags, and a natural announcement style.
+// JudgeAcionavel should pass (absence of CTA/hashtags is fine).
+// JudgeEngajamento should pass (genuine voice, specific details).
+const knownNoCTAContent = `POST 1:
+Ontem eu fiz 14 bolos. Quatorze. Minha mão tá doendo de bater massa e eu nem liguei a batedeira porque o bolo de pote fica melhor no braço.
+
+A Confeitaria da Tia Marta começou assim: fazendo bolo pra vizinha. Agora faço pra Belo Horizonte inteira e continuo batendo no braço. Dá trabalho, mas o cliente percebe.
+
+Bolo de pote de ninho com Nutella a R$12. Encomenda mínima de 10 unidades, entrega no dia em BH.
+
+📸 Foto da bancada cheia de potes prontos, com a Marta ao fundo de avental sujo de chocolate, sorrindo cansada. Luz natural da janela.`
+
+func TestJudgeNoCTAContent(t *testing.T) {
+	results, err := RunAllJudges(context.Background(), judgeProfile, knownNoCTAContent)
+	if err != nil {
+		t.Fatal(err)
+	}
+	for _, r := range results {
+		t.Logf("  %s: verdict=%v reasoning=%q", r.Name, r.Verdict, r.Reasoning)
+		if r.Name == "acionavel" && !r.Verdict {
+			t.Errorf("JudgeAcionavel should pass content with no CTA/hashtags, got verdict=false: %s", r.Reasoning)
+		}
+		if r.Name == "engajamento" && !r.Verdict {
+			t.Errorf("JudgeEngajamento should pass natural announcement-style content, got verdict=false: %s", r.Reasoning)
+		}
+	}
+}

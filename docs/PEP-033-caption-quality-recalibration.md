@@ -151,27 +151,33 @@ make eval   # heuristics pass with new rules
 
 All gates passed. `make eval` scored 72/72 (18 profiles, 4/4 checks each).
 
-## Wave 2: Judge recalibration
+## Wave 2: Judge recalibration [DONE]
 
 Update judge prompts to align with real Instagram patterns, then validate with `--from-run`.
 
 ### `api/internal/baml/baml_src/judges.baml`
 
 **JudgeAcionavel** (biggest change): This judge currently requires quality hashtags, CTA, production note, and fluidity. The highest-engaging real posts have zero CTAs and zero hashtags. Rewrite to:
-- Remove hashtag quality as a criterion (hashtags are optional now)
-- Make CTA quality conditional: only evaluate CTA quality IF a CTA is present. Absence of CTA is fine.
-- If CTA is present, penalize exit CTAs ("link na bio", "chama no zap") unless the post is explicitly a sales/promo post. Prefer platform-native CTAs ("salva", "manda pra amiga", "comenta").
-- Keep production note quality check (still important for our users)
-- Keep fluidity check (still valid)
-- Reprove threshold: reprove if production note is vague OR if present CTA is generic/disconnected OR if exit CTA is used on a non-sales post. Don't reprove for absence of CTA or hashtags.
+- [x] Remove hashtag quality as a criterion (hashtags are optional now)
+- [x] Make CTA quality conditional: only evaluate CTA quality IF a CTA is present. Absence of CTA is fine.
+- [x] If CTA is present, penalize exit CTAs ("link na bio", "chama no zap") unless the post is explicitly a sales/promo post. Prefer platform-native CTAs ("salva", "manda pra amiga", "comenta").
+- [x] Keep production note quality check (still important for our users)
+- [x] Keep fluidity check (still valid)
+- [x] Reprove threshold: reprove if production note is vague OR if present CTA is generic/disconnected OR if exit CTA is used on a non-sales post. Don't reprove for absence of CTA or hashtags.
+- [x] Removed stale "Já foi verificado" preamble that referenced old assumptions.
+- [x] Updated reprovação example to remove hashtag block (no longer a criterion).
 
 **JudgeEngajamento**: Minor adjustment. Currently expects every post to have a "genuinely interesting hook." Real top-performing posts include personal stories about the business, product showcases, and straightforward announcements. Update:
-- Keep the anti-formula criteria (penalize "Voce sabia que...?", "Gente, prepara o coracao!")
-- But soften the approval bar: a post with genuine voice and personality passes even if it's a straightforward announcement. Not every post needs to be a storytelling masterpiece.
-- Add: course/product announcements with specific details (price, date, link) are valid if they sound natural, not salesy.
-- Add: penalize em dashes (—). Only 5% of real posts use them, but our system overuses them. They signal AI-generated content.
+- [x] Keep the anti-formula criteria (penalize "Voce sabia que...?", "Gente, prepara o coracao!")
+- [x] But soften the approval bar: a post with genuine voice and personality passes even if it's a straightforward announcement. Not every post needs to be a storytelling masterpiece.
+- [x] Add: course/product announcements with specific details (price, date, link) are valid if they sound natural, not salesy.
+- [x] Add: penalize em dashes (—). Only 5% of real posts use them, but our system overuses them. They signal AI-generated content.
+- [x] Removed "service description without surprising angle" criterion (too strict for genuine announcements).
+- [x] Removed stale "Já foi verificado" preamble.
+- [x] Em dash threshold aligned with JudgeNaturalidade: "múltiplos travessões" (2+), not any single occurrence.
 
 **JudgeNaturalidade**: Add em dash detection. Real MEI posts almost never use — but LLMs love them. A caption with multiple em dashes should be flagged as AI-sounding.
+- [x] Added em dash as AI signal with "múltiplos travessões" threshold.
 
 **JudgeEspecificidade**: No change. The "decoracao de pitch" test is good.
 
@@ -179,8 +185,12 @@ Update judge prompts to align with real Instagram patterns, then validate with `
 
 ### `api/internal/content/judge_test.go`
 
-- Update golden test cases for JudgeAcionavel to reflect that missing CTA/hashtags is acceptable.
-- Add a test case with a natural announcement-style post for JudgeEngajamento (should pass).
+- [x] Added `TestJudgeNoCTAContent` with a no-CTA/no-hashtag natural announcement post. Asserts JudgeAcionavel and JudgeEngajamento both pass.
+- [x] Existing golden tests (`TestJudgeKnownGoodPassesMost`, `TestJudgeKnownBadFailsMost`) unchanged and still pass.
+
+### `api/cmd/eval/main.go`
+
+- [x] Added concurrency semaphore (4 profiles max) to judge evaluation to avoid API rate limits. Was hitting 429s with 18 profiles x 5 judges x 2 models = 180 concurrent requests.
 
 ### Gate
 
@@ -194,6 +204,8 @@ go run ./cmd/eval --diff runs/BEFORE.json runs/AFTER.json
 ```
 
 The diff should show: acionavel pass rate goes UP (fewer false negatives from missing CTA/hashtags), other judges stay stable or improve. No judge should regress by more than 1 profile.
+
+Results: ACI 8/18 -> 18/18 (+10), ESP 16/18 -> 15/18 (-1, within tolerance), NAT/VAR/ENG stable at 18/18.
 
 ## Wave 3: End-to-end validation
 

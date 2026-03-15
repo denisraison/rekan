@@ -368,7 +368,8 @@ func evaluateResults(ctx context.Context, results []result, withJudges, verbose 
 		return results, nil
 	}
 
-	// Run judges for all profiles in parallel.
+	// Run judges for all profiles with limited concurrency to avoid API rate limits.
+	// Each profile fires 5 judges x 2 models = 10 requests.
 	type judgeOut struct {
 		idx    int
 		judges []content.JudgeResult
@@ -376,13 +377,16 @@ func evaluateResults(ctx context.Context, results []result, withJudges, verbose 
 	}
 
 	judgeCh := make(chan judgeOut, len(results))
+	sem := make(chan struct{}, 4) // max 4 profiles concurrently (~40 API calls)
 	for i, r := range results {
-		go func(i int, r result) {
+		rendered := content.RenderPosts(r.posts)
+		go func(i int, r result, rendered string) {
+			sem <- struct{}{}
+			defer func() { <-sem }()
 			fmt.Fprintf(os.Stderr, "Judging: %s...\n", r.name)
-			rendered := content.RenderPosts(r.posts)
 			j, err := content.RunAllJudges(ctx, r.profile, rendered)
 			judgeCh <- judgeOut{idx: i, judges: j, err: err}
-		}(i, r)
+		}(i, r, rendered)
 	}
 
 	for range results {

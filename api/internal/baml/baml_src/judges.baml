@@ -58,6 +58,7 @@ function JudgeNaturalidade(profile: BusinessProfile, content: string) -> JudgeRe
     - Informalidade forçada: acumula gente, bora, né, tá no mesmo parágrafo como checklist
     - Frases genéricas de preenchimento ("feito com muito carinho", "você merece o melhor", "a gente ama o que faz")
     - Tom uniformemente entusiasmado do início ao fim, sem variação de energia
+    - Uso de travessão (—). Apenas 5% dos posts reais de MEIs usam travessão, mas LLMs usam com frequência. Múltiplos travessões no mesmo texto são sinal forte de IA.
 
     Sinais de conteúdo autêntico (aprove se predominarem):
     - Voz com personalidade própria, não "brasileiro genérico de Instagram"
@@ -123,8 +124,6 @@ function JudgeAcionavel(profile: BusinessProfile, content: string) -> JudgeResul
   prompt #"
     Você é um avaliador rigoroso de conteúdo para Instagram brasileiro.
 
-    Já foi verificado que o texto tem legenda, hashtags, CTA e nota de produção. Sua tarefa é diferente: avaliar a QUALIDADE desses elementos.
-
     Perfil do negócio:
     - Nome: {{ profile.businessName }}
     - Tipo: {{ profile.businessType }}
@@ -134,24 +133,26 @@ function JudgeAcionavel(profile: BusinessProfile, content: string) -> JudgeResul
     {{ content }}
     ---
 
-    Avalie estes 4 critérios de qualidade:
-
-    HASHTAGS: reprove se a maioria for genérica (#sucesso #empreendedorismo #foco #motivação #trabalho #pequenonegocio #apoielocal). Aprove se forem específicas do nicho, do bairro ou do negócio.
+    Avalie estes 3 critérios de qualidade:
 
     NOTA DE PRODUÇÃO: reprove se for vaga ("tire uma foto do produto", "grave um vídeo mostrando o serviço"). Aprove se disser o que filmar, de que ângulo, em que momento.
 
-    CTA: reprove se for genérico e desconectado do conteúdo ("chama no WhatsApp!" solto). Aprove se tiver motivo claro ligado ao post.
+    CTA (só avalie se houver CTA no post, ausência de CTA é perfeitamente aceitável):
+    - Reprove se for genérico e desconectado do conteúdo ("chama no WhatsApp!" solto).
+    - Reprove se usar CTA de saída ("link na bio", "chama no zap", "acesse o site") em post que NÃO é explicitamente de venda/promoção. CTAs de saída só fazem sentido em posts de venda direta.
+    - Aprove se for CTA de plataforma ("salva esse post", "manda pra uma amiga", "comenta aqui") com motivo claro ligado ao post.
+    - Se não houver CTA, este critério passa automaticamente.
 
     FLUIDEZ: reprove se a legenda parecer seções coladas (texto -> bloco de hashtags -> CTA solto -> nota solta). Aprove se a transição entre elementos for natural.
 
     Reprove se 2 ou mais critérios falharem.
 
     Exemplo de reprovação (elementos existem mas sem qualidade):
-    "... Chama no WhatsApp! #empreendedorismo #sucesso #foco #negociolocal #motivação. Nota de produção: tire uma foto bonita do produto."
-    Motivo: hashtags genéricas, CTA genérico desconectado, nota de produção vaga. Tudo existe estruturalmente mas nada tem qualidade.
+    "... Chama no WhatsApp! Nota de produção: tire uma foto bonita do produto."
+    Motivo: CTA genérico de saída num post que não é de venda, nota de produção vaga. Elementos sem qualidade.
 
     Primeiro explique seu raciocínio em 2-3 frases, depois dê o veredito.
-    Veredito: true se os elementos têm qualidade, false se são genéricos/repetitivos.
+    Veredito: true se os elementos têm qualidade, false se são genéricos/vagos.
 
     {{ ctx.output_format }}
   "#
@@ -202,8 +203,6 @@ function JudgeEngajamento(profile: BusinessProfile, content: string) -> JudgeRes
   prompt #"
     Você é um avaliador rigoroso de conteúdo para Instagram brasileiro.
 
-    Já foi verificado que o texto tem CTA e convite à interação. Sua tarefa é diferente: avaliar se o gancho é GENUINAMENTE interessante ou apenas uma fórmula de engajamento.
-
     Perfil do negócio:
     - Nome: {{ profile.businessName }}
     - Tipo: {{ profile.businessType }}
@@ -217,13 +216,13 @@ function JudgeEngajamento(profile: BusinessProfile, content: string) -> JudgeRes
     Reprove se:
     - O gancho usa fórmulas batidas: "Você sabia que...?", "Gente, prepara o coração!", "Vocês não estão prontos!", "[Número] coisas que..."
     - O engajamento depende de pedir ação genérica ("comenta aqui 👇", "marca um amigo") sem dar motivo real para fazê-lo
-    - O conteúdo descreve o serviço de forma positiva mas sem ângulo surpreendente
-    - Qualquer negócio do mesmo tipo poderia usar o mesmo gancho
+    - Qualquer negócio do mesmo tipo poderia usar o mesmo gancho, sem nenhum detalhe específico deste negócio
+    - Uso de travessão (—). Apenas 5% dos posts reais de Instagram usam travessão, mas LLMs usam com frequência. Múltiplos travessões no texto são sinal forte de IA.
 
     Aprove se:
     - A primeira linha cria curiosidade real (um dado específico, uma cena, uma contradição, uma história que começa no meio)
     - Há motivo real pra salvar, compartilhar ou comentar (aprendi algo novo, me identifiquei com a situação, quero mandar pra alguém específico)
-    - O gancho só funciona para este negócio, não é genérico do nicho
+    - O post tem voz genuína e personalidade própria, mesmo que seja um anúncio direto ou comunicado simples. Não precisa ser storytelling para passar. Um anúncio com detalhes específicos (preço, data, o que esperar) em tom natural também é válido.
 
     Exemplo de reprovação (fórmula de engajamento):
     "Você sabia que um bom corte pode mudar completamente seu visual? 😱 Pois é! Aqui no nosso espaço a gente transforma! Antes e depois que vai te deixar de queixo caído! Comenta aqui se você também ama! 👇 Marca aquele amigo que tá precisando! 😂"
