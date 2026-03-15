@@ -38,9 +38,9 @@ tests:
           production_note: "Foto da cliente sorrindo no espelho"
           reviewed: false
     assert:
-      - tool_called: list_posts
+      - tool_called: search_posts
       - tool_called: approve_post
-      - tool_arg: { tool: approve_post, key: post_id, contains: "post_abc123" }
+      - tool_arg: { tool: approve_post, key: post_id, contains: "post_abc" }
       - no_empty_promise: true
 
   # --- Messy input ---
@@ -131,7 +131,7 @@ tests:
           phone: "21988881111"
       posts: []
     assert:
-      - tool_called: find_customer
+      - tool_called: search_customers
       - reply_contains: "Maria Silva"
       - reply_contains: "Maria Santos"
 

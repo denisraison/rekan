@@ -354,14 +354,10 @@ func mergeConsecutiveRoles(messages []Message) []Message {
 // toolNameToActionType maps tool names to action type strings for logging.
 func toolNameToActionType(name string) string {
 	switch name {
-	case "find_customer":
+	case "search_customers":
 		return "CUSTOMER_INFO"
-	case "list_customers":
-		return "CUSTOMER_LIST"
-	case "find_post", "list_posts":
+	case "search_posts":
 		return "POST_LIST_PENDING"
-	case "recent_activity":
-		return "STATUS_OVERVIEW"
 	case "create_customer":
 		return ActionCustomerCreate
 	case "update_customer":

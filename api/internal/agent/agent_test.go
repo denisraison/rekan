@@ -77,7 +77,7 @@ func TestBuildClaudeMessages_StructuredToolUse(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	assistantJSON := `{"role":"assistant","content":[{"type":"text","text":"Deixa eu verificar..."},{"type":"tool_use","id":"toolu_xxx","name":"find_customer","input":{"query":"Nika"}}]}`
+	assistantJSON := `{"role":"assistant","content":[{"type":"text","text":"Deixa eu verificar..."},{"type":"tool_use","id":"toolu_xxx","name":"search_customers","input":{"query":"Nika"}}]}`
 	if err := agent.StoreMessage(app, "Rekan", "", "assistant", "Deixa eu verificar...", "", assistantJSON); err != nil {
 		t.Fatal(err)
 	}
@@ -111,7 +111,7 @@ func TestBuildClaudeMessages_StructuredToolUse(t *testing.T) {
 	for _, m := range msgs {
 		if strings.Contains(m.Structured, `"type":"tool_use"`) {
 			foundToolUse = true
-			if !strings.Contains(m.Structured, "find_customer") {
+			if !strings.Contains(m.Structured, "search_customers") {
 				t.Errorf("tool_use block lost tool name after storage, got: %s", m.Structured)
 			}
 			break

@@ -80,39 +80,21 @@ func buildTools(executor *ToolExecutor, operatorName string) []Tool {
 
 	return []Tool{
 		// Read tools
-		readTool("find_customer",
-			"Busca cliente por nome (match fuzzy). Retorna detalhes: nome, tipo, cidade, telefone, público, vibe, obs, status.",
+		readTool("search_customers",
+			"Busca clientes. Sem query: lista todas. Com query: busca por nome (match fuzzy) e retorna detalhes.",
 			schema(map[string]any{
-				"query": map[string]any{"type": "string", "description": "Nome ou parte do nome da cliente"},
-			}, "query"),
-			func(input json.RawMessage) string { return executor.findCustomer(input) },
+				"query": map[string]any{"type": "string", "description": "Nome ou parte do nome da cliente (opcional)"},
+			}),
+			func(input json.RawMessage) string { return executor.searchCustomers(input) },
 		),
-		readTool("list_customers",
-			"Lista todas as clientes ativas/rascunho com nome, tipo e cidade.",
-			schema(map[string]any{}),
-			func(_ json.RawMessage) string { return executor.listCustomers() },
-		),
-		readTool("find_post",
-			"Busca um post pelo ID. Retorna legenda, cliente, status de revisão e nota.",
+		readTool("search_posts",
+			"Busca posts. Sem post_id: lista posts com preview. Com post_id: retorna post completo.",
 			schema(map[string]any{
-				"post_id": map[string]any{"type": "string", "description": "ID do post"},
-			}, "post_id"),
-			func(input json.RawMessage) string { return executor.findPost(input) },
-		),
-		readTool("list_posts",
-			"Lista posts. Filtre por nome da cliente e/ou status (pending, reviewed, all). Máximo 20, mais recentes primeiro.",
-			schema(map[string]any{
+				"post_id":       map[string]any{"type": "string", "description": "ID do post (opcional, para busca específica)"},
 				"customer_name": map[string]any{"type": "string", "description": "Nome da cliente (opcional)"},
 				"status":        map[string]any{"type": "string", "enum": []string{"pending", "reviewed", "all"}, "description": "Filtro de status (padrão: all)"},
 			}),
-			func(input json.RawMessage) string { return executor.listPosts(input) },
-		),
-		readTool("recent_activity",
-			"Mostra as últimas ações realizadas pelo agente.",
-			schema(map[string]any{
-				"limit": map[string]any{"type": "integer", "description": "Número de ações (padrão: 5, máximo: 20)"},
-			}),
-			func(input json.RawMessage) string { return executor.recentActivity(input) },
+			func(input json.RawMessage) string { return executor.searchPosts(input) },
 		),
 		// Write tools
 		writeTool("create_customer",
@@ -160,17 +142,15 @@ func buildTools(executor *ToolExecutor, operatorName string) []Tool {
 		writeTool("approve_post",
 			"Aprova um post pendente.",
 			schema(map[string]any{
-				"post_id":       map[string]any{"type": "string", "description": "ID do post"},
-				"customer_name": map[string]any{"type": "string", "description": "Nome da cliente"},
+				"post_id": map[string]any{"type": "string", "description": "ID do post"},
 			}, "post_id"),
 			func(input json.RawMessage) string { return executor.approvePost(input, operatorName) },
 		),
 		writeTool("reject_post",
 			"Rejeita um post com feedback.",
 			schema(map[string]any{
-				"post_id":       map[string]any{"type": "string", "description": "ID do post"},
-				"customer_name": map[string]any{"type": "string", "description": "Nome da cliente"},
-				"feedback":      map[string]any{"type": "string", "description": "Feedback sobre o que melhorar"},
+				"post_id":  map[string]any{"type": "string", "description": "ID do post"},
+				"feedback": map[string]any{"type": "string", "description": "Feedback sobre o que melhorar"},
 			}, "post_id", "feedback"),
 			func(input json.RawMessage) string { return executor.rejectPost(input, operatorName) },
 		),
@@ -231,6 +211,20 @@ func appendPostFieldsJSON(b *strings.Builder, caption, hashtagsJSON, productionN
 	appendPostFields(b, caption, decodeHashtags(hashtagsJSON), productionNote)
 }
 
+func postStatus(reviewed bool) string {
+	if reviewed {
+		return "revisado"
+	}
+	return "pendente"
+}
+
+func shortPostID(id string) string {
+	if len(id) > 8 {
+		return id[:8]
+	}
+	return id
+}
+
 var fieldLabels = map[string]string{
 	"name":            "nome",
 	"type":            "tipo",
@@ -273,14 +267,29 @@ func (te *ToolExecutor) resolveCustomer(name, operatorName string) (*core.Record
 
 // --- Read tool implementations ---
 
-func (te *ToolExecutor) findCustomer(input json.RawMessage) string {
+func (te *ToolExecutor) searchCustomers(input json.RawMessage) string {
 	var args struct {
 		Query string `json:"query"`
 	}
-	if err := json.Unmarshal(input, &args); err != nil || args.Query == "" {
-		return "Parâmetro 'query' obrigatório."
+	if len(input) > 0 {
+		json.Unmarshal(input, &args) //nolint:errcheck
 	}
 
+	// No query: list all
+	if args.Query == "" {
+		businesses := te.loadBusinesses()
+		if len(businesses) == 0 {
+			return "Nenhuma cliente ativa no momento."
+		}
+		var b strings.Builder
+		fmt.Fprintf(&b, "Clientes ativas: %d\n", len(businesses))
+		for _, biz := range businesses {
+			fmt.Fprintf(&b, "- %s (%s, %s)\n", biz.GetString("name"), biz.GetString("type"), biz.GetString("city"))
+		}
+		return b.String()
+	}
+
+	// With query: fuzzy search with full details
 	matches := service.FindBusinessByName(te.loadBusinesses(), args.Query)
 	if len(matches) == 0 {
 		return fmt.Sprintf("Nenhuma cliente encontrada com '%s'.", args.Query)
@@ -309,49 +318,9 @@ func (te *ToolExecutor) findCustomer(input json.RawMessage) string {
 	return b.String()
 }
 
-func (te *ToolExecutor) listCustomers() string {
-	businesses := te.loadBusinesses()
-	if len(businesses) == 0 {
-		return "Nenhuma cliente ativa no momento."
-	}
-
-	var b strings.Builder
-	fmt.Fprintf(&b, "Clientes ativas: %d\n", len(businesses))
-	for _, biz := range businesses {
-		fmt.Fprintf(&b, "- %s (%s, %s)\n", biz.GetString("name"), biz.GetString("type"), biz.GetString("city"))
-	}
-	return b.String()
-}
-
-func (te *ToolExecutor) findPost(input json.RawMessage) string {
+func (te *ToolExecutor) searchPosts(input json.RawMessage) string {
 	var args struct {
-		PostID string `json:"post_id"`
-	}
-	if err := json.Unmarshal(input, &args); err != nil || args.PostID == "" {
-		return "Parâmetro 'post_id' obrigatório."
-	}
-
-	record, err := te.App.FindRecordById(domain.CollPosts, args.PostID)
-	if err != nil {
-		return fmt.Sprintf("Post %s não encontrado.", args.PostID)
-	}
-
-	bizName := te.resolveBizName(record)
-	te.Posts = append(te.Posts, record)
-
-	status := "pendente"
-	if record.GetBool("reviewed") {
-		status = "revisado"
-	}
-	result := fmt.Sprintf("Post: %s | Cliente: %s | Status: %s", record.Id, bizName, status)
-	if note := record.GetString("review_note"); note != "" {
-		result += " | Nota: " + note
-	}
-	return result
-}
-
-func (te *ToolExecutor) listPosts(input json.RawMessage) string {
-	var args struct {
+		PostID       string `json:"post_id"`
 		CustomerName string `json:"customer_name"`
 		Status       string `json:"status"`
 	}
@@ -361,6 +330,33 @@ func (te *ToolExecutor) listPosts(input json.RawMessage) string {
 		}
 	}
 
+	// Single post detail view
+	if args.PostID != "" {
+		record, err := te.App.FindRecordById(domain.CollPosts, args.PostID)
+		if err != nil {
+			return fmt.Sprintf("Post %s não encontrado.", args.PostID)
+		}
+		te.Posts = append(te.Posts, record)
+
+		bizName := te.resolveBizName(record)
+		var b strings.Builder
+		fmt.Fprintf(&b, "id:%s\n", record.Id)
+		fmt.Fprintf(&b, "customer:%s\n", bizName)
+		fmt.Fprintf(&b, "status:%s\n", postStatus(record.GetBool("reviewed")))
+		fmt.Fprintf(&b, "caption:%s\n", record.GetString("caption"))
+		if hashtags := record.GetString("hashtags"); hashtags != "" {
+			fmt.Fprintf(&b, "hashtags:%s\n", strings.Join(decodeHashtags(hashtags), " "))
+		}
+		if note := record.GetString("production_note"); note != "" {
+			fmt.Fprintf(&b, "production_note:%s\n", note)
+		}
+		if reviewNote := record.GetString("review_note"); reviewNote != "" {
+			fmt.Fprintf(&b, "review_note:%s\n", reviewNote)
+		}
+		return b.String()
+	}
+
+	// List view
 	filter := service.ListPostsFilter{Status: args.Status}
 
 	if args.CustomerName != "" {
@@ -385,49 +381,13 @@ func (te *ToolExecutor) listPosts(input json.RawMessage) string {
 
 	bizNames := te.bizNameMap()
 	var b strings.Builder
-	fmt.Fprintf(&b, "Posts: %d\n", len(posts))
 	for _, p := range posts {
 		name := bizNames[p.GetString("business")]
 		if name == "" {
 			name = p.GetString("business")
 		}
-		status := "pendente"
-		if p.GetBool("reviewed") {
-			status = "revisado"
-		}
-		fmt.Fprintf(&b, "- %s (%s) [%s]\n", name, p.Id, status)
-	}
-	b.WriteString("O conteúdo completo dos posts será exibido automaticamente. Não inclua legendas, hashtags ou notas de produção na sua resposta.")
-	return b.String()
-}
-
-func (te *ToolExecutor) recentActivity(input json.RawMessage) string {
-	limit := 5
-	if len(input) > 0 {
-		var args struct {
-			Limit int `json:"limit"`
-		}
-		if err := json.Unmarshal(input, &args); err == nil && args.Limit > 0 {
-			limit = min(args.Limit, 20)
-		}
-	}
-
-	actions, err := service.RecentActions(te.App, limit)
-	if err != nil {
-		return "Erro ao buscar ações recentes."
-	}
-	if len(actions) == 0 {
-		return "Nenhuma ação recente."
-	}
-
-	var b strings.Builder
-	fmt.Fprintf(&b, "Últimas %d ações:\n", len(actions))
-	for _, a := range actions {
-		result := a.GetString("result")
-		if len(result) > 80 {
-			result = result[:80] + "..."
-		}
-		fmt.Fprintf(&b, "- %s: %s (%s)\n", a.GetString("operator_name"), a.GetString("action_type"), result)
+		preview := truncate(p.GetString("caption"), 60)
+		fmt.Fprintf(&b, "id:%s customer:%s status:%s preview:\"%s\"\n", shortPostID(p.Id), name, postStatus(p.GetBool("reviewed")), preview)
 	}
 	return b.String()
 }
@@ -615,8 +575,7 @@ func (te *ToolExecutor) generatePost(input json.RawMessage, operatorName string)
 
 func (te *ToolExecutor) approvePost(input json.RawMessage, operatorName string) string {
 	var args struct {
-		PostID       string `json:"post_id"`
-		CustomerName string `json:"customer_name"`
+		PostID string `json:"post_id"`
 	}
 	if err := json.Unmarshal(input, &args); err != nil {
 		return "Erro ao ler parâmetros."
@@ -647,9 +606,8 @@ func (te *ToolExecutor) approvePost(input json.RawMessage, operatorName string) 
 
 func (te *ToolExecutor) rejectPost(input json.RawMessage, operatorName string) string {
 	var args struct {
-		PostID       string `json:"post_id"`
-		CustomerName string `json:"customer_name"`
-		Feedback     string `json:"feedback"`
+		PostID   string `json:"post_id"`
+		Feedback string `json:"feedback"`
 	}
 	if err := json.Unmarshal(input, &args); err != nil {
 		return "Erro ao ler parâmetros."

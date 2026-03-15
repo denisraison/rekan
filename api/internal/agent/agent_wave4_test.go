@@ -294,7 +294,7 @@ func TestPostReject_WithFeedback(t *testing.T) {
 func TestBuildClaudeMessages_DuplicateCurrentMessage(t *testing.T) {
 	history := []ConversationMessage{
 		{Role: "user", Structured: `{"role":"user","content":[{"text":"Quais clientes?","type":"text"}]}`},
-		{Role: "assistant", Structured: `{"role":"assistant","content":[{"id":"toolu_xxx","input":{},"name":"list_customers","type":"tool_use"}]}`},
+		{Role: "assistant", Structured: `{"role":"assistant","content":[{"id":"toolu_xxx","input":{},"name":"search_customers","type":"tool_use"}]}`},
 		{Role: "user", Structured: `{"role":"user","content":[{"tool_use_id":"toolu_xxx","content":"Clientes: 1","type":"tool_result"}]}`},
 		{Role: "assistant", Structured: `{"role":"assistant","content":[{"text":"Temos 1 cliente.","type":"text"}]}`},
 		{Role: "user", Structured: `{"role":"user","content":[{"text":"algum post pendente?","type":"text"}]}`},
@@ -360,7 +360,7 @@ func TestBuildClaudeMessages_OrphanedToolResult(t *testing.T) {
 func TestBuildClaudeMessages_OrphanedToolUse(t *testing.T) {
 	history := []ConversationMessage{
 		{Role: "user", Structured: `{"role":"user","content":[{"text":"busca","type":"text"}]}`},
-		{Role: "assistant", Structured: `{"role":"assistant","content":[{"id":"toolu_orphan","input":{},"name":"find_customer","type":"tool_use"}]}`},
+		{Role: "assistant", Structured: `{"role":"assistant","content":[{"id":"toolu_orphan","input":{},"name":"search_customers","type":"tool_use"}]}`},
 		{Role: "user", Structured: `{"role":"user","content":[{"text":"esquece","type":"text"}]}`},
 		{Role: "assistant", Structured: `{"role":"assistant","content":[{"text":"ok","type":"text"}]}`},
 	}

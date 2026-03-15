@@ -253,16 +253,10 @@ type MockExecutor struct {
 // Execute dispatches a mock tool call and returns the result string.
 func (m *MockExecutor) Execute(name string, input json.RawMessage) string {
 	switch name {
-	case "find_customer":
-		return m.findCustomer(input)
-	case "list_customers":
-		return m.listCustomers()
-	case "find_post":
-		return m.findPost(input)
-	case "list_posts":
-		return m.listPosts(input)
-	case "recent_activity":
-		return "Nenhuma ação recente."
+	case "search_customers":
+		return m.searchCustomers(input)
+	case "search_posts":
+		return m.searchPosts(input)
 	case "create_customer":
 		return m.createCustomer(input)
 	case "update_customer":
@@ -280,14 +274,28 @@ func (m *MockExecutor) Execute(name string, input json.RawMessage) string {
 	}
 }
 
-func (m *MockExecutor) findCustomer(input json.RawMessage) string {
+func (m *MockExecutor) searchCustomers(input json.RawMessage) string {
 	var args struct {
 		Query string `json:"query"`
 	}
-	if err := json.Unmarshal(input, &args); err != nil || args.Query == "" {
-		return "Parâmetro 'query' obrigatório."
+	if len(input) > 0 {
+		json.Unmarshal(input, &args) //nolint:errcheck
 	}
 
+	// No query: list all
+	if args.Query == "" {
+		if len(m.Fixtures.Customers) == 0 {
+			return "Nenhuma cliente ativa no momento."
+		}
+		var b strings.Builder
+		fmt.Fprintf(&b, "Clientes ativas: %d\n", len(m.Fixtures.Customers))
+		for _, c := range m.Fixtures.Customers {
+			fmt.Fprintf(&b, "- %s (%s, %s)\n", c.Name, c.Type, c.City)
+		}
+		return b.String()
+	}
+
+	// With query: fuzzy search with full details
 	query := service.NormalizeForMatch(args.Query)
 	var matches []MockCustomer
 	for _, c := range m.Fixtures.Customers {
@@ -314,40 +322,9 @@ func (m *MockExecutor) findCustomer(input json.RawMessage) string {
 	return b.String()
 }
 
-func (m *MockExecutor) listCustomers() string {
-	if len(m.Fixtures.Customers) == 0 {
-		return "Nenhuma cliente ativa no momento."
-	}
-	var b strings.Builder
-	fmt.Fprintf(&b, "Clientes ativas: %d\n", len(m.Fixtures.Customers))
-	for _, c := range m.Fixtures.Customers {
-		fmt.Fprintf(&b, "- %s (%s, %s)\n", c.Name, c.Type, c.City)
-	}
-	return b.String()
-}
-
-func (m *MockExecutor) findPost(input json.RawMessage) string {
+func (m *MockExecutor) searchPosts(input json.RawMessage) string {
 	var args struct {
-		PostID string `json:"post_id"`
-	}
-	if err := json.Unmarshal(input, &args); err != nil || args.PostID == "" {
-		return "Parâmetro 'post_id' obrigatório."
-	}
-
-	for _, p := range m.Fixtures.Posts {
-		if p.ID == args.PostID {
-			status := "pendente"
-			if p.Reviewed {
-				status = "revisado"
-			}
-			return fmt.Sprintf("Post: %s | Cliente: %s | Status: %s", p.ID, p.Business, status)
-		}
-	}
-	return fmt.Sprintf("Post %s não encontrado.", args.PostID)
-}
-
-func (m *MockExecutor) listPosts(input json.RawMessage) string {
-	var args struct {
+		PostID       string `json:"post_id"`
 		CustomerName string `json:"customer_name"`
 		Status       string `json:"status"`
 	}
@@ -355,6 +332,28 @@ func (m *MockExecutor) listPosts(input json.RawMessage) string {
 		json.Unmarshal(input, &args) //nolint:errcheck
 	}
 
+	// Single post detail view
+	if args.PostID != "" {
+		for _, p := range m.Fixtures.Posts {
+			if p.ID == args.PostID {
+				var b strings.Builder
+				fmt.Fprintf(&b, "id:%s\n", p.ID)
+				fmt.Fprintf(&b, "customer:%s\n", p.Business)
+				fmt.Fprintf(&b, "status:%s\n", postStatus(p.Reviewed))
+				fmt.Fprintf(&b, "caption:%s\n", p.Caption)
+				if len(p.Hashtags) > 0 {
+					fmt.Fprintf(&b, "hashtags:%s\n", strings.Join(p.Hashtags, " "))
+				}
+				if p.ProductionNote != "" {
+					fmt.Fprintf(&b, "production_note:%s\n", p.ProductionNote)
+				}
+				return b.String()
+			}
+		}
+		return fmt.Sprintf("Post %s não encontrado.", args.PostID)
+	}
+
+	// List view
 	var posts []MockPost
 	for _, p := range m.Fixtures.Posts {
 		if args.CustomerName != "" && !strings.Contains(service.NormalizeForMatch(p.Business), service.NormalizeForMatch(args.CustomerName)) {
@@ -377,15 +376,10 @@ func (m *MockExecutor) listPosts(input json.RawMessage) string {
 	}
 
 	var b strings.Builder
-	fmt.Fprintf(&b, "Posts: %d\n", len(posts))
 	for _, p := range posts {
-		status := "pendente"
-		if p.Reviewed {
-			status = "revisado"
-		}
-		fmt.Fprintf(&b, "- %s (%s) [%s]\n", p.Business, p.ID, status)
+		preview := truncate(p.Caption, 60)
+		fmt.Fprintf(&b, "id:%s customer:%s status:%s preview:\"%s\"\n", shortPostID(p.ID), p.Business, postStatus(p.Reviewed), preview)
 	}
-	b.WriteString("O conteúdo completo dos posts será exibido automaticamente. Não inclua legendas, hashtags ou notas de produção na sua resposta.")
 	return b.String()
 }
 
