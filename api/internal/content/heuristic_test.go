@@ -38,8 +38,8 @@ func TestFailingSampleFailsMost(t *testing.T) {
 			failCount++
 		}
 	}
-	if failCount < 3 {
-		t.Errorf("expected at least 3 failures, got %d", failCount)
+	if failCount < 2 {
+		t.Errorf("expected at least 2 failures, got %d", failCount)
 		for _, r := range results {
 			t.Logf("  %s: pass=%v reason=%q", r.Name, r.Pass, r.Reason)
 		}
@@ -47,37 +47,10 @@ func TestFailingSampleFailsMost(t *testing.T) {
 }
 
 func TestCheckHashtags(t *testing.T) {
-	t.Run("exactly 3", func(t *testing.T) {
-		posts := []Post{{Hashtags: []string{"#one", "#two", "#three"}}}
-		r := checkHashtags(posts)
-		if !r.Pass {
-			t.Error("exactly 3 hashtags should pass")
-		}
-	})
-	t.Run("two fails", func(t *testing.T) {
-		posts := []Post{{Hashtags: []string{"#one", "#two"}}}
-		r := checkHashtags(posts)
-		if r.Pass {
-			t.Error("2 hashtags should fail")
-		}
-	})
-	t.Run("spread across posts", func(t *testing.T) {
-		posts := []Post{
-			{Hashtags: []string{"#one"}},
-			{Hashtags: []string{"#two", "#three"}},
-		}
-		r := checkHashtags(posts)
-		if !r.Pass {
-			t.Error("3 hashtags across posts should pass")
-		}
-	})
-	t.Run("none", func(t *testing.T) {
-		posts := []Post{{Hashtags: nil}}
-		r := checkHashtags(posts)
-		if r.Pass {
-			t.Error("no hashtags should fail")
-		}
-	})
+	r := checkHashtags()
+	if !r.Pass {
+		t.Error("should always pass")
+	}
 }
 
 
@@ -136,6 +109,26 @@ func TestCheckCaptionLength(t *testing.T) {
 		r := checkCaptionLength(posts)
 		if r.Pass {
 			t.Error("should fail when one post exceeds 2200")
+		}
+	})
+	t.Run("over 500 soft warning", func(t *testing.T) {
+		posts := []Post{{Caption: strings.Repeat("a", 600)}}
+		r := checkCaptionLength(posts)
+		if !r.Pass {
+			t.Error("over 500 should still pass")
+		}
+		if !strings.Contains(r.Reason, "consider shortening") {
+			t.Errorf("expected soft warning, got reason=%q", r.Reason)
+		}
+	})
+	t.Run("under 50 soft warning", func(t *testing.T) {
+		posts := []Post{{Caption: "Hey"}}
+		r := checkCaptionLength(posts)
+		if !r.Pass {
+			t.Error("under 50 should still pass")
+		}
+		if !strings.Contains(r.Reason, "consider expanding") {
+			t.Errorf("expected soft warning, got reason=%q", r.Reason)
 		}
 	})
 }

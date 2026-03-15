@@ -16,8 +16,8 @@ If the user says "optimize judges" or mentions judge calibration, the target fil
 ## Pre-loop setup
 
 1. Read the target BAML file. Remember its full contents as the original baseline.
-2. Run `make eval-fast` from the project root. This uses a single judge and 4 profiles for faster iteration.
-3. Find the most recent `.json` file in `eval/runs/` (filenames sort chronologically). Read it.
+2. Run `make eval-cheap` from the project root. This uses Gemini Flash for generation (instead of Opus) + single judge + 4 profiles. Much faster and cheaper for iteration. The `--cheap` flag sets `content.CheapMode = true`, which passes `baml.WithClient("CheapGeneratorClient")` to all generation calls.
+3. Find the most recent `.json` file in `api/runs/` (filenames sort chronologically). Read it.
 4. Note the baseline judge totals from `summary.judgeTotals`. Each value is out of 4 (one per business profile in fast mode).
 5. Initialize an empty **attempt history** list. This persists across all cycles and tracks what was tried.
 
@@ -55,8 +55,8 @@ Present the 3 candidates briefly (one line each describing the hypothesis), then
 For each candidate:
 1. Copy it over the target BAML file.
 2. Run eval:
-   - If optimizing `content.baml`: run `make eval-fast`.
-   - If optimizing `judges.baml`: run `cd eval && go run ./cmd/eval --judges --from-run runs/BASELINE.json` where `BASELINE.json` is the run file from step 3.
+   - If optimizing `content.baml`: run `make eval-cheap`.
+   - If optimizing `judges.baml`: run `set -a && . ./.env && set +a && cd api && go run ./cmd/eval --cheap --judges --from-run runs/BASELINE.json` where `BASELINE.json` is the run file from step 3.
 3. Read the resulting run JSON and record its `summary.judgeTotals`.
 
 After all 3 candidates are evaluated, restore the cycle baseline to the target file.
@@ -100,3 +100,13 @@ Cycle  Target         Candidates (winner*)                          Result    De
 State the final judge totals and how they compare to the original baseline from pre-loop setup.
 
 Leave the prompt file in its final improved state (all kept edits applied, all reverted edits undone).
+
+## Final validation with Opus
+
+After the optimization loop completes (with Gemini Flash generation), run one final validation with the real generator model:
+
+1. Run `make eval-judges` (no `--cheap` flag). This uses Opus for generation and both judge models.
+2. Compare against the last cheap run with `--diff` to check that quality holds with the real model.
+3. If Opus results are significantly worse than Flash results on any criterion, the prompt may be over-fitted to Flash's style. Note this and consider reverting the last cycle.
+
+This two-phase approach (iterate cheap, validate expensive) saves ~90% on generation costs during optimization while ensuring the final prompt works with the production model.

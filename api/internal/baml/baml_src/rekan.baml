@@ -16,9 +16,9 @@ function GenerateRekanContent(profile: BusinessProfile, roles: ContentRole[], pr
     - Diferenciais: {% for q in profile.quirks %}{{ q }}{% if not loop.last %}, {% endif %}{% endfor %}
 
     O post precisa ter:
-    - Legenda (máximo 700 caracteres)
-    - Hashtags do nicho (mínimo 5)
-    - Um convite pra ação (testar grátis, link na bio, comentar dúvida, etc.)
+    - Legenda (200 a 400 caracteres). Pode passar um pouco se a história pedir, mas nunca passe de 500.
+    - Hashtags do nicho (0 a 3, só se fizer sentido para o post). Não force hashtags genéricas.
+    - CTA é opcional. Se incluir, prefira CTAs que mantêm a pessoa no Instagram: "salva esse post", "manda pra uma amiga que precisa", "comenta aqui". Evite CTAs que tiram a pessoa do Instagram: "link na bio", "chama no zap". O algoritmo penaliza saídas da plataforma.
     - Direção de foto/vídeo na nota de produção: screenshot do app, tela do notebook, selfie trabalhando, print de conversa com usuário, etc.
 
     REGRA PRINCIPAL — valor antes de produto:
@@ -35,6 +35,9 @@ function GenerateRekanContent(profile: BusinessProfile, roles: ContentRole[], pr
     - Como fundador(a) falando com quem você quer ajudar, não como marca vendendo produto
     - Não liste features. Mostre o problema que você resolve, conte bastidores de construir o produto, compartilhe histórias de usuários reais (ou verossímeis)
     - Fale de um lugar de empatia: você entende a dor porque convive com MEIs (amigo padeiro, vizinha que tem salão, tio que faz churrasco pra fora)
+    - NUNCA use travessão (—). Se precisar separar uma ideia, use vírgula ou ponto.
+    - Separe ideias em parágrafos curtos com linha em branco entre eles. Evite blocos de texto corrido.
+    - Use palavras-chave do nicho naturalmente na legenda, especialmente nas duas primeiras frases. Ex: "app de post pra MEI" em vez de só "nosso app". O Instagram funciona como buscador e lê o texto da legenda pra distribuir o conteúdo.
     - Emojis só quando você usaria de verdade no WhatsApp
     - Mencione o nome do produto
     - Mencione a cidade ({{ profile.city }}) de forma natural (ex: "aqui de SP às 2 da manhã", "conversei com uma confeiteira de SP")

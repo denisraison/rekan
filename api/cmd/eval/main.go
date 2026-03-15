@@ -20,6 +20,7 @@ func main() {
 	fromRun := flag.String("from-run", "", "re-judge content from a previous run file (skips generation)")
 	diff := flag.Bool("diff", false, "compare two run files: --diff <before.json> <after.json>")
 	fast := flag.Bool("fast", false, "optimization mode: single judge (Gemini Flash) + 4 profiles")
+	cheap := flag.Bool("cheap", false, "use Gemini Flash for generation instead of Opus (faster iteration)")
 	roles := flag.String("roles", "", "comma-separated role names (e.g. \"bastidor,opinião,marco\")")
 	chain := flag.Int("chain", 0, "generate N consecutive batches for one profile, passing hooks forward")
 	rekan := flag.Bool("rekan", false, "use Rekan-specific generation prompt")
@@ -29,6 +30,11 @@ func main() {
 	if *fast {
 		content.JudgeClients = content.JudgeClients[:1]
 		*judges = true
+	}
+
+	if *cheap {
+		content.CheapMode = true
+		fmt.Fprintf(os.Stderr, "Using cheap generator (Gemini Flash)\n")
 	}
 
 	if *message != "" {

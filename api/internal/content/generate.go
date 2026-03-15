@@ -14,14 +14,25 @@ type Post struct {
 	ProductionNote string   `json:"productionNote"`
 }
 
+// CheapMode uses Gemini Flash instead of Opus for generation.
+// Set by the eval --cheap flag for faster iteration loops.
+var CheapMode bool
+
 // GenerateFunc is the signature for content generation functions.
 type GenerateFunc func(ctx context.Context, profile BusinessProfile, roles []Role, previousHooks []string) ([]Post, error)
 
 // GenerateFromMessageFunc is the signature for single-post generation from a WhatsApp message.
 type GenerateFromMessageFunc func(ctx context.Context, profile BusinessProfile, message string, previousHooks []string) (Post, error)
 
+func generatorOpts() []baml.CallOptionFunc {
+	if CheapMode {
+		return []baml.CallOptionFunc{baml.WithClient("CheapGeneratorClient")}
+	}
+	return nil
+}
+
 func Generate(ctx context.Context, profile BusinessProfile, roles []Role, previousHooks []string) ([]Post, error) {
-	p, err := baml.GenerateContent(ctx, toBamlProfile(profile), toBamlRoles(roles), previousHooks)
+	p, err := baml.GenerateContent(ctx, toBamlProfile(profile), toBamlRoles(roles), previousHooks, generatorOpts()...)
 	if err != nil {
 		return nil, fmt.Errorf("generate content: %w", err)
 	}
@@ -33,7 +44,7 @@ func Generate(ctx context.Context, profile BusinessProfile, roles []Role, previo
 }
 
 func GenerateRekan(ctx context.Context, profile BusinessProfile, roles []Role, previousHooks []string) ([]Post, error) {
-	p, err := baml.GenerateRekanContent(ctx, toBamlProfile(profile), toBamlRoles(roles), previousHooks)
+	p, err := baml.GenerateRekanContent(ctx, toBamlProfile(profile), toBamlRoles(roles), previousHooks, generatorOpts()...)
 	if err != nil {
 		return nil, fmt.Errorf("generate rekan content: %w", err)
 	}
@@ -45,7 +56,7 @@ func GenerateRekan(ctx context.Context, profile BusinessProfile, roles []Role, p
 }
 
 func GenerateFromMessage(ctx context.Context, profile BusinessProfile, message string, previousHooks []string) (Post, error) {
-	bamlPost, err := baml.GenerateFromMessage(ctx, toBamlProfile(profile), message, previousHooks)
+	bamlPost, err := baml.GenerateFromMessage(ctx, toBamlProfile(profile), message, previousHooks, generatorOpts()...)
 	if err != nil {
 		return Post{}, fmt.Errorf("generate from message: %w", err)
 	}

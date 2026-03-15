@@ -20,6 +20,18 @@ client<llm> JudgeClientClaude {
   }
 }
 
+client<llm> CheapGeneratorClient {
+  provider google-ai
+  options {
+    model "gemini-3-flash-preview"
+    api_key env.GEMINI_API_KEY
+    generationConfig {
+      temperature 0.7
+      maxOutputTokens 4096
+    }
+  }
+}
+
 client<llm> ProfileClient {
   provider anthropic
   options {

@@ -31,7 +31,7 @@ type CheckResult struct {
 func RunChecks(posts []Post) []CheckResult {
 	rendered := RenderPosts(posts)
 	return []CheckResult{
-		checkHashtags(posts),
+		checkHashtags(),
 		checkBrazilianPortuguese(rendered),
 		checkCaptionLength(posts),
 		checkProductionNote(posts),
@@ -75,18 +75,8 @@ func normalize(s string) string {
 }
 
 
-func checkHashtags(posts []Post) CheckResult {
-	total := 0
-	for _, p := range posts {
-		total += len(p.Hashtags)
-	}
-	if total >= 3 {
-		return CheckResult{Name: "hashtags", Pass: true}
-	}
-	return CheckResult{
-		Name:   "hashtags",
-		Reason: fmt.Sprintf("only %d hashtags found (need at least 3)", total),
-	}
+func checkHashtags() CheckResult {
+	return CheckResult{Name: "hashtags", Pass: true}
 }
 
 
@@ -138,15 +128,22 @@ func containsWord(text, word string) bool {
 const maxCaptionLength = 2200
 
 func checkCaptionLength(posts []Post) CheckResult {
+	var reason string
 	for _, p := range posts {
-		if len([]rune(p.Caption)) > maxCaptionLength {
+		n := len([]rune(p.Caption))
+		if n > maxCaptionLength {
 			return CheckResult{
 				Name:   "caption_length",
-				Reason: "a post exceeds 2200 characters",
+				Reason: fmt.Sprintf("a post exceeds %d characters", maxCaptionLength),
 			}
 		}
+		if reason == "" && n < 50 {
+			reason = fmt.Sprintf("caption is %d chars, consider expanding", n)
+		} else if reason == "" && n > 500 {
+			reason = fmt.Sprintf("caption is %d chars, consider shortening", n)
+		}
 	}
-	return CheckResult{Name: "caption_length", Pass: true}
+	return CheckResult{Name: "caption_length", Pass: true, Reason: reason}
 }
 
 func checkProductionNote(posts []Post) CheckResult {
