@@ -7,7 +7,6 @@ import (
 	"fmt"
 	"io"
 	"net/http"
-	"os"
 )
 
 const (
@@ -18,15 +17,15 @@ const (
 
 // Client calls the Anthropic Messages API directly.
 type Client struct {
-	APIKey  string
+	APIKey  string //nolint:gosec // G117: field name matches secret pattern, but value comes from env
 	Model   string
 	BaseURL string
 }
 
-// NewClient creates a Client using CLAUDE_API_KEY from env.
-func NewClient() *Client {
+// NewClient creates a Client with the given API key.
+func NewClient(apiKey string) *Client {
 	return &Client{
-		APIKey:  os.Getenv("CLAUDE_API_KEY"),
+		APIKey:  apiKey,
 		Model:   defaultModel,
 		BaseURL: defaultBaseURL,
 	}

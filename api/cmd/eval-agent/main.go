@@ -92,7 +92,12 @@ func main() {
 	fmt.Printf("Running %d cases...\n\n", len(allCases))
 
 	ctx := context.Background()
-	results := agent.RunEval(ctx, allCases)
+	apiKey := os.Getenv("CLAUDE_API_KEY")
+	if apiKey == "" {
+		fmt.Fprintln(os.Stderr, "CLAUDE_API_KEY not set")
+		os.Exit(1)
+	}
+	results := agent.RunEval(ctx, apiKey, allCases)
 
 	// Print table
 	maxID := 0

@@ -29,7 +29,7 @@ type Agent struct {
 }
 
 // New creates a new Agent instance.
-func New(app core.App, waClient WAClient, logger *slog.Logger, tc *transcribe.Client, gen content.GenerateFunc) *Agent {
+func New(app core.App, waClient WAClient, logger *slog.Logger, tc *transcribe.Client, gen content.GenerateFunc, claudeAPIKey string) *Agent {
 	return &Agent{
 		App:        app,
 		WAClient:   waClient,
@@ -37,7 +37,7 @@ func New(app core.App, waClient WAClient, logger *slog.Logger, tc *transcribe.Cl
 		Debouncer:  NewDebouncer(),
 		Transcribe: tc,
 		Generate:   gen,
-		Claude:     NewClient(),
+		Claude:     NewClient(claudeAPIKey),
 	}
 }
 

@@ -55,7 +55,10 @@ func (b *ContentBlock) UnmarshalJSON(data []byte) error {
 			Text string `json:"text"`
 		}
 		if json.Unmarshal(c, &blocks) == nil && len(blocks) > 0 {
-			str, _ := json.Marshal(blocks[0].Text)
+			str, err := json.Marshal(blocks[0].Text)
+			if err != nil {
+				return err
+			}
 			raw["content"] = str
 		} else {
 			delete(raw, "content")

@@ -3,7 +3,8 @@ package agent
 import (
 	"context"
 	"encoding/json"
-	"fmt"
+	"errors"
+	"io"
 	"net/http"
 	"net/http/httptest"
 	"sync/atomic"
@@ -18,8 +19,18 @@ func mockAPIResponse(content []ContentBlock, stopReason string) []byte {
 		StopReason: stopReason,
 		Usage:      apiUsage{InputTokens: 100, OutputTokens: 50},
 	}
-	data, _ := json.Marshal(resp)
+	data, err := json.Marshal(resp)
+	if err != nil {
+		panic("mockAPIResponse: " + err.Error())
+	}
 	return data
+}
+
+// writeResponse writes a mock API response to an http.ResponseWriter.
+func writeResponse(w http.ResponseWriter, content []ContentBlock, stopReason string) {
+	if _, err := w.Write(mockAPIResponse(content, stopReason)); err != nil {
+		panic("writeResponse: " + err.Error())
+	}
 }
 
 func testClient(url string) *Client {
@@ -31,9 +42,9 @@ func testClient(url string) *Client {
 }
 
 func TestRun_NoTools(t *testing.T) {
-	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
 		w.Header().Set("Content-Type", "application/json")
-		w.Write(mockAPIResponse([]ContentBlock{NewTextBlock("Oi!")}, "end_turn"))
+		writeResponse(w, []ContentBlock{NewTextBlock("Oi!")}, "end_turn")
 	}))
 	defer server.Close()
 
@@ -59,20 +70,18 @@ func TestRun_NoTools(t *testing.T) {
 
 func TestRun_ToolTurn(t *testing.T) {
 	callCount := 0
-	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
 		callCount++
 		w.Header().Set("Content-Type", "application/json")
 
 		if callCount == 1 {
-			// First call: model wants to use a tool
-			w.Write(mockAPIResponse([]ContentBlock{
+			writeResponse(w, []ContentBlock{
 				{Type: "tool_use", ID: "toolu_123", Name: "greet", Input: json.RawMessage(`{"name":"Ana"}`)},
-			}, "tool_use"))
+			}, "tool_use")
 			return
 		}
 
-		// Second call: model gives final text
-		w.Write(mockAPIResponse([]ContentBlock{NewTextBlock("Ana says hi!")}, "end_turn"))
+		writeResponse(w, []ContentBlock{NewTextBlock("Ana says hi!")}, "end_turn")
 	}))
 	defer server.Close()
 
@@ -87,9 +96,13 @@ func TestRun_ToolTurn(t *testing.T) {
 				"name": map[string]any{"type": "string"},
 			},
 		}),
-		Execute: func(ctx context.Context, input json.RawMessage) (string, error) {
-			var args struct{ Name string }
-			json.Unmarshal(input, &args)
+		Execute: func(_ context.Context, input json.RawMessage) (string, error) {
+			var args struct {
+				Name string `json:"name"`
+			}
+			if err := json.Unmarshal(input, &args); err != nil {
+				return "", err
+			}
 			return "Hello, " + args.Name + "!", nil
 		},
 	}}
@@ -136,17 +149,23 @@ func TestRun_ToolErrorPropagated(t *testing.T) {
 		w.Header().Set("Content-Type", "application/json")
 
 		if callCount == 1 {
-			w.Write(mockAPIResponse([]ContentBlock{
+			writeResponse(w, []ContentBlock{
 				{Type: "tool_use", ID: "toolu_err", Name: "fail_tool", Input: json.RawMessage(`{}`)},
-			}, "tool_use"))
+			}, "tool_use")
 			return
 		}
 
 		// Verify the tool result has is_error set
 		var req apiRequest
-		body := make([]byte, r.ContentLength)
-		r.Body.Read(body)
-		json.Unmarshal(body, &req)
+		body, err := io.ReadAll(r.Body)
+		if err != nil {
+			t.Errorf("reading request body: %v", err)
+			return
+		}
+		if err := json.Unmarshal(body, &req); err != nil {
+			t.Errorf("unmarshaling request: %v", err)
+			return
+		}
 
 		lastMsg := req.Messages[len(req.Messages)-1]
 		for _, block := range lastMsg.Content {
@@ -155,7 +174,7 @@ func TestRun_ToolErrorPropagated(t *testing.T) {
 			}
 		}
 
-		w.Write(mockAPIResponse([]ContentBlock{NewTextBlock("Tool failed, sorry.")}, "end_turn"))
+		writeResponse(w, []ContentBlock{NewTextBlock("Tool failed, sorry.")}, "end_turn")
 	}))
 	defer server.Close()
 
@@ -165,8 +184,8 @@ func TestRun_ToolErrorPropagated(t *testing.T) {
 		Name:        "fail_tool",
 		Description: "Always fails",
 		InputSchema: marshalSchema(map[string]any{"type": "object", "properties": map[string]any{}}),
-		Execute: func(ctx context.Context, input json.RawMessage) (string, error) {
-			return "", fmt.Errorf("something went wrong")
+		Execute: func(_ context.Context, _ json.RawMessage) (string, error) {
+			return "", errors.New("something went wrong")
 		},
 	}}
 
@@ -192,12 +211,12 @@ func TestRun_ToolErrorPropagated(t *testing.T) {
 }
 
 func TestRun_MaxTurns(t *testing.T) {
-	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
 		w.Header().Set("Content-Type", "application/json")
 		// Always request a tool call, never finish
-		w.Write(mockAPIResponse([]ContentBlock{
+		writeResponse(w, []ContentBlock{
 			{Type: "tool_use", ID: "toolu_loop", Name: "noop", Input: json.RawMessage(`{}`)},
-		}, "tool_use"))
+		}, "tool_use")
 	}))
 	defer server.Close()
 
@@ -207,7 +226,7 @@ func TestRun_MaxTurns(t *testing.T) {
 		Name:        "noop",
 		Description: "Does nothing",
 		InputSchema: marshalSchema(map[string]any{"type": "object", "properties": map[string]any{}}),
-		Execute: func(ctx context.Context, input json.RawMessage) (string, error) {
+		Execute: func(_ context.Context, _ json.RawMessage) (string, error) {
 			return "ok", nil
 		},
 	}}
@@ -229,9 +248,15 @@ func TestRun_MaxTurns(t *testing.T) {
 func TestRun_ConcurrentExecution(t *testing.T) {
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		var req apiRequest
-		body := make([]byte, r.ContentLength)
-		r.Body.Read(body)
-		json.Unmarshal(body, &req)
+		body, err := io.ReadAll(r.Body)
+		if err != nil {
+			t.Errorf("reading request body: %v", err)
+			return
+		}
+		if err := json.Unmarshal(body, &req); err != nil {
+			t.Errorf("unmarshaling request: %v", err)
+			return
+		}
 
 		w.Header().Set("Content-Type", "application/json")
 
@@ -246,14 +271,14 @@ func TestRun_ConcurrentExecution(t *testing.T) {
 		}
 
 		if !hasToolResult {
-			w.Write(mockAPIResponse([]ContentBlock{
+			writeResponse(w, []ContentBlock{
 				{Type: "tool_use", ID: "toolu_a", Name: "slow_tool", Input: json.RawMessage(`{"id":"a"}`)},
 				{Type: "tool_use", ID: "toolu_b", Name: "slow_tool", Input: json.RawMessage(`{"id":"b"}`)},
-			}, "tool_use"))
+			}, "tool_use")
 			return
 		}
 
-		w.Write(mockAPIResponse([]ContentBlock{NewTextBlock("Both done!")}, "end_turn"))
+		writeResponse(w, []ContentBlock{NewTextBlock("Both done!")}, "end_turn")
 	}))
 	defer server.Close()
 
@@ -266,7 +291,7 @@ func TestRun_ConcurrentExecution(t *testing.T) {
 		Name:        "slow_tool",
 		Description: "Sleeps briefly",
 		InputSchema: marshalSchema(map[string]any{"type": "object", "properties": map[string]any{"id": map[string]any{"type": "string"}}}),
-		Execute: func(ctx context.Context, input json.RawMessage) (string, error) {
+		Execute: func(_ context.Context, _ json.RawMessage) (string, error) {
 			cur := concurrent.Add(1)
 			for {
 				old := maxConcurrent.Load()

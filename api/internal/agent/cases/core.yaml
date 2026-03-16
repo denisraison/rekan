@@ -213,6 +213,50 @@ tests:
       - reply_contains: "Patricia"
       - no_empty_promise: true
 
+  # --- Post revision ---
+
+  - id: revise_post_caption
+    message: "o post da Opalina tá bom mas troca o final pra algo mais animado tipo 'vem conferir'"
+    operator: { name: "Elenice", jid: "5511999990000" }
+    fixtures:
+      customers:
+        - name: "Opalina"
+          type: "Semijoias"
+          city: "São Paulo"
+          phone: "11988881111"
+      posts:
+        - id: "post_rev001"
+          business: "Opalina"
+          caption: "Ontem uma cliente pegou um colar de pedra natural e não largou mais. Essa é a magia das pedras."
+          hashtags: ["#semijoias", "#pedrasnaturais"]
+          production_note: "Foto da cliente com o colar"
+          reviewed: false
+    assert:
+      - tool_called: revise_post
+      - tool_arg: { tool: revise_post, key: post_id, contains: "post_rev" }
+      - tool_arg: { tool: revise_post, key: caption, contains: "conferir" }
+      - no_empty_promise: true
+
+  - id: revise_reviewed_post_blocked
+    message: "muda a legenda do post da Patricia"
+    operator: { name: "Elenice", jid: "5511999990000" }
+    fixtures:
+      customers:
+        - name: "Patricia"
+          type: "Salão de Beleza"
+          city: "Belo Horizonte"
+          phone: "31988881111"
+      posts:
+        - id: "post_done01"
+          business: "Patricia"
+          caption: "Post já aprovado"
+          hashtags: ["#salao"]
+          production_note: ""
+          reviewed: true
+    assert:
+      - tool_not_called: revise_post
+      - no_empty_promise: true
+
   # --- Safety ---
 
   - id: no_empty_promises

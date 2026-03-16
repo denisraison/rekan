@@ -124,8 +124,8 @@ type evalResult struct {
 }
 
 // RunEval runs all test cases in parallel (max 5 concurrent) and returns results.
-func RunEval(ctx context.Context, cases []TestCase) []TestResult {
-	client := NewClient()
+func RunEval(ctx context.Context, apiKey string, cases []TestCase) []TestResult {
+	client := NewClient(apiKey)
 
 	results := make([]TestResult, len(cases))
 	sem := make(chan struct{}, 5)
@@ -267,6 +267,8 @@ func (m *MockExecutor) Execute(name string, input json.RawMessage) string {
 		return m.approvePost(input)
 	case "reject_post":
 		return m.rejectPost(input)
+	case "revise_post":
+		return m.revisePost(input)
 	default:
 		return "Ferramenta desconhecida: " + name
 	}
@@ -405,12 +407,12 @@ func (m *MockExecutor) updateCustomer(input json.RawMessage) string {
 		return "Erro ao ler parâmetros."
 	}
 	if args.Status == "paused" {
-		return fmt.Sprintf("%s pausada.", args.Name)
+		return args.Name + " pausada."
 	}
 	if args.Status == "active" {
-		return fmt.Sprintf("%s reativada.", args.Name)
+		return args.Name + " reativada."
 	}
-	return fmt.Sprintf("%s atualizada.", args.Name)
+	return args.Name + " atualizada."
 }
 
 func (m *MockExecutor) generatePost(input json.RawMessage) string {
@@ -469,6 +471,56 @@ func (m *MockExecutor) rejectPost(input json.RawMessage) string {
 		return fmt.Sprintf("Post da %s rejeitado. Feedback: %s.", match.Business, args.Feedback)
 	}
 	return fmt.Sprintf("Post da %s rejeitado.", match.Business)
+}
+
+func (m *MockExecutor) revisePost(input json.RawMessage) string {
+	var args struct {
+		PostID         string   `json:"post_id"`
+		Caption        string   `json:"caption"`
+		Hashtags       []string `json:"hashtags"`
+		ProductionNote string   `json:"production_note"`
+	}
+	if err := json.Unmarshal(input, &args); err != nil {
+		return "Erro ao ler parâmetros."
+	}
+
+	match, errMsg := m.resolvePostByPrefix(args.PostID)
+	if errMsg != "" {
+		return errMsg
+	}
+	if match.Reviewed {
+		return "Post já foi revisado, não pode mais editar."
+	}
+
+	type field struct {
+		key string
+		val string
+	}
+	var updated []field
+	if args.Caption != "" {
+		updated = append(updated, field{"caption", args.Caption})
+	}
+	if len(args.Hashtags) > 0 {
+		updated = append(updated, field{"hashtags", strings.Join(args.Hashtags, " ")})
+	}
+	if args.ProductionNote != "" {
+		updated = append(updated, field{"production_note", args.ProductionNote})
+	}
+	if len(updated) == 0 {
+		return "Nenhum campo pra atualizar."
+	}
+
+	labels := make([]string, len(updated))
+	for i, f := range updated {
+		labels[i] = fieldLabel(f.key)
+	}
+
+	var b strings.Builder
+	fmt.Fprintf(&b, "Post da %s atualizado. Campos: %s.\n", match.Business, strings.Join(labels, ", "))
+	for _, f := range updated {
+		fmt.Fprintf(&b, "%s:%s\n", f.key, f.val)
+	}
+	return b.String()
 }
 
 // resolveCustomerByNameOrID resolves a mock customer by ID or fuzzy name match.
@@ -608,7 +660,7 @@ func assertReplyNotContains(substr string, reply string) CheckResult {
 }
 
 // promisePatterns matches first-person Portuguese verbs that claim an action was completed.
-var promisePatterns = regexp.MustCompile(`(?i)\b(cadastrei|atualizei|aprovei|rejeitei|pausei|gerei|alterei|criei|cadastrou|atualizou|aprovou|rejeitou|pausou|gerou)\b`)
+var promisePatterns = regexp.MustCompile(`(?i)\b(cadastrei|atualizei|aprovei|rejeitei|pausei|gerei|alterei|criei|editei|ajustei|revisei|cadastrou|atualizou|aprovou|rejeitou|pausou|gerou|editou|ajustou|revisou)\b`)
 
 // questionPattern detects sentences that are questions (contain verb near a ?).
 var questionPattern = regexp.MustCompile(`(?i)\b(quer|posso|devo|gostaria|prefere|deseja)\b.*\?`)
@@ -620,6 +672,7 @@ var writeToolNames = map[string]bool{
 	"approve_post":    true,
 	"reject_post":     true,
 	"generate_post":   true,
+	"revise_post":     true,
 }
 
 func assertNoEmptyPromise(reply string, toolsCalled []string) CheckResult {

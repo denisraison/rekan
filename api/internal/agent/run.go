@@ -152,6 +152,9 @@ func (c *Client) Run(ctx context.Context, cfg RunConfig) (*RunResult, error) {
 
 // marshalSchema converts a map to json.RawMessage for tool input schemas.
 func marshalSchema(v any) json.RawMessage {
-	data, _ := json.Marshal(v)
+	data, err := json.Marshal(v)
+	if err != nil {
+		panic("marshalSchema: " + err.Error())
+	}
 	return data
 }

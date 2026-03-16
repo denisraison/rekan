@@ -2,6 +2,8 @@ package service
 
 import (
 	"context"
+	"encoding/json"
+	"errors"
 	"fmt"
 	"strings"
 
@@ -280,6 +282,51 @@ func RejectPostRecord(app core.App, record *core.Record, feedback string) (*core
 		return nil, fmt.Errorf("rejecting post: %w", err)
 	}
 	return record, nil
+}
+
+// RevisePostParams holds optional fields for updating a pending post.
+type RevisePostParams struct {
+	Caption        *string
+	Hashtags       *[]string
+	ProductionNote *string
+}
+
+// RevisePost updates fields on a pending post and sets edited=true.
+// Returns the list of updated field keys.
+func RevisePost(app core.App, record *core.Record, params RevisePostParams) ([]string, error) {
+	if record.GetBool("reviewed") {
+		return nil, errors.New("post já foi revisado")
+	}
+
+	var updated []string
+	if params.Caption != nil && *params.Caption != record.GetString("caption") {
+		record.Set("caption", *params.Caption)
+		updated = append(updated, "caption")
+	}
+	if params.Hashtags != nil {
+		encoded, err := json.Marshal(*params.Hashtags)
+		if err != nil {
+			return nil, fmt.Errorf("marshal hashtags: %w", err)
+		}
+		if string(encoded) != record.GetString("hashtags") {
+			record.Set("hashtags", string(encoded))
+			updated = append(updated, "hashtags")
+		}
+	}
+	if params.ProductionNote != nil && *params.ProductionNote != record.GetString("production_note") {
+		record.Set("production_note", *params.ProductionNote)
+		updated = append(updated, "production_note")
+	}
+
+	if len(updated) == 0 {
+		return nil, nil
+	}
+
+	record.Set("edited", true)
+	if err := app.Save(record); err != nil {
+		return nil, fmt.Errorf("saving revised post: %w", err)
+	}
+	return updated, nil
 }
 
 // RecentActions returns the most recent entries from the action log.

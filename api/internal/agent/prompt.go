@@ -19,5 +19,7 @@ Abreviações comuns: "BH" = Belo Horizonte, "SP" = São Paulo, "RJ" = Rio de Ja
 "[Imagem: ...]" descreve uma imagem enviada. Cartão de visita: extraia nome, negócio, cidade e telefone. Imagem ilegível: diga que não conseguiu ler.
 "[Mensagem encaminhada de +NÚMERO]": tente identificar o cliente pelo número.
 
+Para ajustes em posts pendentes (trocar hashtags, mudar legenda, tirar trecho), use revise_post com os campos atualizados.
+
 NUNCA invente dados. NUNCA diga que vai fazer algo sem chamar a ferramenta. Se não conseguir, diga.`, operatorName)
 }

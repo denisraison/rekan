@@ -148,6 +148,16 @@ func buildTools(executor *ToolExecutor, operatorName string) []Tool {
 			}, "post_id", "feedback"),
 			func(input json.RawMessage) string { return executor.rejectPost(input, operatorName) },
 		),
+		writeTool("revise_post",
+			"Atualiza o conteúdo de um post pendente. Envia apenas os campos que mudaram.",
+			schema(map[string]any{
+				"post_id":         map[string]any{"type": "string", "description": "ID do post"},
+				"caption":         map[string]any{"type": "string", "description": "Nova legenda"},
+				"hashtags":        map[string]any{"type": "array", "items": map[string]any{"type": "string"}, "description": "Novas hashtags"},
+				"production_note": map[string]any{"type": "string", "description": "Nova nota de produção"},
+			}, "post_id"),
+			func(input json.RawMessage) string { return executor.revisePost(input) },
+		),
 	}
 }
 
@@ -183,6 +193,9 @@ var fieldLabels = map[string]string{
 	"target_audience": "público",
 	"brand_vibe":      "vibe",
 	"quirks":          "obs",
+	"caption":         "legenda",
+	"hashtags":        "hashtags",
+	"production_note": "nota de produção",
 }
 
 func fieldLabel(key string) string {
@@ -481,7 +494,7 @@ func (te *ToolExecutor) updateCustomer(input json.RawMessage, _ string) string {
 			return "Erro ao pausar: " + err.Error()
 		}
 		te.businesses = nil
-		return fmt.Sprintf("%s pausada.", args.Name)
+		return args.Name + " pausada."
 	}
 	if args.Status == "active" {
 		record.Set("invite_status", domain.InviteStatusActive)
@@ -489,7 +502,7 @@ func (te *ToolExecutor) updateCustomer(input json.RawMessage, _ string) string {
 			return "Erro ao reativar: " + err.Error()
 		}
 		te.businesses = nil
-		return fmt.Sprintf("%s reativada.", args.Name)
+		return args.Name + " reativada."
 	}
 
 	p := service.UpdateBusinessParams{}
@@ -637,6 +650,67 @@ func (te *ToolExecutor) rejectPost(input json.RawMessage, _ string) string {
 		return fmt.Sprintf("Post da %s rejeitado. Feedback: %s.", bizName, args.Feedback)
 	}
 	return fmt.Sprintf("Post da %s rejeitado.", bizName)
+}
+
+func (te *ToolExecutor) revisePost(input json.RawMessage) string {
+	var args struct {
+		PostID         string   `json:"post_id"`
+		Caption        string   `json:"caption"`
+		Hashtags       []string `json:"hashtags"`
+		ProductionNote string   `json:"production_note"`
+	}
+	if err := json.Unmarshal(input, &args); err != nil {
+		return "Erro ao ler parâmetros."
+	}
+
+	if args.PostID == "" {
+		return "Qual post quer editar?"
+	}
+
+	post, errMsg := te.resolvePostByPrefix(args.PostID)
+	if errMsg != "" {
+		return errMsg
+	}
+
+	if post.GetBool("reviewed") {
+		return "Post já foi revisado, não pode mais editar."
+	}
+
+	params := service.RevisePostParams{}
+	if args.Caption != "" {
+		params.Caption = &args.Caption
+	}
+	if len(args.Hashtags) > 0 {
+		params.Hashtags = &args.Hashtags
+	}
+	if args.ProductionNote != "" {
+		params.ProductionNote = &args.ProductionNote
+	}
+
+	updatedKeys, err := service.RevisePost(te.App, post, params)
+	if err != nil {
+		return "Erro ao editar: " + err.Error()
+	}
+	if len(updatedKeys) == 0 {
+		return "Nenhum campo pra atualizar."
+	}
+
+	labels := make([]string, len(updatedKeys))
+	for i, key := range updatedKeys {
+		labels[i] = fieldLabel(key)
+	}
+
+	bizName := te.resolveBizName(post)
+	var b strings.Builder
+	fmt.Fprintf(&b, "Post da %s atualizado. Campos: %s.\n", bizName, strings.Join(labels, ", "))
+	fmt.Fprintf(&b, "caption:%s\n", post.GetString("caption"))
+	if hashtags := post.GetString("hashtags"); hashtags != "" {
+		fmt.Fprintf(&b, "hashtags:%s\n", strings.Join(decodeHashtags(hashtags), " "))
+	}
+	if note := post.GetString("production_note"); note != "" {
+		fmt.Fprintf(&b, "production_note:%s\n", note)
+	}
+	return b.String()
 }
 
 // sendPostToClient sends the post content to the client's WhatsApp.

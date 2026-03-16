@@ -90,12 +90,15 @@ func TestCustomerCreate_HappyPath(t *testing.T) {
 	app := newWave4TestApp(t)
 	te := newExecutor(t, app)
 
-	result, _ := callTool(t, te, "create_customer", map[string]any{
+	result, err := callTool(t, te, "create_customer", map[string]any{
 		"name":  "Ana",
 		"type":  "Manicure",
 		"city":  "Goiania",
 		"phone": "62999990000",
 	}, "Elenice")
+	if err != nil {
+		t.Fatal(err)
+	}
 
 	if !strings.Contains(result, "cadastrada") {
 		t.Errorf("expected 'cadastrada' in result, got: %s", result)
@@ -128,10 +131,13 @@ func TestCustomerUpdate_HappyPath(t *testing.T) {
 	wave4SeedBusiness(t, app, "Patricia", "Salão", "BH")
 	te := newExecutor(t, app)
 
-	result, _ := callTool(t, te, "update_customer", map[string]any{
+	result, err := callTool(t, te, "update_customer", map[string]any{
 		"name": "Patricia",
 		"city": "Contagem",
 	}, "Bruna")
+	if err != nil {
+		t.Fatal(err)
+	}
 
 	if !strings.Contains(result, "atualizada") {
 		t.Errorf("expected 'atualizada' in result, got: %s", result)
@@ -156,10 +162,13 @@ func TestCustomerUpdate_NotFound(t *testing.T) {
 	app := newWave4TestApp(t)
 	te := newExecutor(t, app)
 
-	result, _ := callTool(t, te, "update_customer", map[string]any{
+	result, err := callTool(t, te, "update_customer", map[string]any{
 		"name": "Inexistente",
 		"city": "SP",
 	}, "Bruna")
+	if err != nil {
+		t.Fatal(err)
+	}
 
 	if !strings.Contains(result, "Não encontrei") {
 		t.Errorf("expected 'Não encontrei' in result, got: %s", result)
@@ -171,10 +180,13 @@ func TestCustomerPause_HappyPath(t *testing.T) {
 	wave4SeedBusiness(t, app, "Joana", "Loja", "RJ")
 	te := newExecutor(t, app)
 
-	result, _ := callTool(t, te, "update_customer", map[string]any{
+	result, err := callTool(t, te, "update_customer", map[string]any{
 		"name":   "Joana",
 		"status": "paused",
 	}, "Bruna")
+	if err != nil {
+		t.Fatal(err)
+	}
 
 	if !strings.Contains(result, "pausada") {
 		t.Errorf("expected 'pausada' in result, got: %s", result)
@@ -213,9 +225,12 @@ func TestPostGenerate_HappyPath(t *testing.T) {
 		Generate: fakeGenerate,
 	}
 
-	result, _ := callTool(t, te, "generate_post", map[string]any{
+	result, err := callTool(t, te, "generate_post", map[string]any{
 		"customer_name": "Patricia",
 	}, "Elenice")
+	if err != nil {
+		t.Fatal(err)
+	}
 
 	if !strings.Contains(result, "Post gerado") {
 		t.Errorf("expected 'Post gerado' in result, got: %s", result)
@@ -243,10 +258,13 @@ func TestPostApprove_HappyPath(t *testing.T) {
 	post := wave4SeedPost(t, app, biz.Id, "Hoje no salão foi dia de transformação...")
 	te := newExecutor(t, app)
 
-	result, _ := callTool(t, te, "approve_post", map[string]any{
+	result, err := callTool(t, te, "approve_post", map[string]any{
 		"post_id":       post.Id,
 		"customer_name": "Patricia",
 	}, "Bruna")
+	if err != nil {
+		t.Fatal(err)
+	}
 
 	if !strings.Contains(result, "aprovado") {
 		t.Errorf("expected 'aprovado' in result, got: %s", result)
@@ -267,11 +285,14 @@ func TestPostReject_WithFeedback(t *testing.T) {
 	post := wave4SeedPost(t, app, biz.Id, "Bolo caseiro é sempre a melhor pedida...")
 	te := newExecutor(t, app)
 
-	result, _ := callTool(t, te, "reject_post", map[string]any{
+	result, err := callTool(t, te, "reject_post", map[string]any{
 		"post_id":       post.Id,
 		"customer_name": "Maria",
 		"feedback":      "muito genérico",
 	}, "Elenice")
+	if err != nil {
+		t.Fatal(err)
+	}
 
 	if !strings.Contains(result, "rejeitado") {
 		t.Errorf("expected 'rejeitado' in result, got: %s", result)
@@ -471,22 +492,27 @@ func TestDoubleCreate_Idempotent(t *testing.T) {
 	app := newWave4TestApp(t)
 	te := newExecutor(t, app)
 
-	callTool(t, te, "create_customer", map[string]any{
+	if _, err := callTool(t, te, "create_customer", map[string]any{
 		"name":  "Ana",
 		"type":  "Manicure",
 		"city":  "SP",
 		"phone": "11999990000",
-	}, "Elenice")
+	}, "Elenice"); err != nil {
+		t.Fatal(err)
+	}
 
 	// Reset cached businesses so findDuplicate picks up the new record
 	te.businesses = nil
 
-	result, _ := callTool(t, te, "create_customer", map[string]any{
+	result, err := callTool(t, te, "create_customer", map[string]any{
 		"name":  "Ana",
 		"type":  "Manicure",
 		"city":  "SP",
 		"phone": "11999990000",
 	}, "Elenice")
+	if err != nil {
+		t.Fatal(err)
+	}
 
 	if !strings.Contains(result, "já existe") {
 		t.Errorf("expected duplicate detection, got: %s", result)
